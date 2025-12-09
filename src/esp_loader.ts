@@ -266,7 +266,7 @@ export class ESPLoader extends EventTarget {
       }
     }
 
-    // Fallback: Use magic value detection for ESP8266, ESP32, ESP32-S2, and ESP32-P4 RC versions
+    // Fallback: Use magic value detection for ESP8266, ESP32, ESP32-S2
     const chipMagicValue = await this.readRegister(CHIP_DETECT_MAGIC_REG_ADDR);
     const chip = CHIP_DETECT_MAGIC_VALUES[chipMagicValue >>> 0];
     if (chip === undefined) {
@@ -280,7 +280,6 @@ export class ESPLoader extends EventTarget {
     this.chipName = chip.name;
     this.chipFamily = chip.family;
 
-    // For ESP32-P4 detected via magic value (old revisions), set variant
     if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
       this.chipRevision = await this.getChipRevision();
       this.logger.debug(`ESP32-P4 revision: ${this.chipRevision}`);
@@ -1195,7 +1194,7 @@ export class ESPLoader extends EventTarget {
     misoBits: number,
   ) {
     if (spiAddresses.mosiDlenOffs != -1) {
-      // ESP32/32S2/32S3/32C3 has a more sophisticated way to set up "user" commands
+      // Actual MCUs have a more sophisticated way to set up "user" commands
       const SPI_MOSI_DLEN_REG =
         spiAddresses.regBase + spiAddresses.mosiDlenOffs;
       const SPI_MISO_DLEN_REG =
@@ -1247,7 +1246,7 @@ export class ESPLoader extends EventTarget {
     const SPI_USR_MISO = 1 << 28;
     const SPI_USR_MOSI = 1 << 27;
 
-    // SPI registers, base address differs ESP32* vs 8266
+    // SPI registers, base address differs
     const spiAddresses = getSpiFlashAddresses(this.getChipFamily());
     const base = spiAddresses.regBase;
     const SPI_CMD_REG = base;
@@ -1545,7 +1544,7 @@ export class ESPLoader extends EventTarget {
     const savedChipVariant = this.chipVariant;
     const savedFlashSize = this.flashSize;
 
-    // Reinitialize without chip detection
+    // Reinitialize
     await this.hardReset(true);
 
     if (!this._parent) {
@@ -1557,7 +1556,7 @@ export class ESPLoader extends EventTarget {
     await this.flushSerialBuffers();
     await this.sync();
 
-    // Restore chip info (skip detection)
+    // Restore chip info
     this.chipFamily = savedChipFamily;
     this.chipName = savedChipName;
     this.chipRevision = savedChipRevision;
@@ -1571,7 +1570,7 @@ export class ESPLoader extends EventTarget {
       throw new Error("Port not ready after reconnect");
     }
 
-    // Load stub (skip flash detection)
+    // Load stub
     const stubLoader = await this.runStub(true);
     this.logger.debug("Stub loaded");
 
@@ -1603,7 +1602,7 @@ export class ESPLoader extends EventTarget {
    * This clears both the application RX buffer and waits for hardware buffers to drain
    */
   private async flushSerialBuffers(): Promise<void> {
-    // Clear application RX buffer
+    // Clear application buffer
     if (!this._parent) {
       this.__inputBuffer = [];
     }
@@ -1611,7 +1610,7 @@ export class ESPLoader extends EventTarget {
     // Wait for any pending TX operations and in-flight RX data
     await sleep(SYNC_TIMEOUT);
 
-    // Clear RX buffer again
+    // Clear buffer again
     if (!this._parent) {
       this.__inputBuffer = [];
     }
@@ -1654,7 +1653,6 @@ export class ESPLoader extends EventTarget {
     // Reconnect if total bytes read >= 4MB to ensure clean state
     if (this._totalBytesRead >= 4 * 1024 * 1024) {
       this.logger.log(
-        // `Total bytes read: ${this._totalBytesRead}. Reconnecting before new read...`,
         `Reconnecting before new read...`,
       );
 
@@ -1680,7 +1678,7 @@ export class ESPLoader extends EventTarget {
     let remainingSize = size;
 
     while (remainingSize > 0) {
-      // Reconnect every 4MB to prevent browser buffer issues
+      // Reconnect every 4MB to prevent buffer issues
       if (allData.length > 0 && allData.length % (4 * 1024 * 1024) === 0) {
         this.logger.debug(
           `Read ${allData.length} bytes. Reconnecting to clear buffers...`,
