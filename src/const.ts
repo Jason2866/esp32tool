@@ -340,8 +340,6 @@ export const CHIP_DETECT_MAGIC_VALUES: ChipInfo = {
   0x7211606f: { name: "ESP32-C61", family: CHIP_FAMILY_ESP32C61 },
   0x97e30068: { name: "ESP32-H2", family: CHIP_FAMILY_ESP32H2 },
   0xd7b73e80: { name: "ESP32-H2", family: CHIP_FAMILY_ESP32H2 },
-  // ESP32-P4 old revisions (< Rev. 300) - use magic value detection
-  // Rev. 300+ uses IMAGE_CHIP_ID detection instead
   0x0: { name: "ESP32-P4", family: CHIP_FAMILY_ESP32P4 },
   0x7039ad9: { name: "ESP32-P4", family: CHIP_FAMILY_ESP32P4 },
   0x0addbad0: { name: "ESP32-P4", family: CHIP_FAMILY_ESP32P4 },
