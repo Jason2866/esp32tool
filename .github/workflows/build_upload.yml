@@ -27,6 +27,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 20
+          registry-url: 'https://registry.npmjs.org'
       - name: Install NPM
         run: npm install
       - name: Compile TypeScript
@@ -44,13 +45,8 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "Github Action: Updated dist files"
-      - name: Publish to NPM registry
-        uses: JS-DevTools/npm-publish@v4.1.1
-        with:
-          registry: https://registry.npmjs.org/
-          provenance: true
-          access: public
-          strategy: all
+      - name: Publish to NPM registry (OIDC Trusted Publishing)
+        run: npm publish --provenance --access public
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
