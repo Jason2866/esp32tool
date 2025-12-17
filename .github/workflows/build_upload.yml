@@ -46,7 +46,7 @@ jobs:
         with:
           commit_message: "Github Action: Updated dist files"
       - name: Publish to NPM registry (OIDC Trusted Publishing)
-        run: npm publish --provenance --access public
+        run: npm publish --access public
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
