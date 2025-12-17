@@ -187,12 +187,7 @@ export class ESPLoader extends EventTarget {
           this.logger.log(`Max baudrate: ${chipInfo.maxBaudrate}`);
         }
         // Detect ESP32-S2 Native USB
-        // PID 0x0002 = TinyUSB CDC (after flash)
-        // PID 0x1001 = ROM Bootloader (before flash)
-        if (
-          portInfo.usbVendorId === 0x303a &&
-          (portInfo.usbProductId === 0x2 || portInfo.usbProductId === 0x1001)
-        ) {
+        if (portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x2) {
           this._isESP32S2NativeUSB = true;
         }
       }
