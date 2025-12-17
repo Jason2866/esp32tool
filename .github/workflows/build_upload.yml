@@ -23,7 +23,7 @@ jobs:
           rm -rf dist
           rm -rf js/modules
           mkdir js/modules
-      - name: install node v20
+      - name: install node v22
         uses: actions/setup-node@v6
         with:
           node-version: 22
@@ -50,7 +50,10 @@ jobs:
         with:
           commit_message: "Github Action: Updated dist files"
       - name: Publish to NPM registry (OIDC Trusted Publishing)
-        run: npm publish --access public
+        uses: JS-DevTools/npm-publish@v4
+        with:
+          registry: https://registry.npmjs.org/
+          strategy: all
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
