@@ -32,7 +32,7 @@ Meet **ESP32Tool** – your all-in-one, next-gen solution for ESP device managem
 
 ## 🏆 Our Story
 
-Born from the minds of [Melissa LeBlanc-Williams](https://github.com/makermelissa), [Nabu Casa](https://www.nabucasa.com), Adafruit, and now supercharged by Johann Obermeier, ESP32Tool has evolved into the most advanced, browser-based ESP management suite. With every update, we push the boundaries of what’s possible for your ESP devices.
+Born from the minds of [Melissa LeBlanc-Williams](https://github.com/makermelissa), [Nabu Casa](https://www.nabucasa.com), Adafruit, and now supercharged by Jas0n2866, ESP32Tool has evolved into the most advanced, browser-based ESP management suite. With every update, we push the boundaries of what’s possible for your ESP devices.
 
 **Latest update:** December 2025 – Now with full LittleFS, SPIFFS, and FATFS support, plus file add/delete magic!
 
