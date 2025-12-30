@@ -403,6 +403,32 @@
       </div>
     </div>
 
+    <!-- File Viewer Modal -->
+    <div id="fileViewerModal" class="modal hidden">
+      <div class="modal-content file-viewer-content">
+        <div class="file-viewer-header">
+          <h2 id="fileViewerTitle">File Viewer</h2>
+          <button id="butCloseFileViewer" type="button" class="close-button">✕</button>
+        </div>
+        <div class="file-viewer-info">
+          <span id="fileViewerPath"></span>
+          <span id="fileViewerSize"></span>
+        </div>
+        <div class="file-viewer-tabs">
+          <button id="tabText" class="tab-button active" type="button">Text</button>
+          <button id="tabHex" class="tab-button" type="button">Hex</button>
+        </div>
+        <div id="fileViewerContent" class="file-viewer-body">
+          <pre id="fileViewerText"></pre>
+        </div>
+        <div class="file-viewer-footer">
+          <button id="butDownloadFromViewer" type="button" class="modal-button">
+            Download
+          </button>
+        </div>
+      </div>
+    </div>
+
     <footer class="footer"></footer>
   </body>
 </html>

@@ -114,6 +114,18 @@ const firmware = document.querySelectorAll(".upload .firmware input");
 const progress = document.querySelectorAll(".upload .progress-bar");
 const offsets = document.querySelectorAll(".upload .offset");
 const appDiv = document.getElementById("app");
+const fileViewerModal = document.getElementById("fileViewerModal");
+const fileViewerTitle = document.getElementById("fileViewerTitle");
+const fileViewerPath = document.getElementById("fileViewerPath");
+const fileViewerSize = document.getElementById("fileViewerSize");
+const fileViewerText = document.getElementById("fileViewerText");
+const butCloseFileViewer = document.getElementById("butCloseFileViewer");
+const butDownloadFromViewer = document.getElementById("butDownloadFromViewer");
+const tabText = document.getElementById("tabText");
+const tabHex = document.getElementById("tabHex");
+
+let currentViewedFile = null;
+let currentViewedFileData = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   butConnect.addEventListener("click", () => {
@@ -138,6 +150,10 @@ document.addEventListener("DOMContentLoaded", () => {
   butLittlefsUp.addEventListener("click", clickLittlefsUp);
   butLittlefsUpload.addEventListener("click", clickLittlefsUpload);
   butLittlefsMkdir.addEventListener("click", clickLittlefsMkdir);
+  butCloseFileViewer.addEventListener("click", closeFileViewer);
+  butDownloadFromViewer.addEventListener("click", downloadFromViewer);
+  tabText.addEventListener("click", () => switchViewerTab('text'));
+  tabHex.addEventListener("click", () => switchViewerTab('hex'));
   littlefsFileInput.addEventListener("change", () => {
     butLittlefsUpload.disabled = !littlefsFileInput.files.length;
   });
@@ -1940,6 +1956,11 @@ function refreshLittleFS() {
         downloadBtn.textContent = 'Download';
         downloadBtn.onclick = () => downloadLittleFSFile(entry.path);
         actionsDiv.appendChild(downloadBtn);
+        
+        const viewBtn = document.createElement('button');
+        viewBtn.textContent = 'View';
+        viewBtn.onclick = () => viewLittleFSFile(entry.path);
+        actionsDiv.appendChild(viewBtn);
       }
       
       const deleteBtn = document.createElement('button');
@@ -2235,3 +2256,147 @@ function deleteLittleFSFile(path, type) {
     errorMsg(`Failed to delete ${type}: ${e.message || e}`);
   }
 }
+
+/**
+ * View file content in modal
+ */
+async function viewLittleFSFile(path) {
+  if (!currentLittleFS) return;
+  
+  try {
+    logMsg(`Loading file "${path}"...`);
+    
+    const data = currentLittleFS.readFile(path);
+    const filename = path.split('/').filter(Boolean).pop() || 'file';
+    
+    // Store current file data
+    currentViewedFile = path;
+    currentViewedFileData = data;
+    
+    // Update modal info
+    fileViewerTitle.textContent = filename;
+    fileViewerPath.textContent = path;
+    fileViewerSize.textContent = formatSize(data.length);
+    
+    // Show text view by default
+    switchViewerTab('text');
+    
+    // Show modal
+    fileViewerModal.classList.remove('hidden');
+    
+    logMsg(`File "${filename}" loaded successfully`);
+  } catch (e) {
+    errorMsg(`Failed to view file: ${e.message || e}`);
+  }
+}
+
+/**
+ * Close file viewer modal
+ */
+function closeFileViewer() {
+  fileViewerModal.classList.add('hidden');
+  currentViewedFile = null;
+  currentViewedFileData = null;
+}
+
+/**
+ * Download file from viewer
+ */
+async function downloadFromViewer() {
+  if (!currentViewedFile || !currentViewedFileData) return;
+  
+  const filename = currentViewedFile.split('/').filter(Boolean).pop() || 'file.bin';
+  await saveDataToFile(currentViewedFileData, filename);
+  logMsg(`File "${filename}" downloaded from viewer`);
+}
+
+/**
+ * Switch between text and hex view
+ */
+function switchViewerTab(mode) {
+  if (!currentViewedFileData) return;
+  
+  // Update tab buttons
+  if (mode === 'text') {
+    tabText.classList.add('active');
+    tabHex.classList.remove('active');
+    displayTextView(currentViewedFileData);
+  } else {
+    tabHex.classList.add('active');
+    tabText.classList.remove('active');
+    displayHexView(currentViewedFileData);
+  }
+}
+
+/**
+ * Display file content as text
+ */
+function displayTextView(data) {
+  try {
+    // Try to decode as UTF-8
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+    const text = decoder.decode(data);
+    
+    fileViewerText.textContent = text;
+    fileViewerText.className = '';
+  } catch (e) {
+    fileViewerText.textContent = 'Unable to display as text. Try Hex view.';
+  }
+}
+
+/**
+ * Display file content as hex dump
+ */
+function displayHexView(data) {
+  const lines = [];
+  const bytesPerLine = 16;
+  
+  for (let i = 0; i < data.length; i += bytesPerLine) {
+    const offset = i.toString(16).padStart(8, '0').toUpperCase();
+    
+    // Hex bytes
+    const hexBytes = [];
+    const asciiChars = [];
+    
+    for (let j = 0; j < bytesPerLine; j++) {
+      if (i + j < data.length) {
+        const byte = data[i + j];
+        hexBytes.push(byte.toString(16).padStart(2, '0').toUpperCase());
+        
+        // ASCII representation (printable characters only)
+        if (byte >= 32 && byte <= 126) {
+          asciiChars.push(String.fromCharCode(byte));
+        } else {
+          asciiChars.push('.');
+        }
+      } else {
+        hexBytes.push('  ');
+        asciiChars.push(' ');
+      }
+    }
+    
+    // Format: offset | hex bytes (grouped by 8) | ascii
+    const hexPart1 = hexBytes.slice(0, 8).join(' ');
+    const hexPart2 = hexBytes.slice(8, 16).join(' ');
+    const hexPart = hexPart1 + '  ' + hexPart2;
+    const asciiPart = asciiChars.join('');
+    
+    lines.push(
+      `<div class="hex-line">` +
+      `<span class="hex-offset">${offset}</span>` +
+      `<span class="hex-bytes">${hexPart}</span>` +
+      `<span class="hex-ascii">${asciiPart}</span>` +
+      `</div>`
+    );
+  }
+  
+  fileViewerText.innerHTML = `<div class="hex-view">${lines.join('')}</div>`;
+  fileViewerText.className = 'hex-view';
+}
+
+// Close modal when clicking outside
+fileViewerModal.addEventListener('click', (e) => {
+  if (e.target === fileViewerModal) {
+    closeFileViewer();
+  }
+});

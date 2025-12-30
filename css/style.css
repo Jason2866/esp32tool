@@ -868,3 +868,147 @@ div.clear {
   color: #fff;
   border-color: #71ae1e;
 }
+
+/* File Viewer Modal Styles */
+.file-viewer-content {
+  max-width: 900px;
+  width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+}
+
+.file-viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.file-viewer-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.close-button:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.file-viewer-info {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 30px;
+  background-color: #f8f8f8;
+  font-size: 13px;
+  color: #666;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.file-viewer-tabs {
+  display: flex;
+  padding: 0 30px;
+  background-color: #f8f8f8;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  margin-bottom: -2px;
+}
+
+.tab-button:hover {
+  color: #333;
+  background-color: rgba(113, 174, 30, 0.1);
+}
+
+.tab-button.active {
+  color: #71ae1e;
+  border-bottom-color: #71ae1e;
+}
+
+.file-viewer-body {
+  flex: 1;
+  overflow: auto;
+  padding: 20px 30px;
+  background-color: #fff;
+  min-height: 300px;
+  max-height: calc(90vh - 250px);
+  text-align: left;
+}
+
+.file-viewer-body pre {
+  margin: 0;
+  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+  color: #333;
+  tab-size: 4;
+  text-align: left;
+}
+
+.file-viewer-body .hex-view {
+  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.hex-line {
+  display: flex;
+  margin-bottom: 2px;
+}
+
+.hex-offset {
+  color: #999;
+  margin-right: 20px;
+  min-width: 80px;
+}
+
+.hex-bytes {
+  color: #333;
+  margin-right: 20px;
+  min-width: 400px;
+}
+
+.hex-ascii {
+  color: #666;
+}
+
+.file-viewer-footer {
+  padding: 20px 30px;
+  border-top: 2px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
