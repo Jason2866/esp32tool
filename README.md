@@ -1,20 +1,31 @@
+
 # ESP32Tool
 
-JavaScript package to read and write anything blazing fast on ESP devices via the browser using WebSerial.
-For offline use Electron compiled binaries are available in release section!
+**ESP32Tool** is a JavaScript tool that lets you read and write data on ESP devices at lightning speed directly in your browser using WebSerial.
 
-The tool uses its own code to read and write to the esp flash. Reading ist up to 10x faster than esptool.py
-The routines do support resume if errors occur. No more broken read flash attempts like in esptool.py 
+**Features:**
+- Supports all common filesystems
+- Upload and download files easily – no complicated steps
+- Custom, high-performance flash access (up to 10x faster than esptool.py)
+- Automatic resume on read errors – no more broken flash operations
 
-## Local development
+👉 **Try ESP32Tool in your browser:** [jason2866.github.io/esp32tool](https://jason2866.github.io/esp32tool)
 
-- Clone this repository.
-- Install dependencies with `npm install`
-- Run `script/develop`
-- Open http://localhost:5004/
+👉 **Offline use:** Electron binaries are available in the [release section](https://github.com/Jason2866/esp32tool/releases).
 
-## Origin
+---
 
-This project was originally written by [Melissa LeBlanc-Williams](https://github.com/makermelissa). [Nabu Casa](https://www.nabucasa.com) ported the code over to TypeScript and in March 2022 took over maintenance from Adafruit. In July 2022, the Nabucasa stopped maintaining the project in favor of an official, but very early release of Espressif's [esptool-js](https://github.com/espressif/esptool-js/). Due to the instability of the tool, Adafruit updated their fork with Nabucasa's changes in November 2022 and took over maintenance once again. In December 2024, the tool was once again updated to use Espressif's esptool-js as the backend. Since Adafruit uses esptool.js which is still buggy, i decided to maintain my own version. In 12/2025 support for new MCUs and chip variant support for the different P4 revisions and flash read was added.
+## Local Development
 
-Copyright: Adafruit, Nabu Casa and Johann Obermeier
+1. Clone this repository
+2. Install dependencies: `npm install`
+3. Start the development environment: `script/develop`
+4. Open in your browser: [http://localhost:5004/](http://localhost:5004/)
+
+---
+
+## Origin & Development
+
+This project was originally created by [Melissa LeBlanc-Williams](https://github.com/makermelissa). [Nabu Casa](https://www.nabucasa.com) ported the code to TypeScript and took over maintenance from Adafruit in March 2022. In July 2022, Nabu Casa stopped maintaining the project in favor of Espressif's [esptool-js](https://github.com/espressif/esptool-js). Due to instability, Adafruit updated their fork with Nabu Casa's changes in November 2022 and resumed maintenance. In December 2024, the backend was switched to Espressif's esptool-js. Since esptool.js remained buggy, this independent version was created. In December 2025, support for new MCUs, chip variants (P4 revisions), and optimized flash reading was added.
+
+**Copyright:** Adafruit, Nabu Casa, and Johann Obermeier
