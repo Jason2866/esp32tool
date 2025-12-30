@@ -1,10 +1,10 @@
 # ESP32Tool
 
-JavaScript package to install and make backups of firmwares on ESP devices via the browser using WebSerial.
-For offline use Electron compiled binaries are available in release section
+JavaScript package to read and write anything blazing fast on ESP devices via the browser using WebSerial.
+For offline use Electron compiled binaries are available in release section!
 
-ESP32Tool is **not** based on esptool.js
-
+The tool uses its own code to read and write to the esp flash. Reading ist up to 10x faster than esptool.py
+The routines do support resume if errors occur. No more broken read flash attempts like in esptool.py 
 
 ## Local development
 
