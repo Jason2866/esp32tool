@@ -66,7 +66,7 @@ jobs:
       # macOS: Upload only DMG
       - name: Upload macOS DMG
         if: matrix.platform == 'darwin'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact_name }}
           path: out/make/*.dmg
@@ -75,7 +75,7 @@ jobs:
       # Windows: Upload Squirrel installer and ZIP
       - name: Upload Windows artifacts
         if: matrix.platform == 'win32'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact_name }}
           path: |
@@ -86,7 +86,7 @@ jobs:
       # Linux: Upload DEB and RPM
       - name: Upload Linux artifacts
         if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact_name }}
           path: |
