@@ -1,31 +1,41 @@
 
-# ESP32Tool
 
-**ESP32Tool** is a JavaScript tool that lets you read and write data on ESP devices at lightning speed directly in your browser using WebSerial.
+# 🚀 ESP32Tool – The Ultimate ESP Filesystem Powerhouse
 
-**Features:**
-- Supports all common filesystems
-- Upload and download files easily – no complicated steps
-- Custom, high-performance flash access (up to 10x faster than esptool.py)
-- Automatic resume on read errors – no more broken flash operations
+**Flash. Manage. Dominate. All in your browser.**
 
-👉 **Try ESP32Tool in your browser:** [jason2866.github.io/esp32tool](https://jason2866.github.io/esp32tool)
-
-👉 **Offline use:** Electron binaries are available in the [release section](https://github.com/Jason2866/esp32tool/releases).
+Meet **ESP32Tool** – your all-in-one, next-gen solution for ESP device management. Experience seamless firmware flashing, backup, and now, full filesystem control with just a few clicks. No drivers, no command line, no limits!
 
 ---
 
-## Local Development
+✨ **What makes ESP32Tool shine?**
+
+- **Universal Filesystem Support:** Instantly detect, read, and write to LittleFS, SPIFFS, and FATFS – all major ESP filesystems, fully supported!
+- **Total File Control:** Effortlessly add or delete individual files. Upload, download, organize – your ESP, your rules.
+- **Lightning Fast:** Custom, high-performance flash access – up to 10x faster than esptool.py!
+- **Rock-Solid Reliability:** Automatic resume on read errors. No more broken operations, ever.
+- **Plug & Play:** Manage your ESP directly in the browser. No software installation needed.
+- **Offline Ready:** Prefer desktop? Grab the Electron app from our [releases](https://github.com/Jason2866/esp32tool/releases).
+
+> **Try it now:** [jason2866.github.io/esp32tool](https://jason2866.github.io/esp32tool)
+
+---
+
+## 🛠️ Developer Quickstart
 
 1. Clone this repository
 2. Install dependencies: `npm install`
-3. Start the development environment: `script/develop`
-4. Open in your browser: [http://localhost:5004/](http://localhost:5004/)
+3. Start the dev environment: `script/develop`
+4. Open [http://localhost:5004/](http://localhost:5004/) in your browser
 
 ---
 
-## Origin & Development
+## 🏆 Our Story
 
-This project was originally created by [Melissa LeBlanc-Williams](https://github.com/makermelissa). [Nabu Casa](https://www.nabucasa.com) ported the code to TypeScript and took over maintenance from Adafruit in March 2022. In July 2022, Nabu Casa stopped maintaining the project in favor of Espressif's [esptool-js](https://github.com/espressif/esptool-js). Due to instability, Adafruit updated their fork with Nabu Casa's changes in November 2022 and resumed maintenance. In December 2024, the backend was switched to Espressif's esptool-js. Since esptool.js remained buggy, this independent version was created. In December 2025, support for new MCUs, chip variants (P4 revisions), and optimized flash reading was added.
+Born from the minds of [Melissa LeBlanc-Williams](https://github.com/makermelissa), [Nabu Casa](https://www.nabucasa.com), Adafruit, and now supercharged by Johann Obermeier, ESP32Tool has evolved into the most advanced, browser-based ESP management suite. With every update, we push the boundaries of what’s possible for your ESP devices.
 
-**Copyright:** Adafruit, Nabu Casa, and Johann Obermeier
+**Latest update:** December 2025 – Now with full LittleFS, SPIFFS, and FATFS support, plus file add/delete magic!
+
+---
+
+© Adafruit, Nabu Casa & Johann Obermeier
