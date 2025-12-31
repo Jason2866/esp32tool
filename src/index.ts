@@ -48,6 +48,7 @@ export {
   getDefaultBlockSize,
   getBlockSizeCandidates,
   getESP8266FilesystemLayout,
+  scanESP8266Filesystem,
   LITTLEFS_DEFAULT_BLOCK_SIZE,
   LITTLEFS_BLOCK_SIZE_CANDIDATES,
   FATFS_DEFAULT_BLOCK_SIZE,

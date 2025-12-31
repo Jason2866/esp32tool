@@ -25,18 +25,151 @@ export interface ESP8266FilesystemLayout {
 }
 
 /**
- * Calculate ESP8266 filesystem layout based on flash size
- * This mimics the logic from platform-espressif8266/builder/main.py _parse_ld_sizes()
+ * Scan ESP8266 flash for filesystem by detecting filesystem signatures
+ * Uses known layout patterns when filesystem is detected at common offsets
  * 
- * ESP8266 uses linker scripts that define FS_START, FS_END, FS_PAGE, FS_BLOCK
- * The values depend on the flash size configuration and framework.
- * 
- * Common configurations (from various linker scripts):
- * - 4MB (4096KB): Multiple variants exist
- *   - Standard: FS at 0x300000, size 1MB
- *   - FS 2MB: FS at 0x200000, size ~2MB (0x1FA000)
- * - 2MB (2048KB): FS at 0x1FB000, size ~20KB  
- * - 1MB (1024KB): FS at 0xDB000, size ~148KB
+ * @param flashData - Flash data starting at scanOffset
+ * @param scanOffset - The offset in flash where this data starts
+ * @param flashSize - Total flash size in bytes
+ * @returns Detected filesystem layout or null
+ */
+export function scanESP8266Filesystem(
+  flashData: Uint8Array,
+  scanOffset: number,
+  flashSize: number,
+): ESP8266FilesystemLayout | null {
+  // Check for LittleFS signature
+  // LittleFS superblock has "littlefs" magic at offset 8 within block 0
+  const blockSizes = [8192, 4096]; // ESP8266 typically uses 8192
+  
+  for (const blockSize of blockSizes) {
+    // Check block 0 and block 1 (mirrored superblock)
+    for (let blockIndex = 0; blockIndex < 2; blockIndex++) {
+      const superblockOffset = blockIndex * blockSize;
+      const magicOffset = superblockOffset + 8;
+
+      if (magicOffset + 8 > flashData.length) {
+        continue;
+      }
+
+      const magicStr = String.fromCharCode(
+        flashData[magicOffset],
+        flashData[magicOffset + 1],
+        flashData[magicOffset + 2],
+        flashData[magicOffset + 3],
+        flashData[magicOffset + 4],
+        flashData[magicOffset + 5],
+        flashData[magicOffset + 6],
+        flashData[magicOffset + 7],
+      );
+
+      if (magicStr === "littlefs") {
+        // Validate version
+        const version =
+          flashData[superblockOffset] |
+          (flashData[superblockOffset + 1] << 8) |
+          (flashData[superblockOffset + 2] << 16) |
+          (flashData[superblockOffset + 3] << 24);
+
+        if (version !== 0 && (version >>> 0) !== 0xffffffff) {
+          // Found valid LittleFS!
+          // Use known layout patterns based on offset and flash size
+          return getLayoutForDetectedFilesystem(scanOffset, flashSize, blockSize);
+        }
+      }
+    }
+  }
+
+  // Check for SPIFFS signature (magic 0x20140529)
+  if (flashData.length >= 4) {
+    const spiffsMagic =
+      flashData[0] |
+      (flashData[1] << 8) |
+      (flashData[2] << 16) |
+      (flashData[3] << 24);
+
+    if (spiffsMagic === 0x20140529) {
+      // Found SPIFFS!
+      return getLayoutForDetectedFilesystem(scanOffset, flashSize, 8192);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get filesystem layout based on detected offset and flash size
+ * Uses known ESP8266 linker script patterns
+ */
+function getLayoutForDetectedFilesystem(
+  offset: number,
+  flashSize: number,
+  blockSize: number,
+): ESP8266FilesystemLayout {
+  // Known ESP8266 layouts from linker scripts
+  // These are the actual values used by ESP8266 Arduino/PlatformIO
+  
+  const flashSizeMB = flashSize / (1024 * 1024);
+  
+  // 4MB Flash layouts
+  if (flashSizeMB >= 4) {
+    if (offset === 0x200000) {
+      // eagle.flash.4m2m.ld: 2MB filesystem
+      return {
+        start: 0x200000,
+        end: 0x3fa000,
+        size: 0x1fa000, // ~2MB (2072576 bytes)
+        page: 256,
+        block: blockSize,
+      };
+    } else if (offset === 0x300000) {
+      // eagle.flash.4m1m.ld: 1MB filesystem
+      return {
+        start: 0x300000,
+        end: 0x400000,
+        size: 0x100000, // 1MB
+        page: 256,
+        block: blockSize,
+      };
+    }
+  }
+  
+  // 2MB Flash layout
+  if (flashSizeMB >= 2 && offset === 0x1fb000) {
+    return {
+      start: 0x1fb000,
+      end: 0x200000,
+      size: 0x5000, // ~20KB
+      page: 256,
+      block: blockSize,
+    };
+  }
+  
+  // 1MB Flash layout
+  if (flashSizeMB >= 1 && offset === 0xdb000) {
+    return {
+      start: 0xdb000,
+      end: 0x100000,
+      size: 0x25000, // ~148KB
+      page: 256,
+      block: blockSize,
+    };
+  }
+  
+  // Fallback: use remaining flash space
+  const size = flashSize - offset;
+  return {
+    start: offset,
+    end: flashSize,
+    size: size,
+    page: 256,
+    block: blockSize,
+  };
+}
+
+/**
+ * Get common ESP8266 filesystem layouts as fallback
+ * Used when we can't scan the actual flash
  * 
  * @param flashSizeMB - Flash size in megabytes
  * @returns Array of possible filesystem layouts (most common first)
@@ -45,12 +178,11 @@ export function getESP8266FilesystemLayout(
   flashSizeMB: number,
 ): ESP8266FilesystemLayout[] {
   // Based on common ESP8266 linker script configurations
-  // These match the eagle.flash.*.ld files in ESP8266 Arduino/framework
   
   if (flashSizeMB >= 4) {
     // 4MB flash: Multiple possible configurations
     return [
-      // Most common: 2MB filesystem (like in your case)
+      // Most common: 2MB filesystem
       {
         start: 0x200000,
         end: 0x3fa000,

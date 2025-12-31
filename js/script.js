@@ -532,49 +532,72 @@ async function clickConnect() {
     const esp8266Info = document.getElementById('esp8266Info');
     if (esp8266Info && espStub.flashSize) {
       const flashSizeMB = parseInt(espStub.flashSize);
+      const flashSizeBytes = flashSizeMB * 1024 * 1024;
       const esptoolMod = await window.esptoolPackage;
-      const fsLayouts = esptoolMod.getESP8266FilesystemLayout(flashSizeMB);
+      
+      logMsg('Scanning ESP8266 flash for filesystem...');
+      
+      // Read a large section of flash to scan for filesystem signatures
+      // We read from potential FS start locations
+      const scanSize = Math.min(0x10000, flashSizeBytes); // 64KB scan
+      const scanOffsets = [0x200000, 0x300000, 0x1fb000, 0xdb000, 0x100000];
+      
+      let detectedLayout = null;
+      
+      for (const scanOffset of scanOffsets) {
+        if (scanOffset + scanSize > flashSizeBytes) {
+          continue;
+        }
+        
+        try {
+          const scanData = await espStub.readFlash(scanOffset, scanSize);
+          const scannedLayout = esptoolMod.scanESP8266Filesystem(scanData, scanOffset, flashSizeBytes);
+          
+          if (scannedLayout) {
+            detectedLayout = scannedLayout;
+            logMsg(`Found filesystem at 0x${scannedLayout.start.toString(16)} via signature scan`);
+            break;
+          }
+        } catch (e) {
+          // Continue scanning
+          logMsg(`Scan at 0x${scanOffset.toString(16)} failed: ${e.message || e}`);
+        }
+      }
+      
+      // Fallback to common layouts if scan didn't find anything
+      const fsLayouts = detectedLayout ? [detectedLayout] : esptoolMod.getESP8266FilesystemLayout(flashSizeMB);
       
       if (fsLayouts && fsLayouts.length > 0) {
-        // Use the first (most common) layout as default
+        // Use the first (detected or most common) layout as default
         const fsLayout = fsLayouts[0];
         
         // Update the info box with actual values
         const infoBox = esp8266Info.querySelector('.info-box');
         if (infoBox) {
-          let layoutsHtml = '';
-          if (fsLayouts.length > 1) {
-            layoutsHtml = '<p><strong>Multiple possible layouts detected. Trying most common first:</strong></p>';
-          }
-          
-          layoutsHtml += '<ul>';
-          fsLayouts.forEach((layout, index) => {
-            const label = index === 0 ? ' (Default)' : ` (Alt ${index})`;
-            layoutsHtml += `
-              <li>
-                <strong>Layout ${index + 1}${label}:</strong><br>
-                Start: 0x${layout.start.toString(16).toUpperCase()}, 
-                Size: 0x${layout.size.toString(16).toUpperCase()} (${formatSize(layout.size)})
-              </li>
-            `;
-          });
-          layoutsHtml += '</ul>';
+          const detectionMethod = detectedLayout ? 'Auto-detected by scanning flash' : 'Using common layout (not detected)';
           
           infoBox.innerHTML = `
             <strong>ESP8266 Filesystem (${flashSizeMB}MB Flash)</strong>
-            <p>ESP8266 does not use a partition table. Filesystem parameters from linker script:</p>
-            ${layoutsHtml}
-            <p><strong>Block Size:</strong> ${fsLayout.block} bytes | <strong>Page Size:</strong> ${fsLayout.page} bytes</p>
-            <p>Click "Read Flash" below. The tool will auto-detect the correct layout.</p>
+            <p><em>${detectionMethod}</em></p>
+            <ul>
+              <li><strong>Start:</strong> 0x${fsLayout.start.toString(16).toUpperCase()}</li>
+              <li><strong>Size:</strong> 0x${fsLayout.size.toString(16).toUpperCase()} (${formatSize(fsLayout.size)})</li>
+              <li><strong>Block Size:</strong> ${fsLayout.block} bytes</li>
+              <li><strong>Page Size:</strong> ${fsLayout.page} bytes</li>
+            </ul>
+            <p>Click "Read Flash" below to read the filesystem, then "Open FS Manager".</p>
           `;
         }
         
-        // Pre-fill read flash fields with the first (most common) layout
+        // Pre-fill read flash fields with the detected/default layout
         readOffset.value = fsLayout.start.toString(16);
         readSize.value = fsLayout.size.toString(16);
         
-        logMsg(`ESP8266 filesystem layouts available: ${fsLayouts.length} variant(s)`);
-        logMsg(`Default: 0x${fsLayout.start.toString(16)} (${formatSize(fsLayout.size)})`);
+        if (detectedLayout) {
+          logMsg(`ESP8266 filesystem auto-detected at 0x${fsLayout.start.toString(16)} (${formatSize(fsLayout.size)})`);
+        } else {
+          logMsg(`Using default ESP8266 layout: 0x${fsLayout.start.toString(16)} (${formatSize(fsLayout.size)})`);
+        }
       }
       
       esp8266Info.classList.remove('hidden');
