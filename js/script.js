@@ -1263,7 +1263,6 @@ async function detectFilesystemType(offset, size) {
   }
 }
 
-
 /**
  * Lazy-load and cache the LittleFS WASM module
  */

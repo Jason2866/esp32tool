@@ -54,7 +54,7 @@ export function detectFilesystemFromImage(
   // - Offset 16-19: block_count (4 bytes, little-endian)
   // The superblock is at block 0 and mirrored at block 1
   
-  const blockSizes = [4096, 2048, 1024, 512];
+  const blockSizes = LITTLEFS_BLOCK_SIZE_CANDIDATES;
   
   for (const blockSize of blockSizes) {
     // Check first two blocks (superblock is mirrored)
