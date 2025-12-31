@@ -7,6 +7,7 @@ let currentLittleFSBlockSize = 4096;
 let currentFilesystemType = null; // 'littlefs', 'fatfs', or 'spiffs'
 let littlefsModulePromise = null; // Cache for LittleFS WASM module
 let lastReadFlashData = null; // Store last read flash data for ESP8266
+let currentChipName = null; // Store chip name globally
 
 /**
  * Get display name for current filesystem type
@@ -44,6 +45,7 @@ function clearAllCachedData() {
   currentLittleFSBlockSize = 4096;
   currentFilesystemType = null;
   lastReadFlashData = null;
+  currentChipName = null;
   
   // Hide filesystem manager
   littlefsManager.classList.add('hidden');
@@ -513,12 +515,15 @@ async function clickConnect() {
   logMsg("Connected to " + esploader.chipName);
   logMsg("MAC Address: " + formatMacAddr(esploader.macAddr()));
 
+  // Store chip info globally
+  currentChipName = esploader.chipName;
+
   espStub = await esploader.runStub();
   toggleUIConnected(true);
   toggleUIToolbar(true);
   
   // Check if ESP8266 and show filesystem info
-  const isESP8266 = espStub.chipName && espStub.chipName.toUpperCase().includes("ESP8266");
+  const isESP8266 = currentChipName && currentChipName.toUpperCase().includes("ESP8266");
   if (isESP8266) {
     // Hide partition table button for ESP8266
     butReadPartitions.classList.add('hidden');
@@ -528,30 +533,48 @@ async function clickConnect() {
     if (esp8266Info && espStub.flashSize) {
       const flashSizeMB = parseInt(espStub.flashSize);
       const esptoolMod = await window.esptoolPackage;
-      const fsLayout = esptoolMod.getESP8266FilesystemLayout(flashSizeMB);
+      const fsLayouts = esptoolMod.getESP8266FilesystemLayout(flashSizeMB);
       
-      if (fsLayout) {
+      if (fsLayouts && fsLayouts.length > 0) {
+        // Use the first (most common) layout as default
+        const fsLayout = fsLayouts[0];
+        
         // Update the info box with actual values
         const infoBox = esp8266Info.querySelector('.info-box');
         if (infoBox) {
+          let layoutsHtml = '';
+          if (fsLayouts.length > 1) {
+            layoutsHtml = '<p><strong>Multiple possible layouts detected. Trying most common first:</strong></p>';
+          }
+          
+          layoutsHtml += '<ul>';
+          fsLayouts.forEach((layout, index) => {
+            const label = index === 0 ? ' (Default)' : ` (Alt ${index})`;
+            layoutsHtml += `
+              <li>
+                <strong>Layout ${index + 1}${label}:</strong><br>
+                Start: 0x${layout.start.toString(16).toUpperCase()}, 
+                Size: 0x${layout.size.toString(16).toUpperCase()} (${formatSize(layout.size)})
+              </li>
+            `;
+          });
+          layoutsHtml += '</ul>';
+          
           infoBox.innerHTML = `
             <strong>ESP8266 Filesystem (${flashSizeMB}MB Flash)</strong>
             <p>ESP8266 does not use a partition table. Filesystem parameters from linker script:</p>
-            <ul>
-              <li><strong>Start:</strong> 0x${fsLayout.start.toString(16).toUpperCase()}</li>
-              <li><strong>Size:</strong> 0x${fsLayout.size.toString(16).toUpperCase()} (${formatSize(fsLayout.size)})</li>
-              <li><strong>Block Size:</strong> ${fsLayout.block} bytes</li>
-              <li><strong>Page Size:</strong> ${fsLayout.page} bytes</li>
-            </ul>
-            <p>Use "Read Flash" with these values, then "Open FS" to access the filesystem.</p>
+            ${layoutsHtml}
+            <p><strong>Block Size:</strong> ${fsLayout.block} bytes | <strong>Page Size:</strong> ${fsLayout.page} bytes</p>
+            <p>Click "Read Flash" below. The tool will auto-detect the correct layout.</p>
           `;
         }
         
-        // Pre-fill read flash fields with filesystem location
+        // Pre-fill read flash fields with the first (most common) layout
         readOffset.value = fsLayout.start.toString(16);
         readSize.value = fsLayout.size.toString(16);
         
-        logMsg(`ESP8266 filesystem detected at 0x${fsLayout.start.toString(16)} (${formatSize(fsLayout.size)})`);
+        logMsg(`ESP8266 filesystem layouts available: ${fsLayouts.length} variant(s)`);
+        logMsg(`Default: 0x${fsLayout.start.toString(16)} (${formatSize(fsLayout.size)})`);
       }
       
       esp8266Info.classList.remove('hidden');
@@ -857,9 +880,11 @@ async function clickReadFlash() {
     await saveDataToFile(data, defaultFilename);
     
     // Check if this looks like a filesystem
-    const chipName = espStub?.chipName || '';
+    const chipName = currentChipName || '';
     const esptoolMod = await window.esptoolPackage;
     const fsType = esptoolMod.detectFilesystemFromImage(data, chipName);
+    
+    logMsg(`Filesystem detection: ${fsType} (chipName: ${chipName})`);
     
     if (fsType !== 'unknown') {
       logMsg(`Detected ${fsType} filesystem in read data`);
@@ -1354,7 +1379,7 @@ async function detectFilesystemType(offset, size) {
     }
     
     // Get chip name for ESP8266-specific detection
-    const chipName = espStub?.chipName || '';
+    const chipName = currentChipName || '';
     
     // Use the detectFilesystemFromImage function from esptool package
     const esptoolMod = await window.esptoolPackage;
@@ -1468,7 +1493,7 @@ async function openLittleFS(partition) {
     logMsg('Mounting LittleFS filesystem...');
     
     // Get chip-specific block sizes
-    const chipName = espStub?.chipName || '';
+    const chipName = currentChipName || '';
     const isESP8266 = chipName.toUpperCase().includes("ESP8266");
     const blockSizes = isESP8266 ? [8192, 4096] : [4096, 2048, 1024, 512];
     
@@ -1724,7 +1749,7 @@ async function openSPIFFS(partition) {
     const { SpiffsFS, SpiffsReader, SpiffsBuildConfig, DEFAULT_SPIFFS_CONFIG } = await import(modulePath);
     
     // Get chip-specific parameters
-    const chipName = espStub?.chipName || '';
+    const chipName = currentChipName || '';
     const isESP8266 = chipName.toUpperCase().includes("ESP8266");
     
     // ESP8266 uses different SPIFFS parameters (from main.py)

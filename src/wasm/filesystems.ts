@@ -29,52 +29,69 @@ export interface ESP8266FilesystemLayout {
  * This mimics the logic from platform-espressif8266/builder/main.py _parse_ld_sizes()
  * 
  * ESP8266 uses linker scripts that define FS_START, FS_END, FS_PAGE, FS_BLOCK
- * The values depend on the flash size configuration.
+ * The values depend on the flash size configuration and framework.
  * 
- * Common configurations:
- * - 4MB (4096KB): FS at 0x300000, size 1MB
+ * Common configurations (from various linker scripts):
+ * - 4MB (4096KB): Multiple variants exist
+ *   - Standard: FS at 0x300000, size 1MB
+ *   - FS 2MB: FS at 0x200000, size ~2MB (0x1FA000)
  * - 2MB (2048KB): FS at 0x1FB000, size ~20KB  
  * - 1MB (1024KB): FS at 0xDB000, size ~148KB
  * 
  * @param flashSizeMB - Flash size in megabytes
- * @returns Filesystem layout information or null if unknown
+ * @returns Array of possible filesystem layouts (most common first)
  */
 export function getESP8266FilesystemLayout(
   flashSizeMB: number,
-): ESP8266FilesystemLayout | null {
+): ESP8266FilesystemLayout[] {
   // Based on common ESP8266 linker script configurations
   // These match the eagle.flash.*.ld files in ESP8266 Arduino/framework
   
   if (flashSizeMB >= 4) {
-    // 4MB flash: 1MB filesystem (most common for Tasmota, etc.)
-    return {
-      start: 0x300000,
-      end: 0x400000,
-      size: 0x100000, // 1MB
-      page: 256,
-      block: 8192,
-    };
+    // 4MB flash: Multiple possible configurations
+    return [
+      // Most common: 2MB filesystem (like in your case)
+      {
+        start: 0x200000,
+        end: 0x3fa000,
+        size: 0x1fa000, // ~2MB
+        page: 256,
+        block: 8192,
+      },
+      // Alternative: 1MB filesystem
+      {
+        start: 0x300000,
+        end: 0x400000,
+        size: 0x100000, // 1MB
+        page: 256,
+        block: 8192,
+      },
+    ];
   } else if (flashSizeMB >= 2) {
     // 2MB flash: ~20KB filesystem
-    return {
-      start: 0x1fb000,
-      end: 0x200000,
-      size: 0x5000, // ~20KB
-      page: 256,
-      block: 8192,
-    };
+    return [
+      {
+        start: 0x1fb000,
+        end: 0x200000,
+        size: 0x5000, // ~20KB
+        page: 256,
+        block: 8192,
+      },
+    ];
   } else if (flashSizeMB >= 1) {
     // 1MB flash: ~148KB filesystem
-    return {
-      start: 0xdb000,
-      end: 0x100000,
-      size: 0x25000, // ~148KB
-      page: 256,
-      block: 8192,
-    };
+    return [
+      {
+        start: 0xdb000,
+        end: 0x100000,
+        size: 0x25000, // ~148KB
+        page: 256,
+        block: 8192,
+      },
+    ];
   }
   
-  return null;
+  return [];
 }
 
 /**
