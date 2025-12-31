@@ -1221,29 +1221,14 @@ async function openFilesystem(partition) {
 /**
  * Detect filesystem type by reading partition header
  * 
- * LittleFS Detection:
- * - LittleFS stores metadata blocks at the beginning of the partition
- * - The superblock contains the string "littlefs" in its metadata
- * - LittleFS uses a specific block structure with magic numbers
+ * Uses the centralized detectFilesystemFromImage function from the esptool module.
+ * This function properly validates filesystem structures:
  * 
- * FatFS Detection:
- * - FAT boot sector signature 0xAA55 at offset 510-511
- * - FAT signature string at offset 54 (FAT16) or 82 (FAT32)
+ * - LittleFS: Validates superblock at block 0/1 with "littlefs" magic at offset 8 and version check
+ * - FatFS: Checks for FAT boot signature (0xAA55) and FAT signature strings
+ * - SPIFFS: Checks for SPIFFS magic number (0x20140529)
  * 
- * SPIFFS Detection:
- * - SPIFFS has a different structure without the "littlefs" string
- * - SPIFFS uses object headers with different magic numbers
- * 
- * Detection Strategy:
- * 1. Read first 8KB of partition (covers multiple blocks)
- * 2. Search for "littlefs" string in ASCII representation
- * 3. Check for FAT boot signature
- * 4. Check for SPIFFS magic
- * 5. If found -> corresponding FS, otherwise -> SPIFFS
- */
-/**
- * Detect filesystem type by reading partition header
- * Uses the shared detectFilesystemFromImage function from esptool module
+ * Falls back to SPIFFS if no filesystem is detected.
  */
 async function detectFilesystemType(offset, size) {
   try {
@@ -1277,6 +1262,7 @@ async function detectFilesystemType(offset, size) {
     return 'spiffs'; // Safe fallback
   }
 }
+
 
 /**
  * Lazy-load and cache the LittleFS WASM module
