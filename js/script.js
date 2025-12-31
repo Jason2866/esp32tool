@@ -1241,6 +1241,10 @@ async function openFilesystem(partition) {
  * 4. Check for SPIFFS magic
  * 5. If found -> corresponding FS, otherwise -> SPIFFS
  */
+/**
+ * Detect filesystem type by reading partition header
+ * Uses the shared detectFilesystemFromImage function from esptool module
+ */
 async function detectFilesystemType(offset, size) {
   try {
     // Read first 8KB or entire partition if smaller
@@ -1252,77 +1256,16 @@ async function detectFilesystemType(offset, size) {
       return 'spiffs';
     }
     
-    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    // Use the detectFilesystemFromImage function from esptool package
+    const esptoolMod = await window.esptoolPackage;
+    const fsType = esptoolMod.detectFilesystemFromImage(data);
     
-    // Method 1: Check for SPIFFS magic number FIRST (most reliable)
-    // SPIFFS magic: 0x20140529 XORed with page size and optionally (blocksLim - blockIndex)
-    // The magic is stored as objIdLen bytes (typically 2 bytes) in the last lookup page
-    // Pattern: Always ends with 0x05 in the second byte (from 0x0529)
+    // Convert FilesystemType enum to lowercase string
+    const fsTypeStr = fsType.toLowerCase();
     
-    // Check at block boundaries (every 4KB) for SPIFFS magic
-    for (let blockOffset = 0; blockOffset < Math.min(8192, data.length); blockOffset += 4096) {
-      // SPIFFS stores magic near the end of the last lookup page
-      // For 4KB blocks, check around offset 0xF0-0xFF
-      for (let pageOffset = 0xE0; pageOffset < Math.min(0x100, data.length - blockOffset - 2); pageOffset += 2) {
-        const offset = blockOffset + pageOffset;
-        if (offset + 2 > data.length) break;
-        
-        // Read as 16-bit (objIdLen=2, most common)
-        const magic16 = view.getUint16(offset, true);
-        
-        // SPIFFS magic pattern: second byte is always 0x05 (from base 0x0529)
-        // First byte varies based on XOR with pageSize and block index
-        if ((magic16 & 0xFF00) === 0x0500) {
-          logMsg(`SPIFFS detected: Found SPIFFS magic pattern 0x${magic16.toString(16)} at offset 0x${offset.toString(16)}`);
-          return 'spiffs';
-        }
-      }
-    }
-    
-    // Method 2: Check for "littlefs" string in metadata (very reliable)
-    // LittleFS stores this in the superblock metadata
-    const decoder = new TextDecoder('ascii', { fatal: false });
-    const dataStr = decoder.decode(data);
-    
-    if (dataStr.includes('littlefs')) {
-      logMsg('LittleFS detected: Found "littlefs" signature in partition data');
-      return 'littlefs';
-    }
-    
-    // Method 3: Check for FAT filesystem signatures
-    if (data.length >= 512) {
-      const bootSig = view.getUint16(510, true);
-      
-      if (bootSig === 0xAA55) {
-        // Check for FAT signature strings
-        let fat16Sig = '';
-        let fat32Sig = '';
-        
-        if (data.length >= 62) {
-          fat16Sig = String.fromCharCode(data[54], data[55], data[56], data[57], data[58]);
-        }
-        if (data.length >= 90) {
-          fat32Sig = String.fromCharCode(data[82], data[83], data[84], data[85], data[86]);
-        }
-        
-        if (fat16Sig.startsWith('FAT') || fat32Sig.startsWith('FAT')) {
-          logMsg('FatFS detected: Found FAT boot signature and FAT string');
-          return 'fatfs';
-        } else {
-          logMsg('Boot signature found but no FAT string - might be empty/unformatted FAT partition');
-        }
-      }
-    }
-    
-    // Method 4: Check for LittleFS magic numbers (more specific than structure check)
-    // LittleFS v2.x magic: 0x32736c66 ("lfs2" in little-endian)
-    // LittleFS v1.x magic: 0x31736c66 ("lfs1" in little-endian)
-    for (let i = 0; i < Math.min(8192, data.length - 4); i++) {
-      const magic32 = view.getUint32(i, true);
-      if (magic32 === 0x32736c66 || magic32 === 0x31736c66) {
-        logMsg('LittleFS detected: Found LittleFS magic number 0x' + magic32.toString(16) + ' at offset ' + i);
-        return 'littlefs';
-      }
+    if (fsTypeStr !== 'unknown') {
+      logMsg(`Detected filesystem: ${fsTypeStr}`);
+      return fsTypeStr;
     }
     
     // Default: If no clear signature found, assume SPIFFS

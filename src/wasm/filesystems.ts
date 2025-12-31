@@ -37,7 +37,7 @@ export function detectFilesystemType(partition: Partition): FilesystemType {
 
 /**
  * Detect filesystem type from image data
- * Reads the first 8KB to identify filesystem by magic headers and ASCII signatures
+ * Properly validates LittleFS superblock structure at correct offsets
  */
 export function detectFilesystemFromImage(
   imageData: Uint8Array,
@@ -46,37 +46,53 @@ export function detectFilesystemFromImage(
     return FilesystemType.UNKNOWN;
   }
 
-  const searchSize = Math.min(8192, imageData.length);
-
-  // Check for LittleFS magic numbers and ASCII signature
-  for (let offset = 0; offset < searchSize - 8; offset++) {
-    // Check for LittleFS magic: "littlefs" or "lfs\x00" or version-specific magic
-    const magic32 =
-      imageData[offset] |
-      (imageData[offset + 1] << 8) |
-      (imageData[offset + 2] << 16) |
-      (imageData[offset + 3] << 24);
-
-    // LittleFS v2.x magic: 0x32736c66 ("lfs2" in little-endian)
-    // LittleFS v1.x magic: 0x31736c66 ("lfs1" in little-endian)
-    if (magic32 === 0x32736c66 || magic32 === 0x31736c66) {
-      return FilesystemType.LITTLEFS;
-    }
-
-    // Check for ASCII "littlefs" string
-    if (offset + 8 <= searchSize) {
-      const str = String.fromCharCode(
-        imageData[offset],
-        imageData[offset + 1],
-        imageData[offset + 2],
-        imageData[offset + 3],
-        imageData[offset + 4],
-        imageData[offset + 5],
-        imageData[offset + 6],
-        imageData[offset + 7],
-      );
-      if (str === "littlefs") {
-        return FilesystemType.LITTLEFS;
+  // Check for LittleFS superblock at proper offsets
+  // LittleFS superblock structure:
+  // - Offset 0-3: version (4 bytes, little-endian)
+  // - Offset 4-7: block_size (4 bytes, little-endian)
+  // - Offset 8-15: "littlefs" magic string (8 bytes ASCII)
+  // - Offset 16-19: block_count (4 bytes, little-endian)
+  // The superblock is at block 0 and mirrored at block 1
+  
+  const blockSizes = [4096, 2048, 1024, 512];
+  
+  for (const blockSize of blockSizes) {
+    // Check first two blocks (superblock is mirrored)
+    for (let blockIndex = 0; blockIndex < 2; blockIndex++) {
+      const superblockOffset = blockIndex * blockSize;
+      
+      if (superblockOffset + 20 > imageData.length) {
+        continue;
+      }
+      
+      // Check for "littlefs" magic at offset 8 of superblock
+      const magicOffset = superblockOffset + 8;
+      if (magicOffset + 8 <= imageData.length) {
+        const magicStr = String.fromCharCode(
+          imageData[magicOffset],
+          imageData[magicOffset + 1],
+          imageData[magicOffset + 2],
+          imageData[magicOffset + 3],
+          imageData[magicOffset + 4],
+          imageData[magicOffset + 5],
+          imageData[magicOffset + 6],
+          imageData[magicOffset + 7],
+        );
+        
+        if (magicStr === "littlefs") {
+          // Additional validation: check version field
+          const version =
+            imageData[superblockOffset] |
+            (imageData[superblockOffset + 1] << 8) |
+            (imageData[superblockOffset + 2] << 16) |
+            (imageData[superblockOffset + 3] << 24);
+          
+          // LittleFS version should be 0x00020000 (v2.0) or 0x00020001 (v2.1)
+          // Check major version is 2
+          if ((version >>> 16) === 0x0002) {
+            return FilesystemType.LITTLEFS;
+          }
+        }
       }
     }
   }
