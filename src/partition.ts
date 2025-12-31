@@ -3,6 +3,8 @@
  * Based on ESP-IDF partition table format
  */
 
+import { detectFilesystemFromImage, FilesystemType } from "./wasm/filesystems";
+
 export interface Partition {
   name: string;
   type: number;
@@ -53,6 +55,7 @@ const DATA_SUBTYPES: { [key: number]: string } = {
   0x80: "esphttpd",
   0x81: "fat",
   0x82: "spiffs",
+  0x83: "littlefs",
 };
 
 const PARTITION_TABLE_OFFSET = 0x8000; // Default partition table offset
@@ -152,4 +155,39 @@ export function formatSize(bytes: number): string {
   } else {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }
+}
+
+/**
+ * Detect filesystem type from image data
+ * Returns the detected filesystem type: 'littlefs', 'fatfs', 'spiffs', or 'unknown'
+ *
+ * This is a wrapper around detectFilesystemFromImage from filesystems.ts
+ * with fallback to partition subtype if detection fails.
+ */
+export function detectFilesystemType(
+  data: Uint8Array,
+  partitionSubtype?: number,
+): string {
+  // Use the centralized detection function from filesystems.ts
+  const fsType = detectFilesystemFromImage(data);
+
+  // If detection succeeded, return the result
+  if (fsType !== FilesystemType.UNKNOWN) {
+    return fsType.toLowerCase();
+  }
+
+  // Fall back to partition table subtype if no clear signature found
+  if (partitionSubtype !== undefined) {
+    if (partitionSubtype === 0x81) {
+      return "fatfs";
+    } else if (partitionSubtype === 0x82) {
+      // Subtype 0x82 can be either SPIFFS or LittleFS, default to SPIFFS
+      return "spiffs";
+    } else if (partitionSubtype === 0x83) {
+      return "littlefs";
+    }
+  }
+
+  // Default to unknown
+  return "unknown";
 }
