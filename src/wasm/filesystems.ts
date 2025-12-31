@@ -49,10 +49,11 @@ export function detectFilesystemFromImage(
   // Check for LittleFS superblock at proper offsets
   // LittleFS superblock structure:
   // - Offset 0-3: version (4 bytes, little-endian)
-  // - Offset 4-7: block_size (4 bytes, little-endian)
+  // - Offset 4-7: CRC/flags (4 bytes)
   // - Offset 8-15: "littlefs" magic string (8 bytes ASCII)
-  // - Offset 16-19: block_count (4 bytes, little-endian)
+  // - Offset 16+: additional metadata
   // The superblock is at block 0 and mirrored at block 1
+  // Block size is determined by the distance between mirrored superblocks
   
   const blockSizes = LITTLEFS_BLOCK_SIZE_CANDIDATES;
   
