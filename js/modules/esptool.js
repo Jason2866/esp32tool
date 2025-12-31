@@ -6275,7 +6275,41 @@ function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
             (flashData[3] << 24);
         if (spiffsMagic === 0x20140529) {
             // Found SPIFFS!
+            // Note: SPIFFS does not store size in the image itself
+            // Size must come from linker script or partition table
             return getLayoutForDetectedFilesystem(scanOffset, flashSize, 8192);
+        }
+    }
+    // Check for FAT filesystem
+    if (flashData.length >= 512) {
+        const bootSig = flashData[510] | (flashData[511] << 8);
+        if (bootSig === 0xaa55) {
+            // Read bytes per sector
+            const bytesPerSector = flashData[0x0b] | (flashData[0x0c] << 8);
+            // Read total sectors (try 16-bit first, then 32-bit)
+            let totalSectors = flashData[0x13] | (flashData[0x14] << 8);
+            if (totalSectors === 0) {
+                // Use 32-bit total sectors
+                totalSectors =
+                    flashData[0x20] |
+                        (flashData[0x21] << 8) |
+                        (flashData[0x22] << 16) |
+                        (flashData[0x23] << 24);
+            }
+            // Validate values
+            if (bytesPerSector > 0 && totalSectors > 0) {
+                const detectedSize = totalSectors * bytesPerSector;
+                // Verify size is reasonable
+                if (detectedSize > 0 && scanOffset + detectedSize <= flashSize) {
+                    return {
+                        start: scanOffset,
+                        end: scanOffset + detectedSize,
+                        size: detectedSize,
+                        page: bytesPerSector,
+                        block: bytesPerSector, // FAT uses sector size as block size
+                    };
+                }
+            }
         }
     }
     return null;
