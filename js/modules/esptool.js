@@ -6316,54 +6316,93 @@ function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
 }
 /**
  * Get filesystem layout based on detected offset and flash size
- * Uses known ESP8266 linker script patterns
+ * Uses known ESP8266 linker script patterns from Arduino/PlatformIO
  */
 function getLayoutForDetectedFilesystem(offset, flashSize, blockSize) {
-    // Known ESP8266 layouts from linker scripts
-    // These are the actual values used by ESP8266 Arduino/PlatformIO
     const flashSizeMB = flashSize / (1024 * 1024);
+    // 16MB Flash layouts
+    if (flashSizeMB >= 16) {
+        if (offset === 0x100000) {
+            return { start: 0x100000, end: 0xffa000, size: 0xefa000, page: 256, block: blockSize }; // 15MB
+        }
+        else if (offset === 0x200000) {
+            return { start: 0x200000, end: 0xffa000, size: 0xdfa000, page: 256, block: blockSize }; // 14MB
+        }
+    }
+    // 8MB Flash layouts
+    if (flashSizeMB >= 8) {
+        if (offset === 0x100000) {
+            return { start: 0x100000, end: 0x7fa000, size: 0x6fa000, page: 256, block: blockSize }; // 7MB
+        }
+        else if (offset === 0x200000) {
+            return { start: 0x200000, end: 0x7fa000, size: 0x5fa000, page: 256, block: blockSize }; // 6MB
+        }
+    }
     // 4MB Flash layouts
     if (flashSizeMB >= 4) {
-        if (offset === 0x200000) {
-            // eagle.flash.4m2m.ld: 2MB filesystem
-            return {
-                start: 0x200000,
-                end: 0x3fa000,
-                size: 0x1fa000, // ~2MB (2072576 bytes)
-                page: 256,
-                block: blockSize,
-            };
+        if (offset === 0x100000) {
+            return { start: 0x100000, end: 0x3fa000, size: 0x2fa000, page: 256, block: blockSize }; // 3MB
+        }
+        else if (offset === 0x200000) {
+            return { start: 0x200000, end: 0x3fa000, size: 0x1fa000, page: 256, block: blockSize }; // 2MB
         }
         else if (offset === 0x300000) {
-            // eagle.flash.4m1m.ld: 1MB filesystem
-            return {
-                start: 0x300000,
-                end: 0x400000,
-                size: 0x100000, // 1MB
-                page: 256,
-                block: blockSize,
-            };
+            return { start: 0x300000, end: 0x3fa000, size: 0x0fa000, page: 256, block: blockSize }; // 1MB
         }
     }
-    // 2MB Flash layout
-    if (flashSizeMB >= 2 && offset === 0x1fb000) {
-        return {
-            start: 0x1fb000,
-            end: 0x200000,
-            size: 0x5000, // ~20KB
-            page: 256,
-            block: blockSize,
-        };
+    // 2MB Flash layouts
+    if (flashSizeMB >= 2) {
+        if (offset === 0x100000) {
+            return { start: 0x100000, end: 0x1fa000, size: 0x0fa000, page: 256, block: blockSize }; // 1MB
+        }
+        else if (offset === 0x180000) {
+            return { start: 0x180000, end: 0x1fa000, size: 0x07a000, page: 256, block: blockSize }; // 512KB
+        }
+        else if (offset === 0x1c0000) {
+            return { start: 0x1c0000, end: 0x1fb000, size: 0x03b000, page: 256, block: blockSize }; // 256KB
+        }
+        else if (offset === 0x1e0000) {
+            return { start: 0x1e0000, end: 0x1fb000, size: 0x01b000, page: 256, block: blockSize }; // 128KB
+        }
+        else if (offset === 0x1f0000) {
+            return { start: 0x1f0000, end: 0x1fb000, size: 0x00b000, page: 256, block: blockSize }; // 64KB
+        }
     }
-    // 1MB Flash layout
-    if (flashSizeMB >= 1 && offset === 0xdb000) {
-        return {
-            start: 0xdb000,
-            end: 0x100000,
-            size: 0x25000, // ~148KB
-            page: 256,
-            block: blockSize,
-        };
+    // 1MB Flash layouts
+    if (flashSizeMB >= 1) {
+        if (offset === 0x07b000) {
+            return { start: 0x07b000, end: 0x0fb000, size: 0x080000, page: 256, block: blockSize }; // 512KB
+        }
+        else if (offset === 0x0bb000) {
+            return { start: 0x0bb000, end: 0x0fb000, size: 0x040000, page: 256, block: blockSize }; // 256KB
+        }
+        else if (offset === 0x0cb000) {
+            return { start: 0x0cb000, end: 0x0fb000, size: 0x030000, page: 256, block: blockSize }; // 192KB
+        }
+        else if (offset === 0x0d3000) {
+            return { start: 0x0d3000, end: 0x0fb000, size: 0x028000, page: 256, block: blockSize }; // 160KB
+        }
+        else if (offset === 0x0d7000) {
+            return { start: 0x0d7000, end: 0x0fb000, size: 0x024000, page: 256, block: blockSize }; // 144KB
+        }
+        else if (offset === 0x0db000) {
+            return { start: 0x0db000, end: 0x0fb000, size: 0x020000, page: 256, block: blockSize }; // 128KB
+        }
+        else if (offset === 0x0eb000) {
+            return { start: 0x0eb000, end: 0x0fb000, size: 0x010000, page: 256, block: blockSize }; // 64KB
+        }
+    }
+    // 512KB Flash layouts
+    if (flashSizeMB >= 0.5) {
+        if (offset === 0x05b000) {
+            return { start: 0x05b000, end: 0x07b000, size: 0x020000, page: 256, block: blockSize }; // 128KB
+        }
+        else if (offset === 0x06b000) {
+            return { start: 0x06b000, end: 0x07b000, size: 0x010000, page: 256, block: blockSize }; // 64KB
+        }
+        else if (offset === 0x073000) {
+            return { start: 0x073000, end: 0x07b000, size: 0x008000, page: 256, block: blockSize }; // 32KB
+        }
     }
     // Fallback: use remaining flash space
     const size = flashSize - offset;

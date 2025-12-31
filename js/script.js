@@ -538,9 +538,18 @@ async function clickConnect() {
       logMsg('Scanning ESP8266 flash for filesystem...');
       
       // Read a large section of flash to scan for filesystem signatures
-      // We read from potential FS start locations
+      // We read from potential FS start locations (most common offsets)
       const scanSize = Math.min(0x10000, flashSizeBytes); // 64KB scan
-      const scanOffsets = [0x200000, 0x300000, 0x1fb000, 0xdb000, 0x100000];
+      const scanOffsets = [
+        0x200000, // 4MB/8MB/16MB: Most common
+        0x100000, // 2MB/4MB/8MB/16MB: Second most common
+        0x300000, // 4MB: 1MB FS
+        0x180000, // 2MB: 512KB FS
+        0x1c0000, // 2MB: 256KB FS
+        0x1e0000, // 2MB: 128KB FS
+        0x0db000, // 1MB: 128KB FS
+        0x07b000, // 1MB: 512KB FS
+      ];
       
       let detectedLayout = null;
       
