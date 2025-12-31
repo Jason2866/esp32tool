@@ -53,6 +53,7 @@ const DATA_SUBTYPES: { [key: number]: string } = {
   0x80: "esphttpd",
   0x81: "fat",
   0x82: "spiffs",
+  0x83: "littlefs",
 };
 
 const PARTITION_TABLE_OFFSET = 0x8000; // Default partition table offset
@@ -152,4 +153,64 @@ export function formatSize(bytes: number): string {
   } else {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }
+}
+
+/**
+ * Detect filesystem type from image data
+ * Returns the detected filesystem type: 'littlefs', 'fatfs', 'spiffs', or 'unknown'
+ */
+export function detectFilesystemType(data: Uint8Array, partitionSubtype?: number): string {
+  // Read more data to check for offset FAT
+  const headerSize = Math.min(data.length, 16384);
+  const header = data.slice(0, headerSize);
+  
+  // 1. Check for LittleFS magic at offset 8 of the superblock
+  if (header.length >= 16) {
+    const littlefsMagic = new TextDecoder().decode(header.slice(8, 16));
+    if (littlefsMagic === 'littlefs') {
+      return 'littlefs';
+    }
+  }
+  
+  // 2. Check for FAT filesystem (with or without Wear Leveling)
+  // Check multiple possible offsets for FAT boot sector
+  // ESP32 with WL often has FAT at offset 0x1000 (4096)
+  const fatOffsets = [0, 4096, 8192];
+  
+  for (const offset of fatOffsets) {
+    if (header.length >= offset + 512) {
+      const bootSector = header.slice(offset, offset + 512);
+      
+      // Check for FAT boot signature at offset 510-511
+      if (bootSector[510] === 0x55 && bootSector[511] === 0xAA) {
+        // Additional validation: check for FAT filesystem markers
+        const bootSectorStr = new TextDecoder().decode(bootSector.slice(0, 90));
+        
+        if (bootSectorStr.includes('FAT') || 
+            bootSectorStr.includes('MSDOS') || 
+            bootSectorStr.includes('MSWIN')) {
+          // Verify bytes per sector
+          const bytesPerSector = bootSector[11] | (bootSector[12] << 8);
+          if ([512, 1024, 2048, 4096].includes(bytesPerSector)) {
+            return 'fatfs';
+          }
+        }
+      }
+    }
+  }
+  
+  // 3. Fall back to partition table subtype if no clear signature found
+  if (partitionSubtype !== undefined) {
+    if (partitionSubtype === 0x81) {
+      return 'fatfs';
+    } else if (partitionSubtype === 0x82) {
+      // Subtype 0x82 can be either SPIFFS or LittleFS, default to SPIFFS
+      return 'spiffs';
+    } else if (partitionSubtype === 0x83) {
+      return 'littlefs';
+    }
+  }
+  
+  // 4. Default to unknown
+  return 'unknown';
 }
