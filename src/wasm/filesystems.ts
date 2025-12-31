@@ -26,7 +26,7 @@ export interface ESP8266FilesystemLayout {
 
 /**
  * Scan ESP8266 flash for filesystem by detecting filesystem signatures
- * Uses known layout patterns when filesystem is detected at common offsets
+ * Reads actual block_count from LittleFS superblock for accurate size detection
  * 
  * @param flashData - Flash data starting at scanOffset
  * @param scanOffset - The offset in flash where this data starts
@@ -73,7 +73,32 @@ export function scanESP8266Filesystem(
 
         if (version !== 0 && (version >>> 0) !== 0xffffffff) {
           // Found valid LittleFS!
-          // Use known layout patterns based on offset and flash size
+          // Try to read block_count from superblock (offset 28, 4 bytes little-endian)
+          const blockCountOffset = superblockOffset + 28;
+          if (blockCountOffset + 4 <= flashData.length) {
+            const blockCount =
+              flashData[blockCountOffset] |
+              (flashData[blockCountOffset + 1] << 8) |
+              (flashData[blockCountOffset + 2] << 16) |
+              (flashData[blockCountOffset + 3] << 24);
+            
+            // Validate block_count (should be reasonable: > 0 and < 100000)
+            if (blockCount > 0 && blockCount < 100000) {
+              const detectedSize = blockCount * blockSize;
+              // Verify size is reasonable (not larger than remaining flash)
+              if (detectedSize > 0 && scanOffset + detectedSize <= flashSize) {
+                return {
+                  start: scanOffset,
+                  end: scanOffset + detectedSize,
+                  size: detectedSize,
+                  page: 256,
+                  block: blockSize,
+                };
+              }
+            }
+          }
+          
+          // Fallback to known layout patterns if block_count read failed
           return getLayoutForDetectedFilesystem(scanOffset, flashSize, blockSize);
         }
       }
