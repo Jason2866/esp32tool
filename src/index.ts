@@ -47,11 +47,19 @@ export {
   detectFilesystemFromImage,
   getDefaultBlockSize,
   getBlockSizeCandidates,
+  getESP8266FilesystemLayout,
   LITTLEFS_DEFAULT_BLOCK_SIZE,
   LITTLEFS_BLOCK_SIZE_CANDIDATES,
   FATFS_DEFAULT_BLOCK_SIZE,
   FATFS_BLOCK_SIZE_CANDIDATES,
+  ESP8266_LITTLEFS_BLOCK_SIZE,
+  ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES,
+  ESP8266_LITTLEFS_PAGE_SIZE,
+  ESP8266_LITTLEFS_BLOCK_SIZE_FOR_FS,
+  ESP8266_SPIFFS_PAGE_SIZE,
+  ESP8266_SPIFFS_BLOCK_SIZE,
 } from "./wasm/filesystems";
+export type { ESP8266FilesystemLayout } from "./wasm/filesystems";
 
 export {
   SpiffsFS,

@@ -154,3 +154,14 @@ input {
 .littlefs-fs-button:hover {
   background-color: #71ae1e;
 }
+
+/* ESP8266 Info Box - Dark Mode */
+.esp8266-info .info-box {
+  background-color: #2a2a2a;
+  border-color: #00a7e9;
+  color: #e0e0e0;
+}
+
+.esp8266-info .info-box strong {
+  color: #00a7e9;
+}

@@ -561,6 +561,50 @@ div.clear {
   border-color: #00a7e9;
 }
 
+/* ESP8266 Filesystem Info Box */
+.esp8266-info {
+  width: 100%;
+  margin-top: 15px;
+}
+
+.esp8266-info .info-box {
+  background-color: #f8f9fa;
+  border: 2px solid #00a7e9;
+  border-radius: 8px;
+  padding: 15px 20px;
+  text-align: left;
+}
+
+.esp8266-info .info-box strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #00a7e9;
+}
+
+.esp8266-info .info-box p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.esp8266-info .info-box ul {
+  margin: 10px 0;
+  padding-left: 20px;
+  list-style-type: none;
+}
+
+.esp8266-info .info-box ul li {
+  margin: 5px 0;
+  padding-left: 0;
+}
+
+.esp8266-info .info-box ul li strong {
+  display: inline;
+  font-size: 14px;
+  color: inherit;
+  margin: 0;
+}
+
 .justify {
   display: flex;
   justify-content: space-between;

@@ -5,6 +5,78 @@ export const LITTLEFS_BLOCK_SIZE_CANDIDATES = [4096, 2048, 1024, 512];
 export const FATFS_DEFAULT_BLOCK_SIZE = 4096;
 export const FATFS_BLOCK_SIZE_CANDIDATES = [4096, 2048, 1024, 512];
 
+// ESP8266-specific parameters
+export const ESP8266_LITTLEFS_BLOCK_SIZE = 8192;
+export const ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES = [8192, 4096];
+export const ESP8266_LITTLEFS_PAGE_SIZE = 256;
+export const ESP8266_LITTLEFS_BLOCK_SIZE_FOR_FS = 8192;
+export const ESP8266_SPIFFS_PAGE_SIZE = 256;
+export const ESP8266_SPIFFS_BLOCK_SIZE = 8192;
+
+/**
+ * ESP8266 filesystem layout information
+ */
+export interface ESP8266FilesystemLayout {
+  start: number;
+  end: number;
+  size: number;
+  page: number;
+  block: number;
+}
+
+/**
+ * Calculate ESP8266 filesystem layout based on flash size
+ * This mimics the logic from platform-espressif8266/builder/main.py _parse_ld_sizes()
+ * 
+ * ESP8266 uses linker scripts that define FS_START, FS_END, FS_PAGE, FS_BLOCK
+ * The values depend on the flash size configuration.
+ * 
+ * Common configurations:
+ * - 4MB (4096KB): FS at 0x300000, size 1MB
+ * - 2MB (2048KB): FS at 0x1FB000, size ~20KB  
+ * - 1MB (1024KB): FS at 0xDB000, size ~148KB
+ * 
+ * @param flashSizeMB - Flash size in megabytes
+ * @returns Filesystem layout information or null if unknown
+ */
+export function getESP8266FilesystemLayout(
+  flashSizeMB: number,
+): ESP8266FilesystemLayout | null {
+  // Based on common ESP8266 linker script configurations
+  // These match the eagle.flash.*.ld files in ESP8266 Arduino/framework
+  
+  if (flashSizeMB >= 4) {
+    // 4MB flash: 1MB filesystem (most common for Tasmota, etc.)
+    return {
+      start: 0x300000,
+      end: 0x400000,
+      size: 0x100000, // 1MB
+      page: 256,
+      block: 8192,
+    };
+  } else if (flashSizeMB >= 2) {
+    // 2MB flash: ~20KB filesystem
+    return {
+      start: 0x1fb000,
+      end: 0x200000,
+      size: 0x5000, // ~20KB
+      page: 256,
+      block: 8192,
+    };
+  } else if (flashSizeMB >= 1) {
+    // 1MB flash: ~148KB filesystem
+    return {
+      start: 0xdb000,
+      end: 0x100000,
+      size: 0x25000, // ~148KB
+      page: 256,
+      block: 8192,
+    };
+  }
+  
+  return null;
+}
+
 /**
  * Filesystem types based on partition subtype
  */
@@ -38,9 +110,13 @@ export function detectFilesystemType(partition: Partition): FilesystemType {
 /**
  * Detect filesystem type from image data
  * Properly validates LittleFS superblock structure at correct offsets
+ * 
+ * @param imageData - Binary filesystem image data
+ * @param chipName - Optional chip name for ESP8266-specific detection (e.g. "ESP8266")
  */
 export function detectFilesystemFromImage(
   imageData: Uint8Array,
+  chipName?: string,
 ): FilesystemType {
   if (imageData.length < 512) {
     return FilesystemType.UNKNOWN;
@@ -54,8 +130,12 @@ export function detectFilesystemFromImage(
   // - Offset 16+: additional metadata
   // The superblock is at block 0 and mirrored at block 1
   // Block size is determined by the distance between mirrored superblocks
-  
-  const blockSizes = LITTLEFS_BLOCK_SIZE_CANDIDATES;
+
+  // Use chip-specific block sizes
+  const isESP8266 = chipName?.toUpperCase().includes("ESP8266");
+  const blockSizes = isESP8266
+    ? ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES
+    : LITTLEFS_BLOCK_SIZE_CANDIDATES;
   
   for (const blockSize of blockSizes) {
     // Check first two blocks (superblock is mirrored)
@@ -146,29 +226,45 @@ export function detectFilesystemFromImage(
 }
 
 /**
- * Get appropriate block size for filesystem type
+ * Get appropriate block size for filesystem type and chip
  */
-export function getDefaultBlockSize(fsType: FilesystemType): number {
+export function getDefaultBlockSize(
+  fsType: FilesystemType,
+  chipName?: string,
+): number {
+  const isESP8266 = chipName?.toUpperCase().includes("ESP8266");
+
   switch (fsType) {
     case FilesystemType.FATFS:
       return FATFS_DEFAULT_BLOCK_SIZE;
     case FilesystemType.LITTLEFS:
-      return LITTLEFS_DEFAULT_BLOCK_SIZE;
+      return isESP8266
+        ? ESP8266_LITTLEFS_BLOCK_SIZE
+        : LITTLEFS_DEFAULT_BLOCK_SIZE;
     default:
-      return 4096;
+      return isESP8266 ? ESP8266_LITTLEFS_BLOCK_SIZE : 4096;
   }
 }
 
 /**
- * Get block size candidates for filesystem type
+ * Get block size candidates for filesystem type and chip
  */
-export function getBlockSizeCandidates(fsType: FilesystemType): number[] {
+export function getBlockSizeCandidates(
+  fsType: FilesystemType,
+  chipName?: string,
+): number[] {
+  const isESP8266 = chipName?.toUpperCase().includes("ESP8266");
+
   switch (fsType) {
     case FilesystemType.FATFS:
       return FATFS_BLOCK_SIZE_CANDIDATES;
     case FilesystemType.LITTLEFS:
-      return LITTLEFS_BLOCK_SIZE_CANDIDATES;
+      return isESP8266
+        ? ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES
+        : LITTLEFS_BLOCK_SIZE_CANDIDATES;
     default:
-      return [4096, 2048, 1024, 512];
+      return isESP8266
+        ? ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES
+        : [4096, 2048, 1024, 512];
   }
 }
