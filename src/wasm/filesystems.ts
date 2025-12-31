@@ -80,16 +80,17 @@ export function detectFilesystemFromImage(
         );
         
         if (magicStr === "littlefs") {
-          // Additional validation: check version field
+          // Found valid LittleFS superblock with magic string
+          // Validate version field to avoid false positives
           const version =
             imageData[superblockOffset] |
             (imageData[superblockOffset + 1] << 8) |
             (imageData[superblockOffset + 2] << 16) |
             (imageData[superblockOffset + 3] << 24);
           
-          // LittleFS version should be 0x00020000 (v2.0) or 0x00020001 (v2.1)
-          // Check major version is 2
-          if ((version >>> 16) === 0x0002) {
+          // Version must be non-zero and not erased flash (0xFFFFFFFF)
+          // Use unsigned comparison
+          if (version !== 0 && (version >>> 0) !== 0xFFFFFFFF) {
             return FilesystemType.LITTLEFS;
           }
         }
