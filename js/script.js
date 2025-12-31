@@ -1202,7 +1202,6 @@ async function openFilesystem(partition) {
     
     // Detect filesystem type
     const fsType = await detectFilesystemType(partition.offset, partition.size);
-    logMsg(`Detected filesystem: ${fsType}`);
     
     if (fsType === 'littlefs') {
       await openLittleFS(partition);
