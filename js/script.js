@@ -6,6 +6,7 @@ let currentLittleFSPath = '/';
 let currentLittleFSBlockSize = 4096;
 let currentFilesystemType = null; // 'littlefs', 'fatfs', or 'spiffs'
 let littlefsModulePromise = null; // Cache for LittleFS WASM module
+let lastReadFlashData = null; // Store last read flash data for ESP8266
 
 /**
  * Get display name for current filesystem type
@@ -42,6 +43,7 @@ function clearAllCachedData() {
   currentLittleFSPath = '/';
   currentLittleFSBlockSize = 4096;
   currentFilesystemType = null;
+  lastReadFlashData = null;
   
   // Hide filesystem manager
   littlefsManager.classList.add('hidden');
@@ -52,6 +54,9 @@ function clearAllCachedData() {
   
   // Show the Read Partition Table button again
   butReadPartitions.classList.remove('hidden');
+  
+  // Hide Open FS Manager button
+  butOpenFSManager.classList.add('hidden');
   
   // Hide ESP8266 info
   const esp8266Info = document.getElementById('esp8266Info');
@@ -93,6 +98,7 @@ const readOffset = document.getElementById("readOffset");
 const readSize = document.getElementById("readSize");
 const readProgress = document.getElementById("readProgress");
 const butReadPartitions = document.getElementById("butReadPartitions");
+const butOpenFSManager = document.getElementById("butOpenFSManager");
 const partitionList = document.getElementById("partitionList");
 const littlefsManager = document.getElementById("littlefsManager");
 const littlefsPartitionName = document.getElementById("littlefsPartitionName");
@@ -149,6 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
   butProgram.addEventListener("click", clickProgram);
   butReadFlash.addEventListener("click", clickReadFlash);
   butReadPartitions.addEventListener("click", clickReadPartitions);
+  butOpenFSManager.addEventListener("click", clickOpenFSManager);
   butLittlefsRefresh.addEventListener("click", clickLittlefsRefresh);
   butLittlefsBackup.addEventListener("click", clickLittlefsBackup);
   butLittlefsWrite.addEventListener("click", clickLittlefsWrite);
@@ -849,7 +856,7 @@ async function clickReadFlash() {
     // Save file using Electron API or browser download
     await saveDataToFile(data, defaultFilename);
     
-    // Check if this looks like a filesystem and offer to open it
+    // Check if this looks like a filesystem
     const chipName = espStub?.chipName || '';
     const esptoolMod = await window.esptoolPackage;
     const fsType = esptoolMod.detectFilesystemFromImage(data, chipName);
@@ -857,22 +864,21 @@ async function clickReadFlash() {
     if (fsType !== 'unknown') {
       logMsg(`Detected ${fsType} filesystem in read data`);
       
-      // Ask user if they want to open the filesystem
-      const shouldOpen = confirm(`Detected ${fsType.toUpperCase()} filesystem. Open it now?`);
+      // Store the read data and metadata for later use
+      lastReadFlashData = {
+        data: data,
+        offset: offset,
+        size: size,
+        fsType: fsType
+      };
       
-      if (shouldOpen) {
-        // Create a pseudo-partition object for the read data
-        const pseudoPartition = {
-          name: `flash_0x${offset.toString(16)}`,
-          offset: offset,
-          size: size,
-          type: 0x01,
-          subtype: fsType === 'fatfs' ? 0x81 : 0x82,
-          _readData: data // Store the already-read data
-        };
-        
-        await openFilesystem(pseudoPartition);
-      }
+      // Show "Open FS Manager" button
+      butOpenFSManager.classList.remove('hidden');
+      logMsg('Click "Open FS Manager" to access the filesystem');
+    } else {
+      // Hide button if no filesystem detected
+      butOpenFSManager.classList.add('hidden');
+      lastReadFlashData = null;
     }
 
   } catch (e) {
@@ -886,6 +892,33 @@ async function clickReadFlash() {
     butReadFlash.disabled = false;
     readOffset.disabled = false;
     readSize.disabled = false;
+  }
+}
+
+/**
+ * @name clickOpenFSManager
+ * Click handler for the Open FS Manager button (ESP8266)
+ */
+async function clickOpenFSManager() {
+  if (!lastReadFlashData) {
+    errorMsg('No filesystem data available. Please read flash first.');
+    return;
+  }
+  
+  try {
+    // Create a pseudo-partition object for the read data
+    const pseudoPartition = {
+      name: `flash_0x${lastReadFlashData.offset.toString(16)}`,
+      offset: lastReadFlashData.offset,
+      size: lastReadFlashData.size,
+      type: 0x01,
+      subtype: lastReadFlashData.fsType === 'fatfs' ? 0x81 : 0x82,
+      _readData: lastReadFlashData.data // Store the already-read data
+    };
+    
+    await openFilesystem(pseudoPartition);
+  } catch (e) {
+    errorMsg(`Failed to open filesystem: ${e.message || e}`);
   }
 }
 

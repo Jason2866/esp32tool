@@ -521,6 +521,17 @@ div.clear {
   cursor: pointer;
 }
 
+#commands .partition-table #butOpenFSManager {
+  background-color: #8ec641;
+  color: white;
+  border-color: #8ec641;
+}
+
+#commands .partition-table #butOpenFSManager:hover {
+  background-color: #71ae1e;
+  border-color: #71ae1e;
+}
+
 #commands .partition-table .progress-bar {
   width: 400px;
   margin-bottom: 10px;

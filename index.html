@@ -302,8 +302,23 @@
             <button id="butReadPartitions" type="button" disabled="disabled">
               Read Partition Table
             </button>
+            <button id="butOpenFSManager" type="button" class="hidden">
+              Open FS Manager
+            </button>
             <div class="progress-bar hidden" id="partitionProgress">
               <div></div>
+            </div>
+            <div id="esp8266Info" class="esp8266-info hidden">
+              <div class="info-box">
+                <strong>ESP8266 Filesystem Access</strong>
+                <p>ESP8266 does not use a partition table. Use "Read Flash" with the values below:</p>
+                <ul>
+                  <li><strong>4MB Flash:</strong> Filesystem at 0x300000 (1MB size)</li>
+                  <li><strong>2MB Flash:</strong> Filesystem at 0x1FB000 (20KB size)</li>
+                  <li><strong>1MB Flash:</strong> Filesystem at 0xDB000 (148KB size)</li>
+                </ul>
+                <p>After reading, click "Open FS Manager" to access the filesystem.</p>
+              </div>
             </div>
             <div id="partitionList" class="hidden"></div>
           </div>
