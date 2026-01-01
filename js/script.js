@@ -1671,10 +1671,20 @@ async function openLittleFS(partition) {
     
     logMsg('Mounting LittleFS filesystem...');
     
-    // Get chip-specific block sizes
+    // Import constants from esptool module
+    const basePath = window.location.pathname.endsWith('/') 
+      ? window.location.pathname 
+      : window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const esptoolModulePath = `${basePath}js/modules/esptool.js`;
+    const { 
+      LITTLEFS_BLOCK_SIZE_CANDIDATES,
+      ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES 
+    } = await import(esptoolModulePath);
+    
+    // Get chip-specific block sizes using defined constants
     const chipName = currentChipName || '';
     const isESP8266 = chipName.toUpperCase().includes("ESP8266");
-    const blockSizes = isESP8266 ? [8192, 4096] : [4096, 2048, 1024, 512];
+    const blockSizes = isESP8266 ? ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES : LITTLEFS_BLOCK_SIZE_CANDIDATES;
     
     let fs = null;
     let blockSize = 0;
@@ -1925,15 +1935,22 @@ async function openSPIFFS(partition) {
       : window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
     const modulePath = `${basePath}js/modules/esptool.js`;
 
-    const { SpiffsFS, SpiffsReader, SpiffsBuildConfig, DEFAULT_SPIFFS_CONFIG } = await import(modulePath);
+    const { 
+      SpiffsFS, 
+      SpiffsReader, 
+      SpiffsBuildConfig, 
+      DEFAULT_SPIFFS_CONFIG,
+      ESP8266_SPIFFS_PAGE_SIZE,
+      ESP8266_SPIFFS_BLOCK_SIZE
+    } = await import(modulePath);
     
     // Get chip-specific parameters
     const chipName = currentChipName || '';
     const isESP8266 = chipName.toUpperCase().includes("ESP8266");
     
     // ESP8266 uses different SPIFFS parameters (from main.py)
-    const pageSize = isESP8266 ? 256 : DEFAULT_SPIFFS_CONFIG.pageSize || 256;
-    const blockSize = isESP8266 ? 8192 : DEFAULT_SPIFFS_CONFIG.blockSize || 4096;
+    const pageSize = isESP8266 ? ESP8266_SPIFFS_PAGE_SIZE : DEFAULT_SPIFFS_CONFIG.pageSize || 256;
+    const blockSize = isESP8266 ? ESP8266_SPIFFS_BLOCK_SIZE : DEFAULT_SPIFFS_CONFIG.blockSize || 4096;
     
     // Create build config with partition size and chip-specific parameters
     const config = new SpiffsBuildConfig({
