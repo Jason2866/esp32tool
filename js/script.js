@@ -811,7 +811,10 @@ async function clickDetectFS() {
     
     // Store the data for later use
     lastReadFlashData = fsData;
-    
+
+    // Hide Open FS Manager since we're opening directly
+    butOpenFSManager.classList.add('hidden');
+
     // Detect filesystem type
     const fsType = esptoolMod.detectFilesystemFromImage(fsData, currentChipName);
     logMsg(`Detected filesystem type: ${fsType.toUpperCase()}`);
