@@ -228,26 +228,33 @@ export function scanESP8266Filesystem(
   }
 
   // Check for FAT filesystem
-  if (flashData.length >= 512) {
-    const bootSig = flashData[510] | (flashData[511] << 8);
+  // FAT can start at offset 0 or 0x1000 (4096 bytes) in ESP8266
+  const fatOffsets = [0, 0x1000];
+  
+  for (const fatOffset of fatOffsets) {
+    if (flashData.length < fatOffset + 512) {
+      continue;
+    }
+    
+    const bootSig = flashData[fatOffset + 510] | (flashData[fatOffset + 511] << 8);
     if (bootSig === 0xaa55) {
       // Read bytes per sector
-      const bytesPerSector = flashData[0x0b] | (flashData[0x0c] << 8);
+      const bytesPerSector = flashData[fatOffset + 0x0b] | (flashData[fatOffset + 0x0c] << 8);
       
       // Validate bytes per sector (must be 512, 1024, 2048, or 4096)
       if (![512, 1024, 2048, 4096].includes(bytesPerSector)) {
-        return null; // Invalid sector size
+        continue;
       }
       
       // Read total sectors (try 16-bit first, then 32-bit)
-      let totalSectors = flashData[0x13] | (flashData[0x14] << 8);
+      let totalSectors = flashData[fatOffset + 0x13] | (flashData[fatOffset + 0x14] << 8);
       if (totalSectors === 0) {
         // Use 32-bit total sectors
         totalSectors =
-          flashData[0x20] |
-          (flashData[0x21] << 8) |
-          (flashData[0x22] << 16) |
-          (flashData[0x23] << 24);
+          flashData[fatOffset + 0x20] |
+          (flashData[fatOffset + 0x21] << 8) |
+          (flashData[fatOffset + 0x22] << 16) |
+          (flashData[fatOffset + 0x23] << 24);
       }
       
       // Validate values
@@ -255,10 +262,12 @@ export function scanESP8266Filesystem(
         const detectedSize = totalSectors * bytesPerSector;
         
         // Verify size is reasonable (not larger than remaining flash)
-        if (detectedSize > 0 && scanOffset + detectedSize <= flashSize) {
+        // Account for the FAT offset in the actual flash position
+        const actualStart = scanOffset + fatOffset;
+        if (detectedSize > 0 && actualStart + detectedSize <= flashSize) {
           return {
-            start: scanOffset,
-            end: scanOffset + detectedSize,
+            start: actualStart,
+            end: actualStart + detectedSize,
             size: detectedSize,
             page: bytesPerSector,
             block: bytesPerSector, // FAT uses sector size as block size
@@ -533,27 +542,34 @@ export function detectFilesystemFromImage(
   }
 
   // Check for FAT filesystem signatures
-  if (imageData.length >= 512) {
-    const bootSig = imageData[510] | (imageData[511] << 8);
+  // FAT can start at offset 0 or 0x1000 (4096 bytes) in ESP8266
+  const fatOffsets = [0, 0x1000];
+  
+  for (const fatOffset of fatOffsets) {
+    if (imageData.length < fatOffset + 512) {
+      continue;
+    }
+    
+    const bootSig = imageData[fatOffset + 510] | (imageData[fatOffset + 511] << 8);
     if (bootSig === 0xaa55) {
       const fat16Sig =
-        imageData.length >= 62
+        imageData.length >= fatOffset + 62
           ? String.fromCharCode(
-              imageData[54],
-              imageData[55],
-              imageData[56],
-              imageData[57],
-              imageData[58],
+              imageData[fatOffset + 54],
+              imageData[fatOffset + 55],
+              imageData[fatOffset + 56],
+              imageData[fatOffset + 57],
+              imageData[fatOffset + 58],
             )
           : "";
       const fat32Sig =
-        imageData.length >= 90
+        imageData.length >= fatOffset + 90
           ? String.fromCharCode(
-              imageData[82],
-              imageData[83],
-              imageData[84],
-              imageData[85],
-              imageData[86],
+              imageData[fatOffset + 82],
+              imageData[fatOffset + 83],
+              imageData[fatOffset + 84],
+              imageData[fatOffset + 85],
+              imageData[fatOffset + 86],
             )
           : "";
 
