@@ -20,7 +20,7 @@ ESP32Tool is designed first and foremost for the entire ESP32 family – deliver
 - **Plug & Play:** Manage your ESP directly in the browser. No software installation needed.
 - **Offline Ready:** Prefer desktop? Grab the Electron app from our [releases](https://github.com/Jason2866/esp32tool/releases).
 
-> **Bonus:** ESP8266 support is now included! Manage filesystems on ESP8266 devices with the same ease.
+- **Bonus:** ESP8266 support is now included! Manage filesystems on ESP8266 devices with the same ease.
 
 > **Try it now:** [jason2866.github.io/esp32tool](https://jason2866.github.io/esp32tool)
 
