@@ -92,7 +92,7 @@ export function scanESP8266Filesystem(
 ): ESP8266FilesystemLayout | null {
   // Check for LittleFS signature
   // LittleFS superblock has "littlefs" magic at offset 8 within block 0
-  const blockSizes = [8192, 4096]; // ESP8266 typically uses 8192
+  const blockSizes = ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES; // ESP8266 typically uses 8192
   
   for (const blockSize of blockSizes) {
     // Check block 0 and block 1 (mirrored superblock)
