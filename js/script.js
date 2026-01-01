@@ -659,40 +659,79 @@ async function clickDetectFS() {
     const flashSizeBytes = flashSizeMB * 1024 * 1024;
     const esptoolMod = await window.esptoolPackage;
     
-    // Scan flash for filesystem signatures
-    const scanSize = Math.min(0x10000, flashSizeBytes); // 64KB scan
-    const scanOffsets = [
-      0x200000, // 4MB/8MB/16MB: Most common
-      0x100000, // 2MB/4MB/8MB/16MB: Second most common
-      0x300000, // 4MB: 1MB FS
-      0x180000, // 2MB: 512KB FS
-      0x1c0000, // 2MB: 256KB FS
-      0x1e0000, // 2MB: 128KB FS
-      0x0db000, // 1MB: 128KB FS
-      0x07b000, // 1MB: 512KB FS
-    ];
+    // Scan flash for filesystem signatures - optimized based on flash size
+    let scanOffsets = [];
+    
+    if (flashSizeMB >= 4) {
+      // 4MB/8MB/16MB Flash
+      scanOffsets = [
+        { offset: 0x200000, size: 0x10000 }, // Most common: 2MB/6MB/14MB FS
+        { offset: 0x100000, size: 0x10000 }, // Alternative: 3MB/7MB/15MB FS
+        { offset: 0x300000, size: 0x10000 }, // 4MB only: 1MB FS
+      ];
+    } else if (flashSizeMB >= 2) {
+      // 2MB Flash
+      scanOffsets = [
+        { offset: 0x100000, size: 0x10000 }, // 1MB FS
+        { offset: 0x180000, size: 0x10000 }, // 512KB FS
+        { offset: 0x1c0000, size: 0x10000 }, // 256KB FS
+        { offset: 0x1e0000, size: 0x1b000 }, // 128KB + 64KB FS (covers 0x1e0000 and 0x1f0000)
+      ];
+    } else if (flashSizeMB >= 1) {
+      // 1MB Flash - one large read covers all 7 possible offsets
+      scanOffsets = [
+        { offset: 0x07b000, size: 0x80000 }, // Covers all: 512KB, 256KB, 192KB, 160KB, 144KB, 128KB, 64KB
+      ];
+    } else if (flashSizeMB >= 0.5) {
+      // 512KB Flash
+      scanOffsets = [
+        { offset: 0x05b000, size: 0x20000 }, // Covers 128KB, 64KB, 32KB (0x05b000, 0x06b000, 0x073000)
+      ];
+    }
     
     let detectedLayout = null;
     
-    for (const scanOffset of scanOffsets) {
-      if (scanOffset + scanSize > flashSizeBytes) {
+    for (const scan of scanOffsets) {
+      if (scan.offset + scan.size > flashSizeBytes) {
         continue;
       }
       
       try {
-        logMsg(`Scanning at 0x${scanOffset.toString(16)}...`);
-        const scanData = await espStub.readFlash(scanOffset, scanSize);
-        const scannedLayout = esptoolMod.scanESP8266Filesystem(scanData, scanOffset, flashSizeBytes);
+        logMsg(`Scanning at 0x${scan.offset.toString(16)}...`);
+        const scanData = await espStub.readFlash(scan.offset, scan.size);
         
-        if (scannedLayout) {
-          detectedLayout = scannedLayout;
-          const fsType = esptoolMod.detectFilesystemFromImage(scanData, currentChipName);
-          logMsg(`Found ${fsType.toUpperCase()} filesystem at 0x${scannedLayout.start.toString(16)} - 0x${scannedLayout.end.toString(16)} (${formatSize(scannedLayout.size)})`);
-          break;
+        // Check multiple offsets within the read data
+        const checkOffsets = [];
+        if (scan.size > 0x10000) {
+          // Large read - check multiple positions
+          for (let pos = 0; pos < scan.size; pos += 0x10000) {
+            checkOffsets.push(scan.offset + pos);
+          }
+        } else {
+          // Small read - check only start position
+          checkOffsets.push(scan.offset);
         }
+        
+        for (const checkOffset of checkOffsets) {
+          const dataOffset = checkOffset - scan.offset;
+          if (dataOffset + 0x10000 > scanData.length) continue;
+          
+          const checkData = scanData.slice(dataOffset, dataOffset + 0x10000);
+          const scannedLayout = esptoolMod.scanESP8266Filesystem(checkData, checkOffset, flashSizeBytes);
+          
+          if (scannedLayout) {
+            detectedLayout = scannedLayout;
+            const fsType = esptoolMod.detectFilesystemFromImage(checkData, currentChipName);
+            logMsg(`Found ${fsType.toUpperCase()} filesystem at 0x${scannedLayout.start.toString(16)} - 0x${scannedLayout.end.toString(16)} (${formatSize(scannedLayout.size)})`);
+            break;
+          }
+        }
+        
+        if (detectedLayout) break;
+        
       } catch (e) {
         // Continue scanning
-        logMsg(`Scan at 0x${scanOffset.toString(16)} failed: ${e.message || e}`);
+        logMsg(`Scan at 0x${scan.offset.toString(16)} failed: ${e.message || e}`);
       }
     }
     
