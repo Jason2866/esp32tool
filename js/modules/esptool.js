@@ -6301,7 +6301,7 @@ function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
                                     start: scanOffset,
                                     end: scanOffset + detectedSize,
                                     size: detectedSize,
-                                    page: 256,
+                                    page: ESP8266_LITTLEFS_PAGE_SIZE,
                                     block: blockSize,
                                 };
                             }

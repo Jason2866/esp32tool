@@ -143,7 +143,7 @@ export function scanESP8266Filesystem(
                   start: scanOffset,
                   end: scanOffset + detectedSize,
                   size: detectedSize,
-                  page: 256,
+                  page: ESP8266_LITTLEFS_PAGE_SIZE,
                   block: blockSize,
                 };
               }
