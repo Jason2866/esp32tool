@@ -9,7 +9,6 @@ export const FATFS_BLOCK_SIZE_CANDIDATES = [4096, 2048, 1024, 512];
 export const ESP8266_LITTLEFS_BLOCK_SIZE = 8192;
 export const ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES = [8192, 4096];
 export const ESP8266_LITTLEFS_PAGE_SIZE = 256;
-export const ESP8266_LITTLEFS_BLOCK_SIZE_FOR_FS = 8192;
 export const ESP8266_SPIFFS_PAGE_SIZE = 256;
 export const ESP8266_SPIFFS_BLOCK_SIZE = 8192;
 
@@ -35,7 +34,7 @@ function detectSPIFFSPatterns(data: Uint8Array): boolean {
   }
   
   let spiffsScore = 0;
-  const pageSize = 256;
+  const pageSize = ESP8266_SPIFFS_PAGE_SIZE;
   const maxPages = Math.min(32, Math.floor(data.length / pageSize));
   
   for (let pageNum = 0; pageNum < maxPages; pageNum++) {
@@ -162,7 +161,7 @@ export function scanESP8266Filesystem(
   if (detectSPIFFSPatterns(flashData)) {
     // SPIFFS does not store size in the image itself
     // Size must come from linker script or partition table
-    return getLayoutForDetectedFilesystem(scanOffset, flashSize, 8192);
+    return getLayoutForDetectedFilesystem(scanOffset, flashSize, ESP8266_SPIFFS_BLOCK_SIZE);
   }
   
   // Also check for SPIFFS magic 0x20140529 (some implementations have it)
@@ -193,7 +192,7 @@ export function scanESP8266Filesystem(
       }
       
       if (validHeader) {
-        return getLayoutForDetectedFilesystem(scanOffset, flashSize, 8192);
+        return getLayoutForDetectedFilesystem(scanOffset, flashSize, ESP8266_SPIFFS_BLOCK_SIZE);
       }
     }
   }

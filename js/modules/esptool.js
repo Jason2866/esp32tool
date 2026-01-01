@@ -6206,7 +6206,6 @@ const FATFS_BLOCK_SIZE_CANDIDATES = [4096, 2048, 1024, 512];
 const ESP8266_LITTLEFS_BLOCK_SIZE = 8192;
 const ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES = [8192, 4096];
 const ESP8266_LITTLEFS_PAGE_SIZE = 256;
-const ESP8266_LITTLEFS_BLOCK_SIZE_FOR_FS = 8192;
 const ESP8266_SPIFFS_PAGE_SIZE = 256;
 const ESP8266_SPIFFS_BLOCK_SIZE = 8192;
 /**
@@ -6219,7 +6218,7 @@ function detectSPIFFSPatterns(data) {
         return false;
     }
     let spiffsScore = 0;
-    const pageSize = 256;
+    const pageSize = ESP8266_SPIFFS_PAGE_SIZE;
     const maxPages = Math.min(32, Math.floor(data.length / pageSize));
     for (let pageNum = 0; pageNum < maxPages; pageNum++) {
         const pageOffset = pageNum * pageSize;
@@ -6318,7 +6317,7 @@ function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
     if (detectSPIFFSPatterns(flashData)) {
         // SPIFFS does not store size in the image itself
         // Size must come from linker script or partition table
-        return getLayoutForDetectedFilesystem(scanOffset, flashSize, 8192);
+        return getLayoutForDetectedFilesystem(scanOffset, flashSize, ESP8266_SPIFFS_BLOCK_SIZE);
     }
     // Also check for SPIFFS magic 0x20140529 (some implementations have it)
     if (flashData.length >= 4) {
@@ -6344,7 +6343,7 @@ function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
                 }
             }
             if (validHeader) {
-                return getLayoutForDetectedFilesystem(scanOffset, flashSize, 8192);
+                return getLayoutForDetectedFilesystem(scanOffset, flashSize, ESP8266_SPIFFS_BLOCK_SIZE);
             }
         }
     }
@@ -7663,4 +7662,4 @@ const connect = async (logger) => {
     return new ESPLoader(port, logger);
 };
 
-export { CHIP_FAMILY_ESP32, CHIP_FAMILY_ESP32C2, CHIP_FAMILY_ESP32C3, CHIP_FAMILY_ESP32C5, CHIP_FAMILY_ESP32C6, CHIP_FAMILY_ESP32C61, CHIP_FAMILY_ESP32H2, CHIP_FAMILY_ESP32H21, CHIP_FAMILY_ESP32H4, CHIP_FAMILY_ESP32P4, CHIP_FAMILY_ESP32S2, CHIP_FAMILY_ESP32S3, CHIP_FAMILY_ESP32S31, CHIP_FAMILY_ESP8266, DEFAULT_SPIFFS_CONFIG, ESP8266_LITTLEFS_BLOCK_SIZE, ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES, ESP8266_LITTLEFS_BLOCK_SIZE_FOR_FS, ESP8266_LITTLEFS_PAGE_SIZE, ESP8266_SPIFFS_BLOCK_SIZE, ESP8266_SPIFFS_PAGE_SIZE, ESPLoader, FATFS_BLOCK_SIZE_CANDIDATES, FATFS_DEFAULT_BLOCK_SIZE, FilesystemType, LITTLEFS_BLOCK_SIZE_CANDIDATES, LITTLEFS_DEFAULT_BLOCK_SIZE, SpiffsBuildConfig, SpiffsFS, SpiffsReader, connect, detectFilesystemFromImage, detectFilesystemType, formatSize, getBlockSizeCandidates, getDefaultBlockSize, getESP8266FilesystemLayout, getPartitionTableOffset, parsePartitionTable, scanESP8266Filesystem };
+export { CHIP_FAMILY_ESP32, CHIP_FAMILY_ESP32C2, CHIP_FAMILY_ESP32C3, CHIP_FAMILY_ESP32C5, CHIP_FAMILY_ESP32C6, CHIP_FAMILY_ESP32C61, CHIP_FAMILY_ESP32H2, CHIP_FAMILY_ESP32H21, CHIP_FAMILY_ESP32H4, CHIP_FAMILY_ESP32P4, CHIP_FAMILY_ESP32S2, CHIP_FAMILY_ESP32S3, CHIP_FAMILY_ESP32S31, CHIP_FAMILY_ESP8266, DEFAULT_SPIFFS_CONFIG, ESP8266_LITTLEFS_BLOCK_SIZE, ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES, ESP8266_LITTLEFS_PAGE_SIZE, ESP8266_SPIFFS_BLOCK_SIZE, ESP8266_SPIFFS_PAGE_SIZE, ESPLoader, FATFS_BLOCK_SIZE_CANDIDATES, FATFS_DEFAULT_BLOCK_SIZE, FilesystemType, LITTLEFS_BLOCK_SIZE_CANDIDATES, LITTLEFS_DEFAULT_BLOCK_SIZE, SpiffsBuildConfig, SpiffsFS, SpiffsReader, connect, detectFilesystemFromImage, detectFilesystemType, formatSize, getBlockSizeCandidates, getDefaultBlockSize, getESP8266FilesystemLayout, getPartitionTableOffset, parsePartitionTable, scanESP8266Filesystem };
