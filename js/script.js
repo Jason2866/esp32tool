@@ -711,9 +711,34 @@ async function clickDetectFS() {
       return;
     }
     
-    // Read the filesystem
+    // Show progress bar
+    readProgress.classList.remove('hidden');
+    const progressBar = readProgress.querySelector('div');
+    if (progressBar) {
+      progressBar.style.width = '0%';
+    }
+    
+    // Read the filesystem with real progress tracking
     logMsg(`Reading ${formatSize(detectedLayout.size)} from 0x${detectedLayout.start.toString(16)}...`);
-    const fsData = await espStub.readFlash(detectedLayout.start, detectedLayout.size);
+    
+    const fsData = await espStub.readFlash(
+      detectedLayout.start, 
+      detectedLayout.size,
+      (packet, progress, totalSize) => {
+        // Update progress bar with real progress
+        if (progressBar) {
+          const percentage = (progress / totalSize) * 100;
+          progressBar.style.width = `${percentage.toFixed(1)}%`;
+        }
+      }
+    );
+    
+    // Keep progress bar at 100% for a moment
+    if (progressBar) {
+      progressBar.style.width = '100%';
+    }
+    await new Promise(resolve => setTimeout(resolve, 300));
+    readProgress.classList.add('hidden');
     
     // Store the data for later use
     lastReadFlashData = fsData;
@@ -753,6 +778,8 @@ async function clickDetectFS() {
     errorMsg(`Failed to detect/open filesystem: ${e.message || e}`);
     console.error(e);
   } finally {
+    // Hide progress bar
+    readProgress.classList.add('hidden');
     butDetectFS.disabled = false;
   }
 }
