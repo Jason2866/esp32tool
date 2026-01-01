@@ -814,7 +814,12 @@ async function clickDetectFS() {
     readProgress.classList.add('hidden');
     
     // Store the data for later use
-    lastReadFlashData = fsData;
+    lastReadFlashData = {
+      data: fsData,
+      offset: detectedLayout.start,
+      size: detectedLayout.size,
+      fsType: fsType
+    };
     
     // Detect filesystem type
     const fsType = esptoolMod.detectFilesystemFromImage(fsData, currentChipName);
