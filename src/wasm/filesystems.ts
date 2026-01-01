@@ -72,8 +72,37 @@ export function scanESP8266Filesystem(
           (flashData[superblockOffset + 3] << 24);
 
         if (version !== 0 && (version >>> 0) !== 0xffffffff) {
-          // Found valid LittleFS!
-          // Try to read block_count from superblock (offset 28, 4 bytes little-endian)
+          // Found "littlefs" magic - but need to validate it's real
+          
+          // First check: Validate version (should be 1 or 2 for ESP8266)
+          if (version > 10) {
+            // Invalid version - probably corrupted data
+            continue;
+          }
+          
+          // Second check: Verify mirrored superblock exists
+          const mirrorOffset = blockSize;
+          let hasMirror = false;
+          if (mirrorOffset + 16 <= flashData.length) {
+            const mirrorMagic = String.fromCharCode(
+              flashData[mirrorOffset + 8],
+              flashData[mirrorOffset + 9],
+              flashData[mirrorOffset + 10],
+              flashData[mirrorOffset + 11],
+              flashData[mirrorOffset + 12],
+              flashData[mirrorOffset + 13],
+              flashData[mirrorOffset + 14],
+              flashData[mirrorOffset + 15],
+            );
+            hasMirror = (mirrorMagic === "littlefs");
+          }
+          
+          // If no valid mirror, this is probably corrupted data
+          if (!hasMirror) {
+            continue;
+          }
+          
+          // Third check: Try to read block_count from superblock
           const blockCountOffset = superblockOffset + 28;
           if (blockCountOffset + 4 <= flashData.length) {
             const blockCount =
@@ -98,8 +127,9 @@ export function scanESP8266Filesystem(
             }
           }
           
-          // Fallback to known layout patterns if block_count read failed
-          return getLayoutForDetectedFilesystem(scanOffset, flashSize, blockSize);
+          // If we get here, block_count validation failed
+          // Don't use fallback - this is probably corrupted data
+          continue;
         }
       }
     }

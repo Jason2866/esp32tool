@@ -689,7 +689,8 @@ async function clickDetectFS() {
       ];
     }
     
-    let detectedLayout = null;
+    // Collect all found filesystems
+    const foundFilesystems = [];
     
     for (const scan of scanOffsets) {
       if (scan.offset + scan.size > flashSizeBytes) {
@@ -720,14 +721,19 @@ async function clickDetectFS() {
           const scannedLayout = esptoolMod.scanESP8266Filesystem(checkData, checkOffset, flashSizeBytes);
           
           if (scannedLayout) {
-            detectedLayout = scannedLayout;
             const fsType = esptoolMod.detectFilesystemFromImage(checkData, currentChipName);
-            logMsg(`Found ${fsType.toUpperCase()} filesystem at 0x${scannedLayout.start.toString(16)} - 0x${scannedLayout.end.toString(16)} (${formatSize(scannedLayout.size)})`);
-            break;
+            
+            // Validate: Check if it's a real filesystem with valid magic
+            if (fsType !== 'unknown') {
+              foundFilesystems.push({
+                layout: scannedLayout,
+                fsType: fsType,
+                data: checkData
+              });
+              logMsg(`Found ${fsType.toUpperCase()} at 0x${scannedLayout.start.toString(16)} - 0x${scannedLayout.end.toString(16)} (${formatSize(scannedLayout.size)})`);
+            }
           }
         }
-        
-        if (detectedLayout) break;
         
       } catch (e) {
         // Continue scanning
@@ -735,13 +741,41 @@ async function clickDetectFS() {
       }
     }
     
-    // Fallback to common layouts if scan didn't find anything
-    if (!detectedLayout) {
+    // Choose the best filesystem from found ones
+    let detectedLayout = null;
+    
+    if (foundFilesystems.length === 0) {
+      // No filesystem found - use fallback
+      logMsg('No filesystem found by scanning, using default layout...');
       const fsLayouts = esptoolMod.getESP8266FilesystemLayout(flashSizeMB);
       if (fsLayouts && fsLayouts.length > 0) {
         detectedLayout = fsLayouts[0];
         logMsg(`Using default layout for ${flashSizeMB}MB flash: 0x${detectedLayout.start.toString(16)} - 0x${detectedLayout.end.toString(16)} (${formatSize(detectedLayout.size)})`);
       }
+    } else if (foundFilesystems.length === 1) {
+      // Only one found - use it
+      detectedLayout = foundFilesystems[0].layout;
+      logMsg(`Using detected filesystem at 0x${detectedLayout.start.toString(16)}`);
+    } else {
+      // Multiple found - choose the best one
+      // Prefer filesystems with valid size from block_count over layout-based sizes
+      logMsg(`Found ${foundFilesystems.length} filesystems, selecting best match...`);
+      
+      // Sort by: 1) Has valid block_count (size not from layout), 2) Smallest offset
+      foundFilesystems.sort((a, b) => {
+        // Check if size matches a known layout (indicates fallback was used)
+        const aIsLayout = [0x1fa000, 0x2fa000, 0x0fa000, 0x5fa000, 0x6fa000, 0xdfa000, 0xefa000].includes(a.layout.size);
+        const bIsLayout = [0x1fa000, 0x2fa000, 0x0fa000, 0x5fa000, 0x6fa000, 0xdfa000, 0xefa000].includes(b.layout.size);
+        
+        if (aIsLayout !== bIsLayout) {
+          return aIsLayout ? 1 : -1; // Prefer non-layout (real block_count)
+        }
+        
+        return a.layout.start - b.layout.start; // Then prefer smaller offset
+      });
+      
+      detectedLayout = foundFilesystems[0].layout;
+      logMsg(`Selected filesystem at 0x${detectedLayout.start.toString(16)} (${formatSize(detectedLayout.size)})`);
     }
     
     if (!detectedLayout) {
