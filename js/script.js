@@ -57,10 +57,15 @@ function clearAllCachedData() {
   // Show the Read Partition Table button again
   butReadPartitions.classList.remove('hidden');
   
-  // Hide Open FS Manager button
-  butOpenFSManager.classList.add('hidden');
+  // Hide Detect FS button
+  butDetectFS.classList.add('hidden');
   
-  // Hide ESP8266 info
+  // Hide Open FS Manager button (if it exists)
+  if (butOpenFSManager) {
+    butOpenFSManager.classList.add('hidden');
+  }
+  
+  // Hide ESP8266 info (if it exists)
   const esp8266Info = document.getElementById('esp8266Info');
   if (esp8266Info) {
     esp8266Info.classList.add('hidden');
@@ -100,6 +105,7 @@ const readOffset = document.getElementById("readOffset");
 const readSize = document.getElementById("readSize");
 const readProgress = document.getElementById("readProgress");
 const butReadPartitions = document.getElementById("butReadPartitions");
+const butDetectFS = document.getElementById("butDetectFS");
 const butOpenFSManager = document.getElementById("butOpenFSManager");
 const partitionList = document.getElementById("partitionList");
 const littlefsManager = document.getElementById("littlefsManager");
@@ -157,6 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
   butProgram.addEventListener("click", clickProgram);
   butReadFlash.addEventListener("click", clickReadFlash);
   butReadPartitions.addEventListener("click", clickReadPartitions);
+  butDetectFS.addEventListener("click", clickDetectFS);
   butOpenFSManager.addEventListener("click", clickOpenFSManager);
   butLittlefsRefresh.addEventListener("click", clickLittlefsRefresh);
   butLittlefsBackup.addEventListener("click", clickLittlefsBackup);
@@ -522,101 +529,25 @@ async function clickConnect() {
   toggleUIConnected(true);
   toggleUIToolbar(true);
   
-  // Check if ESP8266 and show filesystem info
+  // Check if ESP8266 and show filesystem button
   const isESP8266 = currentChipName && currentChipName.toUpperCase().includes("ESP8266");
   if (isESP8266) {
     // Hide partition table button for ESP8266
     butReadPartitions.classList.add('hidden');
     
-    // Show ESP8266 filesystem info
-    const esp8266Info = document.getElementById('esp8266Info');
-    if (esp8266Info && espStub.flashSize) {
-      const flashSizeMB = parseInt(espStub.flashSize);
-      const flashSizeBytes = flashSizeMB * 1024 * 1024;
-      const esptoolMod = await window.esptoolPackage;
-      
-      logMsg('Scanning ESP8266 flash for filesystem...');
-      
-      // Read a large section of flash to scan for filesystem signatures
-      // We read from potential FS start locations (most common offsets)
-      const scanSize = Math.min(0x10000, flashSizeBytes); // 64KB scan
-      const scanOffsets = [
-        0x200000, // 4MB/8MB/16MB: Most common
-        0x100000, // 2MB/4MB/8MB/16MB: Second most common
-        0x300000, // 4MB: 1MB FS
-        0x180000, // 2MB: 512KB FS
-        0x1c0000, // 2MB: 256KB FS
-        0x1e0000, // 2MB: 128KB FS
-        0x0db000, // 1MB: 128KB FS
-        0x07b000, // 1MB: 512KB FS
-      ];
-      
-      let detectedLayout = null;
-      
-      for (const scanOffset of scanOffsets) {
-        if (scanOffset + scanSize > flashSizeBytes) {
-          continue;
-        }
-        
-        try {
-          const scanData = await espStub.readFlash(scanOffset, scanSize);
-          const scannedLayout = esptoolMod.scanESP8266Filesystem(scanData, scanOffset, flashSizeBytes);
-          
-          if (scannedLayout) {
-            detectedLayout = scannedLayout;
-            logMsg(`Found filesystem at 0x${scannedLayout.start.toString(16)} via signature scan`);
-            break;
-          }
-        } catch (e) {
-          // Continue scanning
-          logMsg(`Scan at 0x${scanOffset.toString(16)} failed: ${e.message || e}`);
-        }
-      }
-      
-      // Fallback to common layouts if scan didn't find anything
-      const fsLayouts = detectedLayout ? [detectedLayout] : esptoolMod.getESP8266FilesystemLayout(flashSizeMB);
-      
-      if (fsLayouts && fsLayouts.length > 0) {
-        // Use the first (detected or most common) layout as default
-        const fsLayout = fsLayouts[0];
-        
-        // Update the info box with actual values
-        const infoBox = esp8266Info.querySelector('.info-box');
-        if (infoBox) {
-          const detectionMethod = detectedLayout ? 'Auto-detected by scanning flash' : 'Using common layout (not detected)';
-          
-          infoBox.innerHTML = `
-            <strong>ESP8266 Filesystem (${flashSizeMB}MB Flash)</strong>
-            <p><em>${detectionMethod}</em></p>
-            <ul>
-              <li><strong>Start:</strong> 0x${fsLayout.start.toString(16).toUpperCase()}</li>
-              <li><strong>Size:</strong> 0x${fsLayout.size.toString(16).toUpperCase()} (${formatSize(fsLayout.size)})</li>
-              <li><strong>Block Size:</strong> ${fsLayout.block} bytes</li>
-              <li><strong>Page Size:</strong> ${fsLayout.page} bytes</li>
-            </ul>
-            <p>Click "Read Flash" below to read the filesystem, then "Open FS Manager".</p>
-          `;
-        }
-        
-        // Pre-fill read flash fields with the detected/default layout
-        readOffset.value = fsLayout.start.toString(16);
-        readSize.value = fsLayout.size.toString(16);
-        
-        if (detectedLayout) {
-          logMsg(`ESP8266 filesystem auto-detected at 0x${fsLayout.start.toString(16)} (${formatSize(fsLayout.size)})`);
-        } else {
-          logMsg(`Using default ESP8266 layout: 0x${fsLayout.start.toString(16)} (${formatSize(fsLayout.size)})`);
-        }
-      }
-      
-      esp8266Info.classList.remove('hidden');
+    // Show ESP8266 filesystem detection button
+    const butDetectFS = document.getElementById('butDetectFS');
+    if (butDetectFS) {
+      butDetectFS.classList.remove('hidden');
     }
   } else {
     // Show partition table button for ESP32
     butReadPartitions.classList.remove('hidden');
-    const esp8266Info = document.getElementById('esp8266Info');
-    if (esp8266Info) {
-      esp8266Info.classList.add('hidden');
+    
+    // Hide ESP8266 filesystem detection button
+    const butDetectFS = document.getElementById('butDetectFS');
+    if (butDetectFS) {
+      butDetectFS.classList.add('hidden');
     }
   }
   
@@ -707,6 +638,123 @@ function updateLogVisibility() {
     if (logControls) {
       logControls.classList.add("hidden");
     }
+  }
+}
+
+/**
+ * @name clickDetectFS
+ * Detect ESP8266 filesystem and open manager directly
+ */
+async function clickDetectFS() {
+  if (!espStub || !espStub.flashSize) {
+    errorMsg('Not connected or flash size unknown');
+    return;
+  }
+  
+  try {
+    butDetectFS.disabled = true;
+    logMsg('Detecting ESP8266 filesystem...');
+    
+    const flashSizeMB = parseInt(espStub.flashSize);
+    const flashSizeBytes = flashSizeMB * 1024 * 1024;
+    const esptoolMod = await window.esptoolPackage;
+    
+    // Scan flash for filesystem signatures
+    const scanSize = Math.min(0x10000, flashSizeBytes); // 64KB scan
+    const scanOffsets = [
+      0x200000, // 4MB/8MB/16MB: Most common
+      0x100000, // 2MB/4MB/8MB/16MB: Second most common
+      0x300000, // 4MB: 1MB FS
+      0x180000, // 2MB: 512KB FS
+      0x1c0000, // 2MB: 256KB FS
+      0x1e0000, // 2MB: 128KB FS
+      0x0db000, // 1MB: 128KB FS
+      0x07b000, // 1MB: 512KB FS
+    ];
+    
+    let detectedLayout = null;
+    
+    for (const scanOffset of scanOffsets) {
+      if (scanOffset + scanSize > flashSizeBytes) {
+        continue;
+      }
+      
+      try {
+        logMsg(`Scanning at 0x${scanOffset.toString(16)}...`);
+        const scanData = await espStub.readFlash(scanOffset, scanSize);
+        const scannedLayout = esptoolMod.scanESP8266Filesystem(scanData, scanOffset, flashSizeBytes);
+        
+        if (scannedLayout) {
+          detectedLayout = scannedLayout;
+          logMsg(`Found filesystem at 0x${scannedLayout.start.toString(16)}`);
+          break;
+        }
+      } catch (e) {
+        // Continue scanning
+        logMsg(`Scan at 0x${scanOffset.toString(16)} failed: ${e.message || e}`);
+      }
+    }
+    
+    // Fallback to common layouts if scan didn't find anything
+    if (!detectedLayout) {
+      const fsLayouts = esptoolMod.getESP8266FilesystemLayout(flashSizeMB);
+      if (fsLayouts && fsLayouts.length > 0) {
+        detectedLayout = fsLayouts[0];
+        logMsg(`Using default layout for ${flashSizeMB}MB flash: 0x${detectedLayout.start.toString(16)}`);
+      }
+    }
+    
+    if (!detectedLayout) {
+      errorMsg('No filesystem layout found for this flash size');
+      butDetectFS.disabled = false;
+      return;
+    }
+    
+    // Read the filesystem
+    logMsg(`Reading filesystem from 0x${detectedLayout.start.toString(16)} (${formatSize(detectedLayout.size)})...`);
+    const fsData = await espStub.readFlash(detectedLayout.start, detectedLayout.size);
+    
+    // Store the data for later use
+    lastReadFlashData = fsData;
+    
+    // Detect filesystem type
+    const fsType = esptoolMod.detectFilesystemFromImage(fsData, currentChipName);
+    logMsg(`Filesystem detection: ${fsType} (chipName: ${currentChipName})`);
+    
+    if (fsType === 'unknown') {
+      errorMsg('Could not detect filesystem type');
+      butDetectFS.disabled = false;
+      return;
+    }
+    
+    // Create a partition object for compatibility
+    const partition = {
+      name: 'filesystem',
+      type: 0x01,
+      subtype: fsType === 'littlefs' ? 0x82 : (fsType === 'fatfs' ? 0x81 : 0x82),
+      offset: detectedLayout.start,
+      size: detectedLayout.size,
+      _readData: fsData,
+      _blockSize: detectedLayout.block,
+      _pageSize: detectedLayout.page
+    };
+    
+    // Open the filesystem directly
+    if (fsType === 'littlefs') {
+      await openLittleFS(partition);
+    } else if (fsType === 'fatfs') {
+      await openFatFS(partition);
+    } else if (fsType === 'spiffs') {
+      await openSPIFFS(partition);
+    }
+    
+    logMsg('Filesystem opened successfully');
+    
+  } catch (e) {
+    errorMsg(`Failed to detect/open filesystem: ${e.message || e}`);
+    console.error(e);
+  } finally {
+    butDetectFS.disabled = false;
   }
 }
 
