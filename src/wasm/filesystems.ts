@@ -25,6 +25,58 @@ export interface ESP8266FilesystemLayout {
 }
 
 /**
+ * Check if data contains SPIFFS filesystem using pattern detection
+ * @param data - Data to check
+ * @returns true if SPIFFS patterns detected
+ */
+function detectSPIFFSPatterns(data: Uint8Array): boolean {
+  if (data.length < 4096) {
+    return false;
+  }
+  
+  let spiffsScore = 0;
+  const pageSize = 256;
+  const maxPages = Math.min(32, Math.floor(data.length / pageSize));
+  
+  for (let pageNum = 0; pageNum < maxPages; pageNum++) {
+    const pageOffset = pageNum * pageSize;
+    
+    if (pageOffset + pageSize > data.length) break;
+    
+    const page = data.slice(pageOffset, pageOffset + pageSize);
+    const objId = page[0] | (page[1] << 8);
+    
+    // Look for SPIFFS filename pattern: 0x01 followed by '/' and printable chars
+    for (let i = 0; i < page.length - 10; i++) {
+      if (page[i] === 0x01 && page[i+1] === 0x2f) { // 0x01 followed by '/'
+        let validChars = 0;
+        for (let j = i + 1; j < Math.min(i + 20, page.length); j++) {
+          if (page[j] >= 0x20 && page[j] < 0x7f) {
+            validChars++;
+          } else if (page[j] === 0x00) {
+            break;
+          }
+        }
+        if (validChars >= 4) { // At least "/xxx"
+          spiffsScore += 5;
+          break;
+        }
+      }
+    }
+    
+    // Check for typical SPIFFS object ID patterns
+    if ((objId & 0x8000) !== 0) {
+      const idLow = objId & 0x7fff;
+      if (idLow > 0 && idLow < 0x1000) {
+        spiffsScore += 2;
+      }
+    }
+  }
+  
+  return spiffsScore >= 10;
+}
+
+/**
  * Scan ESP8266 flash for filesystem by detecting filesystem signatures
  * Reads actual block_count from LittleFS superblock for accurate size detection
  * 
@@ -135,7 +187,14 @@ export function scanESP8266Filesystem(
     }
   }
 
-  // Check for SPIFFS signature (magic 0x20140529)
+  // Check for SPIFFS filesystem using pattern detection
+  if (detectSPIFFSPatterns(flashData)) {
+    // SPIFFS does not store size in the image itself
+    // Size must come from linker script or partition table
+    return getLayoutForDetectedFilesystem(scanOffset, flashSize, 8192);
+  }
+  
+  // Also check for SPIFFS magic 0x20140529 (some implementations have it)
   if (flashData.length >= 4) {
     const spiffsMagic =
       flashData[0] |
@@ -145,14 +204,7 @@ export function scanESP8266Filesystem(
 
     if (spiffsMagic === 0x20140529) {
       // Found SPIFFS magic!
-      // SPIFFS does not store size in the image itself
-      // Additional validation: Check if this looks like a real SPIFFS header
-      
-      // SPIFFS header structure (simplified):
-      // 0x00: magic (0x20140529)
-      // 0x04-0x07: various config bytes
-      // Should not be all 0xFF (erased flash)
-      
+      // Additional validation: Check if header looks valid
       let validHeader = true;
       
       // Check if next bytes are not all 0xFF
@@ -165,12 +217,11 @@ export function scanESP8266Filesystem(
           }
         }
         if (allFF) {
-          validHeader = false; // Probably just erased flash with coincidental magic
+          validHeader = false;
         }
       }
       
       if (validHeader) {
-        // Size must come from linker script or partition table
         return getLayoutForDetectedFilesystem(scanOffset, flashSize, 8192);
       }
     }
@@ -522,6 +573,11 @@ export function detectFilesystemFromImage(
     if (spiffsMagic === 0x20140529) {
       return FilesystemType.SPIFFS;
     }
+  }
+
+  // Check for SPIFFS filesystem using pattern detection
+  if (detectSPIFFSPatterns(imageData)) {
+    return FilesystemType.SPIFFS;
   }
 
   return FilesystemType.UNKNOWN;
