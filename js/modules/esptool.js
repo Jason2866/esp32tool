@@ -6291,10 +6291,31 @@ function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
             (flashData[2] << 16) |
             (flashData[3] << 24);
         if (spiffsMagic === 0x20140529) {
-            // Found SPIFFS!
-            // Note: SPIFFS does not store size in the image itself
-            // Size must come from linker script or partition table
-            return getLayoutForDetectedFilesystem(scanOffset, flashSize, 8192);
+            // Found SPIFFS magic!
+            // SPIFFS does not store size in the image itself
+            // Additional validation: Check if this looks like a real SPIFFS header
+            // SPIFFS header structure (simplified):
+            // 0x00: magic (0x20140529)
+            // 0x04-0x07: various config bytes
+            // Should not be all 0xFF (erased flash)
+            let validHeader = true;
+            // Check if next bytes are not all 0xFF
+            if (flashData.length >= 16) {
+                let allFF = true;
+                for (let i = 4; i < 16; i++) {
+                    if (flashData[i] !== 0xff) {
+                        allFF = false;
+                        break;
+                    }
+                }
+                if (allFF) {
+                    validHeader = false; // Probably just erased flash with coincidental magic
+                }
+            }
+            if (validHeader) {
+                // Size must come from linker script or partition table
+                return getLayoutForDetectedFilesystem(scanOffset, flashSize, 8192);
+            }
         }
     }
     // Check for FAT filesystem
@@ -6303,6 +6324,10 @@ function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
         if (bootSig === 0xaa55) {
             // Read bytes per sector
             const bytesPerSector = flashData[0x0b] | (flashData[0x0c] << 8);
+            // Validate bytes per sector (must be 512, 1024, 2048, or 4096)
+            if (![512, 1024, 2048, 4096].includes(bytesPerSector)) {
+                return null; // Invalid sector size
+            }
             // Read total sectors (try 16-bit first, then 32-bit)
             let totalSectors = flashData[0x13] | (flashData[0x14] << 8);
             if (totalSectors === 0) {
@@ -6314,9 +6339,9 @@ function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
                         (flashData[0x23] << 24);
             }
             // Validate values
-            if (bytesPerSector > 0 && totalSectors > 0) {
+            if (bytesPerSector > 0 && totalSectors > 0 && totalSectors < 100000000) {
                 const detectedSize = totalSectors * bytesPerSector;
-                // Verify size is reasonable
+                // Verify size is reasonable (not larger than remaining flash)
                 if (detectedSize > 0 && scanOffset + detectedSize <= flashSize) {
                     return {
                         start: scanOffset,
