@@ -268,47 +268,51 @@ export function getESP8266FilesystemLayout(
 ): ESP8266FilesystemLayout[] {
   // Based on common ESP8266 linker script configurations
   
-  if (flashSizeMB >= 4) {
+  if (flashSizeMB >= 16) {
+    // 16MB flash
+    return [
+      { start: 0x100000, end: 0xffa000, size: 0xefa000, page: 256, block: 8192 }, // 15MB
+      { start: 0x200000, end: 0xffa000, size: 0xdfa000, page: 256, block: 8192 }, // 14MB
+    ];
+  } else if (flashSizeMB >= 8) {
+    // 8MB flash
+    return [
+      { start: 0x100000, end: 0x7fa000, size: 0x6fa000, page: 256, block: 8192 }, // 7MB
+      { start: 0x200000, end: 0x7fa000, size: 0x5fa000, page: 256, block: 8192 }, // 6MB
+    ];
+  } else if (flashSizeMB >= 4) {
     // 4MB flash: Multiple possible configurations
     return [
-      // Most common: 2MB filesystem
-      {
-        start: 0x200000,
-        end: 0x3fa000,
-        size: 0x1fa000, // ~2MB
-        page: 256,
-        block: 8192,
-      },
-      // Alternative: 1MB filesystem
-      {
-        start: 0x300000,
-        end: 0x400000,
-        size: 0x100000, // 1MB
-        page: 256,
-        block: 8192,
-      },
+      { start: 0x200000, end: 0x3fa000, size: 0x1fa000, page: 256, block: 8192 }, // 2MB (most common)
+      { start: 0x100000, end: 0x3fa000, size: 0x2fa000, page: 256, block: 8192 }, // 3MB
+      { start: 0x300000, end: 0x3fa000, size: 0x0fa000, page: 256, block: 8192 }, // 1MB
     ];
   } else if (flashSizeMB >= 2) {
-    // 2MB flash: ~20KB filesystem
+    // 2MB flash
     return [
-      {
-        start: 0x1fb000,
-        end: 0x200000,
-        size: 0x5000, // ~20KB
-        page: 256,
-        block: 8192,
-      },
+      { start: 0x100000, end: 0x1fa000, size: 0x0fa000, page: 256, block: 8192 }, // 1MB
+      { start: 0x180000, end: 0x1fa000, size: 0x07a000, page: 256, block: 8192 }, // 512KB
+      { start: 0x1c0000, end: 0x1fb000, size: 0x03b000, page: 256, block: 8192 }, // 256KB
+      { start: 0x1e0000, end: 0x1fb000, size: 0x01b000, page: 256, block: 8192 }, // 128KB
+      { start: 0x1f0000, end: 0x1fb000, size: 0x00b000, page: 256, block: 8192 }, // 64KB
     ];
   } else if (flashSizeMB >= 1) {
-    // 1MB flash: ~148KB filesystem
+    // 1MB flash
     return [
-      {
-        start: 0xdb000,
-        end: 0x100000,
-        size: 0x25000, // ~148KB
-        page: 256,
-        block: 8192,
-      },
+      { start: 0x0db000, end: 0x0fb000, size: 0x020000, page: 256, block: 8192 }, // 128KB (most common)
+      { start: 0x07b000, end: 0x0fb000, size: 0x080000, page: 256, block: 8192 }, // 512KB
+      { start: 0x0bb000, end: 0x0fb000, size: 0x040000, page: 256, block: 8192 }, // 256KB
+      { start: 0x0cb000, end: 0x0fb000, size: 0x030000, page: 256, block: 8192 }, // 192KB
+      { start: 0x0d3000, end: 0x0fb000, size: 0x028000, page: 256, block: 8192 }, // 160KB
+      { start: 0x0d7000, end: 0x0fb000, size: 0x024000, page: 256, block: 8192 }, // 144KB
+      { start: 0x0eb000, end: 0x0fb000, size: 0x010000, page: 256, block: 8192 }, // 64KB
+    ];
+  } else if (flashSizeMB >= 0.5) {
+    // 512KB flash
+    return [
+      { start: 0x05b000, end: 0x07b000, size: 0x020000, page: 256, block: 8192 }, // 128KB
+      { start: 0x06b000, end: 0x07b000, size: 0x010000, page: 256, block: 8192 }, // 64KB
+      { start: 0x073000, end: 0x07b000, size: 0x008000, page: 256, block: 8192 }, // 32KB
     ];
   }
   
