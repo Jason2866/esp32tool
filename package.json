@@ -1,6 +1,6 @@
 {
   "name": "esp32tool",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Flash & Read ESP devices using WebSerial",
   "main": "electron/main.js",
   "repository": {
