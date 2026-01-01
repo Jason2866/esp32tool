@@ -536,16 +536,12 @@ async function clickConnect() {
     butReadPartitions.classList.add('hidden');
     
     // Show ESP8266 filesystem detection button
-    const butDetectFS = document.getElementById('butDetectFS');
-    if (butDetectFS) {
-      butDetectFS.classList.remove('hidden');
-    }
+    butDetectFS.classList.remove('hidden');
   } else {
     // Show partition table button for ESP32
     butReadPartitions.classList.remove('hidden');
     
     // Hide ESP8266 filesystem detection button
-    const butDetectFS = document.getElementById('butDetectFS');
     if (butDetectFS) {
       butDetectFS.classList.add('hidden');
     }
