@@ -686,7 +686,8 @@ async function clickDetectFS() {
         
         if (scannedLayout) {
           detectedLayout = scannedLayout;
-          logMsg(`Found filesystem at 0x${scannedLayout.start.toString(16)}`);
+          const fsType = esptoolMod.detectFilesystemFromImage(scanData, currentChipName);
+          logMsg(`Found ${fsType.toUpperCase()} filesystem at 0x${scannedLayout.start.toString(16)} - 0x${scannedLayout.end.toString(16)} (${formatSize(scannedLayout.size)})`);
           break;
         }
       } catch (e) {
@@ -700,7 +701,7 @@ async function clickDetectFS() {
       const fsLayouts = esptoolMod.getESP8266FilesystemLayout(flashSizeMB);
       if (fsLayouts && fsLayouts.length > 0) {
         detectedLayout = fsLayouts[0];
-        logMsg(`Using default layout for ${flashSizeMB}MB flash: 0x${detectedLayout.start.toString(16)}`);
+        logMsg(`Using default layout for ${flashSizeMB}MB flash: 0x${detectedLayout.start.toString(16)} - 0x${detectedLayout.end.toString(16)} (${formatSize(detectedLayout.size)})`);
       }
     }
     
@@ -711,7 +712,7 @@ async function clickDetectFS() {
     }
     
     // Read the filesystem
-    logMsg(`Reading filesystem from 0x${detectedLayout.start.toString(16)} (${formatSize(detectedLayout.size)})...`);
+    logMsg(`Reading ${formatSize(detectedLayout.size)} from 0x${detectedLayout.start.toString(16)}...`);
     const fsData = await espStub.readFlash(detectedLayout.start, detectedLayout.size);
     
     // Store the data for later use
@@ -719,7 +720,7 @@ async function clickDetectFS() {
     
     // Detect filesystem type
     const fsType = esptoolMod.detectFilesystemFromImage(fsData, currentChipName);
-    logMsg(`Filesystem detection: ${fsType} (chipName: ${currentChipName})`);
+    logMsg(`Detected filesystem type: ${fsType.toUpperCase()}`);
     
     if (fsType === 'unknown') {
       errorMsg('Could not detect filesystem type');
@@ -747,8 +748,6 @@ async function clickDetectFS() {
     } else if (fsType === 'spiffs') {
       await openSPIFFS(partition);
     }
-    
-    logMsg('Filesystem opened successfully');
     
   } catch (e) {
     errorMsg(`Failed to detect/open filesystem: ${e.message || e}`);
