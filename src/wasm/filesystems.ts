@@ -116,12 +116,13 @@ export function scanESP8266Filesystem(
       );
 
       if (magicStr === "littlefs") {
-        // Validate version
+        // Validate version (at offset 16 in superblock)
+        const versionOffset = superblockOffset + 16;
         const version =
-          flashData[superblockOffset] |
-          (flashData[superblockOffset + 1] << 8) |
-          (flashData[superblockOffset + 2] << 16) |
-          (flashData[superblockOffset + 3] << 24);
+          flashData[versionOffset] |
+          (flashData[versionOffset + 1] << 8) |
+          (flashData[versionOffset + 2] << 16) |
+          (flashData[versionOffset + 3] << 24);
 
         if (version !== 0 && (version >>> 0) !== 0xffffffff) {
           // Found "littlefs" magic - but need to validate it's real
@@ -154,8 +155,8 @@ export function scanESP8266Filesystem(
             continue;
           }
           
-          // Third check: Try to read block_count from superblock
-          const blockCountOffset = superblockOffset + 28;
+          // Third check: Try to read block_count from superblock (at offset 24)
+          const blockCountOffset = superblockOffset + 24;
           if (blockCountOffset + 4 <= flashData.length) {
             const blockCount =
               flashData[blockCountOffset] |
@@ -524,12 +525,13 @@ export function detectFilesystemFromImage(
         
         if (magicStr === "littlefs") {
           // Found valid LittleFS superblock with magic string
-          // Validate version field to avoid false positives
+          // Validate version field to avoid false positives (at offset 16)
+          const versionOffset = superblockOffset + 16;
           const version =
-            imageData[superblockOffset] |
-            (imageData[superblockOffset + 1] << 8) |
-            (imageData[superblockOffset + 2] << 16) |
-            (imageData[superblockOffset + 3] << 24);
+            imageData[versionOffset] |
+            (imageData[versionOffset + 1] << 8) |
+            (imageData[versionOffset + 2] << 16) |
+            (imageData[versionOffset + 3] << 24);
           
           // Version must be non-zero and not erased flash (0xFFFFFFFF)
           // Use unsigned comparison

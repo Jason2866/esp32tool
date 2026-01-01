@@ -6278,11 +6278,12 @@ function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
             }
             const magicStr = String.fromCharCode(flashData[magicOffset], flashData[magicOffset + 1], flashData[magicOffset + 2], flashData[magicOffset + 3], flashData[magicOffset + 4], flashData[magicOffset + 5], flashData[magicOffset + 6], flashData[magicOffset + 7]);
             if (magicStr === "littlefs") {
-                // Validate version
-                const version = flashData[superblockOffset] |
-                    (flashData[superblockOffset + 1] << 8) |
-                    (flashData[superblockOffset + 2] << 16) |
-                    (flashData[superblockOffset + 3] << 24);
+                // Validate version (at offset 16 in superblock)
+                const versionOffset = superblockOffset + 16;
+                const version = flashData[versionOffset] |
+                    (flashData[versionOffset + 1] << 8) |
+                    (flashData[versionOffset + 2] << 16) |
+                    (flashData[versionOffset + 3] << 24);
                 if (version !== 0 && (version >>> 0) !== 0xffffffff) {
                     // Found "littlefs" magic - but need to validate it's real
                     // First check: Validate version (should be 1 or 2 for ESP8266)
@@ -6301,8 +6302,8 @@ function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
                     if (!hasMirror) {
                         continue;
                     }
-                    // Third check: Try to read block_count from superblock
-                    const blockCountOffset = superblockOffset + 28;
+                    // Third check: Try to read block_count from superblock (at offset 24)
+                    const blockCountOffset = superblockOffset + 24;
                     if (blockCountOffset + 4 <= flashData.length) {
                         const blockCount = flashData[blockCountOffset] |
                             (flashData[blockCountOffset + 1] << 8) |
@@ -6637,11 +6638,12 @@ function detectFilesystemFromImage(imageData, chipName) {
                 const magicStr = String.fromCharCode(imageData[magicOffset], imageData[magicOffset + 1], imageData[magicOffset + 2], imageData[magicOffset + 3], imageData[magicOffset + 4], imageData[magicOffset + 5], imageData[magicOffset + 6], imageData[magicOffset + 7]);
                 if (magicStr === "littlefs") {
                     // Found valid LittleFS superblock with magic string
-                    // Validate version field to avoid false positives
-                    const version = imageData[superblockOffset] |
-                        (imageData[superblockOffset + 1] << 8) |
-                        (imageData[superblockOffset + 2] << 16) |
-                        (imageData[superblockOffset + 3] << 24);
+                    // Validate version field to avoid false positives (at offset 16)
+                    const versionOffset = superblockOffset + 16;
+                    const version = imageData[versionOffset] |
+                        (imageData[versionOffset + 1] << 8) |
+                        (imageData[versionOffset + 2] << 16) |
+                        (imageData[versionOffset + 3] << 24);
                     // Version must be non-zero and not erased flash (0xFFFFFFFF)
                     // Use unsigned comparison
                     if (version !== 0 && (version >>> 0) !== 0xFFFFFFFF) {
