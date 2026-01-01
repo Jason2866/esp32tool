@@ -1805,6 +1805,21 @@ async function openFatFS(partition) {
     logMsg('Mounting FatFS filesystem...');
     logMsg(`Partition size: ${formatSize(partition.size)} (${partition.size} bytes)`);
     
+    // Check if FAT filesystem starts at offset 0x1000 (common for ESP8266/ESP32)
+    let fatOffset = 0;
+    if (data.length >= 0x1000 + 512) {
+      const bootSigAt0 = data[510] | (data[511] << 8);
+      const bootSigAt0x1000 = data[0x1000 + 510] | (data[0x1000 + 511] << 8);
+      
+      // If boot signature is at 0x1000 but not at 0, use offset 0x1000
+      if (bootSigAt0x1000 === 0xaa55 && bootSigAt0 !== 0xaa55) {
+        fatOffset = 0x1000;
+        logMsg(`Detected FAT filesystem at offset 0x${fatOffset.toString(16)}`);
+        // Slice data to start from FAT offset
+        data = data.slice(fatOffset);
+      }
+    }
+    
     // Load FatFS module
     const basePath = window.location.pathname.endsWith('/') 
       ? window.location.pathname 
@@ -1815,7 +1830,7 @@ async function openFatFS(partition) {
     
     // Use 4096 block size (ESP32 standard)
     let blockSize = 4096;
-    let blockCount = Math.max(1, Math.floor(partition.size / blockSize));
+    let blockCount = Math.max(1, Math.floor(data.length / blockSize));
     if (blockCount <= 0) {
       blockCount = 1;
     }
