@@ -551,8 +551,8 @@ async function clickConnect() {
     }
   }
   
-  // Set detected flash size in the read size field (for non-ESP8266 or as fallback)
-  if (espStub.flashSize && !isESP8266) {
+  // Set detected flash size in the read size field
+  if (espStub.flashSize) {
     const flashSizeBytes = parseInt(espStub.flashSize) * 1024 * 1024; // Convert MB to bytes
     readSize.value = "0x" + flashSizeBytes.toString(16);
   }
