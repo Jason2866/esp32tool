@@ -2225,52 +2225,37 @@ function refreshLittleFS() {
     if (currentFilesystemType === 'fatfs') {
       // FatFS returns ALL files recursively from root, so we always list from root and filter
       const allEntries = currentLittleFS.list('/');
-      
-      // Normalize current path (remove /fatfs prefix if present)
-      let currentPathNormalized = currentLittleFSPath;
-      if (currentPathNormalized.startsWith('/fatfs')) {
-        currentPathNormalized = currentPathNormalized.slice(6) || '/';
-      }
-      
-      const isRoot = currentPathNormalized === '/';
+      const isRoot = currentLittleFSPath === '/';
       
       // Filter to show only direct children
       entries = allEntries.filter(entry => {
-        // entry.path has /fatfs prefix (e.g., '/fatfs/folder/file.txt')
-        // Remove /fatfs prefix
+        // Remove /fatfs prefix from entry path for comparison
         let entryPath = entry.path;
         if (entryPath.startsWith('/fatfs/')) {
-          entryPath = entryPath.slice(6); // Remove '/fatfs' but keep the slash
+          entryPath = entryPath.slice(6);
         } else if (entryPath === '/fatfs') {
           entryPath = '/';
         }
         
         if (isRoot) {
-          // In root: only show top-level entries (no slashes after removing /fatfs/)
-          // e.g., '/file.txt' or '/folder' but not '/folder/file.txt'
-          const pathWithoutLeadingSlash = entryPath.slice(1); // Remove leading /
-          return pathWithoutLeadingSlash && !pathWithoutLeadingSlash.includes('/');
+          // In root: only show top-level entries
+          const withoutLeadingSlash = entryPath.slice(1);
+          return withoutLeadingSlash && !withoutLeadingSlash.includes('/');
         } else {
-          // In subdirectory: check if entry is direct child
-          // currentPathNormalized is like '/folder'
-          // entryPath should be like '/folder/file.txt' or '/folder/subfolder'
-          const expectedPrefix = currentPathNormalized + '/';
-          
+          // In subdirectory: entry must be direct child of current path
+          const expectedPrefix = currentLittleFSPath + '/';
           if (!entryPath.startsWith(expectedPrefix)) {
             return false;
           }
-          
-          // Get relative path from current directory
           const relativePath = entryPath.slice(expectedPrefix.length);
-          // Only show if there are no more slashes (direct child)
           return relativePath && !relativePath.includes('/');
         }
       });
       
-      // Add name attribute for FatFS entries (extract from path)
+      // Add name attribute for FatFS entries
       entries = entries.map(entry => ({
         ...entry,
-        name: entry.path.split('/').filter(Boolean).pop() || entry.path
+        name: entry.path.split('/').pop() || entry.path
       }));
     } else {
       // LittleFS and SPIFFS return only direct children
@@ -2369,14 +2354,19 @@ function refreshLittleFS() {
  * Navigate to a directory in LittleFS
  */
 function navigateLittleFS(path) {
-  // Normalize path: ensure it starts with / and doesn't end with / (except for root)
+  // Remove /fatfs prefix if present (for FatFS compatibility)
   let normalizedPath = path;
-  if (!normalizedPath.startsWith('/')) {
-    normalizedPath = '/' + normalizedPath;
+  if (normalizedPath.startsWith('/fatfs/')) {
+    normalizedPath = normalizedPath.slice(6); // Remove '/fatfs' keeping the /
+  } else if (normalizedPath === '/fatfs') {
+    normalizedPath = '/';
   }
-  if (normalizedPath !== '/' && normalizedPath !== '/fatfs' && normalizedPath.endsWith('/')) {
+  
+  // Remove trailing slash except for root
+  if (normalizedPath !== '/' && normalizedPath.endsWith('/')) {
     normalizedPath = normalizedPath.slice(0, -1);
   }
+  
   currentLittleFSPath = normalizedPath;
   refreshLittleFS();
 }
@@ -2385,34 +2375,14 @@ function navigateLittleFS(path) {
  * Navigate up one directory
  */
 function clickLittlefsUp() {
-  if (currentLittleFSPath === '/' || currentLittleFSPath === '/fatfs' || !currentLittleFSPath) return;
+  if (currentLittleFSPath === '/' || !currentLittleFSPath) return;
   
-  // Remove /fatfs prefix if present for processing
-  let pathToProcess = currentLittleFSPath;
-  let hasFatfsPrefix = false;
-  if (pathToProcess.startsWith('/fatfs')) {
-    pathToProcess = pathToProcess.slice(6) || '/';
-    hasFatfsPrefix = true;
-  }
-  
-  // Split and remove last segment
-  const parts = pathToProcess.split('/').filter(Boolean);
+  // Split path and remove last segment
+  const parts = currentLittleFSPath.split('/').filter(Boolean);
   parts.pop();
   
   // Reconstruct path
-  let newPath = '/' + parts.join('/');
-  
-  // Add /fatfs prefix back if it was there
-  if (hasFatfsPrefix) {
-    newPath = '/fatfs' + (newPath === '/' ? '' : newPath);
-  }
-  
-  // Normalize: no trailing slash except for root
-  if (newPath !== '/' && newPath !== '/fatfs' && newPath.endsWith('/')) {
-    newPath = newPath.slice(0, -1);
-  }
-  
-  currentLittleFSPath = newPath;
+  currentLittleFSPath = parts.length ? '/' + parts.join('/') : '/';
   refreshLittleFS();
 }
 
