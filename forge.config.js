@@ -1,5 +1,17 @@
-const { FusesPlugin } = require('@electron-forge/plugin-fuses');
-const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+const { FusesPlugin } = require('./tools/forge-fuses-plugin.cjs');
+
+// @electron/fuses@2 is ESM-only; keep Forge config in CJS by inlining the enum values.
+const FuseVersion = { V1: '1' };
+const FuseV1Options = {
+  RunAsNode: 0,
+  EnableCookieEncryption: 1,
+  EnableNodeOptionsEnvironmentVariable: 2,
+  EnableNodeCliInspectArguments: 3,
+  EnableEmbeddedAsarIntegrityValidation: 4,
+  OnlyLoadAppFromAsar: 5,
+  LoadBrowserProcessSpecificV8Snapshot: 6,
+  GrantFileProtocolExtraPrivileges: 7,
+};
 
 module.exports = {
   packagerConfig: {
@@ -18,6 +30,7 @@ module.exports = {
       /^\/src\/(?!wasm)/,  // Exclude src/ but keep src/wasm/
       /^\/script/,
       /^\/\.github/,
+      /^\/tools/,
       /^\/node_modules\/(?!electron)/,
       /\.git/,
       /\.eslint/,
