@@ -5385,7 +5385,7 @@ class ESPLoader extends EventTarget {
         const portInfo = this.port.getInfo();
         const isUSBJTAGSerial = portInfo.usbProductId === USB_JTAG_SERIAL_PID;
         const isEspressifUSB = portInfo.usbVendorId === 0x303a;
-        this.logger.log(`Detected USB: VID=0x${((_a = portInfo.usbVendorId) === null || _a === void 0 ? void 0 : _a.toString(16)) || 'unknown'}, PID=0x${((_b = portInfo.usbProductId) === null || _b === void 0 ? void 0 : _b.toString(16)) || 'unknown'}`);
+        this.logger.log(`Detected USB: VID=0x${((_a = portInfo.usbVendorId) === null || _a === void 0 ? void 0 : _a.toString(16)) || "unknown"}, PID=0x${((_b = portInfo.usbProductId) === null || _b === void 0 ? void 0 : _b.toString(16)) || "unknown"}`);
         this.logger.debug(`USB_JTAG_SERIAL_PID=0x${USB_JTAG_SERIAL_PID.toString(16)}`);
         this.logger.debug(`isUSBJTAGSerial=${isUSBJTAGSerial}, isEspressifUSB=${isEspressifUSB}`);
         // Define reset strategies to try in order
@@ -5395,19 +5395,19 @@ class ESPLoader extends EventTarget {
         if (isUSBJTAGSerial || isEspressifUSB) {
             resetStrategies.push({
                 name: "USB-JTAG/Serial",
-                fn: async () => await this.hardResetUSBJTAGSerial()
+                fn: async () => await this.hardResetUSBJTAGSerial(),
             });
         }
         // Strategy 2: Classic reset (for USB-to-Serial bridges)
         resetStrategies.push({
             name: "Classic",
-            fn: async () => await this.hardResetClassic()
+            fn: async () => await this.hardResetClassic(),
         });
         // Strategy 3: If USB-JTAG/Serial was not tried yet, try it as fallback
         if (!isUSBJTAGSerial && !isEspressifUSB) {
             resetStrategies.push({
                 name: "USB-JTAG/Serial (fallback)",
-                fn: async () => await this.hardResetUSBJTAGSerial()
+                fn: async () => await this.hardResetUSBJTAGSerial(),
             });
         }
         let lastError = null;

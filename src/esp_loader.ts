@@ -193,7 +193,7 @@ export class ESPLoader extends EventTarget {
       // Don't await this promise so it doesn't block rest of method.
       this.readLoop();
     }
-    
+
     // Try to connect with different reset strategies
     await this.connectWithResetStrategies();
 
@@ -855,77 +855,88 @@ export class ESPLoader extends EventTarget {
     const portInfo = this.port.getInfo();
     const isUSBJTAGSerial = portInfo.usbProductId === USB_JTAG_SERIAL_PID;
     const isEspressifUSB = portInfo.usbVendorId === 0x303a;
-    
-    this.logger.log(`Detected USB: VID=0x${portInfo.usbVendorId?.toString(16) || 'unknown'}, PID=0x${portInfo.usbProductId?.toString(16) || 'unknown'}`);
-    this.logger.debug(`USB_JTAG_SERIAL_PID=0x${USB_JTAG_SERIAL_PID.toString(16)}`);
-    this.logger.debug(`isUSBJTAGSerial=${isUSBJTAGSerial}, isEspressifUSB=${isEspressifUSB}`);
-    
+
+    this.logger.log(
+      `Detected USB: VID=0x${portInfo.usbVendorId?.toString(16) || "unknown"}, PID=0x${portInfo.usbProductId?.toString(16) || "unknown"}`,
+    );
+    this.logger.debug(
+      `USB_JTAG_SERIAL_PID=0x${USB_JTAG_SERIAL_PID.toString(16)}`,
+    );
+    this.logger.debug(
+      `isUSBJTAGSerial=${isUSBJTAGSerial}, isEspressifUSB=${isEspressifUSB}`,
+    );
+
     // Define reset strategies to try in order
-    const resetStrategies: Array<{name: string, fn: () => Promise<void>}> = [];
-    
+    const resetStrategies: Array<{ name: string; fn: () => Promise<void> }> =
+      [];
+
     // Strategy 1: USB-JTAG/Serial reset (for ESP32-C3, C6, S3, etc.)
     // Try this first if we detect Espressif USB VID or the specific PID
     if (isUSBJTAGSerial || isEspressifUSB) {
       resetStrategies.push({
         name: "USB-JTAG/Serial",
-        fn: async () => await this.hardResetUSBJTAGSerial()
+        fn: async () => await this.hardResetUSBJTAGSerial(),
       });
     }
-    
+
     // Strategy 2: Classic reset (for USB-to-Serial bridges)
     resetStrategies.push({
       name: "Classic",
-      fn: async () => await this.hardResetClassic()
+      fn: async () => await this.hardResetClassic(),
     });
-    
+
     // Strategy 3: If USB-JTAG/Serial was not tried yet, try it as fallback
     if (!isUSBJTAGSerial && !isEspressifUSB) {
       resetStrategies.push({
         name: "USB-JTAG/Serial (fallback)",
-        fn: async () => await this.hardResetUSBJTAGSerial()
+        fn: async () => await this.hardResetUSBJTAGSerial(),
       });
     }
-    
+
     let lastError: Error | null = null;
-    
+
     // Try each reset strategy
     for (const strategy of resetStrategies) {
       try {
         this.logger.log(`Trying ${strategy.name} reset...`);
-        
+
         // Check if port is still open, if not, skip this strategy
         if (!this.connected || !this.port.writable) {
           this.logger.log(`Port disconnected, skipping ${strategy.name} reset`);
           continue;
         }
-        
+
         await strategy.fn();
-        
+
         // Try to sync after reset
         await this.sync();
-        
+
         // If we get here, sync succeeded
         this.logger.log(`Connected successfully with ${strategy.name} reset.`);
         return;
       } catch (error) {
         lastError = error as Error;
-        this.logger.log(`${strategy.name} reset failed: ${(error as Error).message}`);
-        
+        this.logger.log(
+          `${strategy.name} reset failed: ${(error as Error).message}`,
+        );
+
         // If port got disconnected, we can't try more strategies
         if (!this.connected || !this.port.writable) {
           this.logger.log(`Port disconnected during reset attempt`);
           break;
         }
-        
+
         // Clear buffers before trying next strategy
         this._inputBuffer.length = 0;
         await this.drainInputBuffer(200);
         await this.flushSerialBuffers();
       }
     }
-    
+
     // All strategies failed
-    throw new Error(`Couldn't sync to ESP. Try resetting manually. Last error: ${lastError?.message}`);
+    throw new Error(
+      `Couldn't sync to ESP. Try resetting manually. Last error: ${lastError?.message}`,
+    );
   }
 
   /**
@@ -936,19 +947,19 @@ export class ESPLoader extends EventTarget {
     await this.setRTS(false);
     await this.setDTR(false); // Idle
     await this.sleep(100);
-    
+
     await this.setDTR(true); // Set IO0
     await this.setRTS(false);
     await this.sleep(100);
-    
+
     await this.setRTS(true); // Reset. Calls inverted to go through (1,1) instead of (0,0)
     await this.setDTR(false);
     await this.setRTS(true); // RTS set as Windows only propagates DTR on RTS setting
     await this.sleep(100);
-    
+
     await this.setDTR(false);
     await this.setRTS(false); // Chip out of reset
-    
+
     // Wait for chip to boot into bootloader
     await this.sleep(200);
   }
@@ -965,7 +976,7 @@ export class ESPLoader extends EventTarget {
     await this.setRTS(false); // EN=HIGH, chip out of reset
     await this.sleep(50);
     await this.setDTR(false); // IO0=HIGH, done
-    
+
     // Wait for chip to boot into bootloader
     await this.sleep(200);
   }
