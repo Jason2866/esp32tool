@@ -188,6 +188,20 @@ export class ESPLoader extends EventTarget {
         if (portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x2) {
           this._isESP32S2NativeUSB = true;
         }
+        
+        // For ESP32-C6 and similar chips with USB CDC, immediately set DTR/RTS
+        // to prevent the chip from resetting and disconnecting
+        if (portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x1001) {
+          try {
+            // Hold the chip in reset to prevent it from running application code
+            // that might cause USB disconnects
+            await this.setRTS(true);  // EN=LOW, hold in reset
+            await this.setDTR(false); // IO0=HIGH
+            this.logger.debug("Holding ESP32-C6 in reset to stabilize USB connection");
+          } catch (err) {
+            this.logger.debug(`Failed to set initial signals: ${err}`);
+          }
+        }
       }
 
       // Don't await this promise so it doesn't block rest of method.
