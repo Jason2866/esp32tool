@@ -193,13 +193,6 @@ export class ESPLoader extends EventTarget {
       // Don't await this promise so it doesn't block rest of method.
       this.readLoop();
     }
-
-    // Drain input buffer first for CP210x compatibility on Windows
-    // This helps clear any stale data before sync
-    await this.drainInputBuffer(200);
-
-    // Clear buffer again after starting read loop
-    await this.flushSerialBuffers();
     
     // Try to connect with different reset strategies
     await this.connectWithResetStrategies();
@@ -899,6 +892,13 @@ export class ESPLoader extends EventTarget {
     for (const strategy of resetStrategies) {
       try {
         this.logger.log(`Trying ${strategy.name} reset...`);
+        
+        // Check if port is still open, if not, skip this strategy
+        if (!this.connected || !this.port.writable) {
+          this.logger.log(`Port disconnected, skipping ${strategy.name} reset`);
+          continue;
+        }
+        
         await strategy.fn();
         
         // Try to sync after reset
@@ -910,6 +910,12 @@ export class ESPLoader extends EventTarget {
       } catch (error) {
         lastError = error as Error;
         this.logger.log(`${strategy.name} reset failed: ${(error as Error).message}`);
+        
+        // If port got disconnected, we can't try more strategies
+        if (!this.connected || !this.port.writable) {
+          this.logger.log(`Port disconnected during reset attempt`);
+          break;
+        }
         
         // Clear buffers before trying next strategy
         this._inputBuffer.length = 0;
