@@ -2219,8 +2219,63 @@ function refreshLittleFS() {
     littlefsBreadcrumb.textContent = currentLittleFSPath || '/';
     butLittlefsUp.disabled = currentLittleFSPath === '/' || !currentLittleFSPath;
     
-    // List files
-    const entries = currentLittleFS.list(currentLittleFSPath);
+    // List files - the list() function behavior differs between filesystems
+    let entries;
+    
+    if (currentFilesystemType === 'fatfs') {
+      // FatFS returns ALL files recursively from root, so we always list from root and filter
+      const allEntries = currentLittleFS.list('/');
+      
+      // Normalize current path (remove /fatfs prefix if present)
+      let currentPathNormalized = currentLittleFSPath;
+      if (currentPathNormalized.startsWith('/fatfs')) {
+        currentPathNormalized = currentPathNormalized.slice(6) || '/';
+      }
+      
+      const isRoot = currentPathNormalized === '/';
+      
+      // Filter to show only direct children
+      entries = allEntries.filter(entry => {
+        // entry.path has /fatfs prefix (e.g., '/fatfs/folder/file.txt')
+        // Remove /fatfs prefix
+        let entryPath = entry.path;
+        if (entryPath.startsWith('/fatfs/')) {
+          entryPath = entryPath.slice(6); // Remove '/fatfs' but keep the slash
+        } else if (entryPath === '/fatfs') {
+          entryPath = '/';
+        }
+        
+        if (isRoot) {
+          // In root: only show top-level entries (no slashes after removing /fatfs/)
+          // e.g., '/file.txt' or '/folder' but not '/folder/file.txt'
+          const pathWithoutLeadingSlash = entryPath.slice(1); // Remove leading /
+          return pathWithoutLeadingSlash && !pathWithoutLeadingSlash.includes('/');
+        } else {
+          // In subdirectory: check if entry is direct child
+          // currentPathNormalized is like '/folder'
+          // entryPath should be like '/folder/file.txt' or '/folder/subfolder'
+          const expectedPrefix = currentPathNormalized + '/';
+          
+          if (!entryPath.startsWith(expectedPrefix)) {
+            return false;
+          }
+          
+          // Get relative path from current directory
+          const relativePath = entryPath.slice(expectedPrefix.length);
+          // Only show if there are no more slashes (direct child)
+          return relativePath && !relativePath.includes('/');
+        }
+      });
+      
+      // Add name attribute for FatFS entries (extract from path)
+      entries = entries.map(entry => ({
+        ...entry,
+        name: entry.path.split('/').filter(Boolean).pop() || entry.path
+      }));
+    } else {
+      // LittleFS and SPIFFS return only direct children
+      entries = currentLittleFS.list(currentLittleFSPath);
+    }
     
     // Clear table
     littlefsFileList.innerHTML = '';
@@ -2252,7 +2307,8 @@ function refreshLittleFS() {
       icon.className = 'file-icon';
       icon.textContent = entry.type === 'dir' ? '📁' : '📄';
       
-      const name = entry.path.split('/').filter(Boolean).pop() || '/';
+      // Use entry.name instead of parsing the path
+      const name = entry.name || entry.path.split('/').filter(Boolean).pop() || '/';
       const nameText = document.createElement('span');
       nameText.textContent = name;
       
@@ -2313,7 +2369,15 @@ function refreshLittleFS() {
  * Navigate to a directory in LittleFS
  */
 function navigateLittleFS(path) {
-  currentLittleFSPath = path;
+  // Normalize path: ensure it starts with / and doesn't end with / (except for root)
+  let normalizedPath = path;
+  if (!normalizedPath.startsWith('/')) {
+    normalizedPath = '/' + normalizedPath;
+  }
+  if (normalizedPath !== '/' && normalizedPath !== '/fatfs' && normalizedPath.endsWith('/')) {
+    normalizedPath = normalizedPath.slice(0, -1);
+  }
+  currentLittleFSPath = normalizedPath;
   refreshLittleFS();
 }
 
@@ -2321,14 +2385,34 @@ function navigateLittleFS(path) {
  * Navigate up one directory
  */
 function clickLittlefsUp() {
-  if (currentLittleFSPath === '/' || !currentLittleFSPath) return;
+  if (currentLittleFSPath === '/' || currentLittleFSPath === '/fatfs' || !currentLittleFSPath) return;
   
-  const parts = currentLittleFSPath.split('/').filter(Boolean);
-  parts.pop();
-  currentLittleFSPath = '/' + parts.join('/');
-  if (currentLittleFSPath !== '/' && !currentLittleFSPath.endsWith('/')) {
-    currentLittleFSPath += '/';
+  // Remove /fatfs prefix if present for processing
+  let pathToProcess = currentLittleFSPath;
+  let hasFatfsPrefix = false;
+  if (pathToProcess.startsWith('/fatfs')) {
+    pathToProcess = pathToProcess.slice(6) || '/';
+    hasFatfsPrefix = true;
   }
+  
+  // Split and remove last segment
+  const parts = pathToProcess.split('/').filter(Boolean);
+  parts.pop();
+  
+  // Reconstruct path
+  let newPath = '/' + parts.join('/');
+  
+  // Add /fatfs prefix back if it was there
+  if (hasFatfsPrefix) {
+    newPath = '/fatfs' + (newPath === '/' ? '' : newPath);
+  }
+  
+  // Normalize: no trailing slash except for root
+  if (newPath !== '/' && newPath !== '/fatfs' && newPath.endsWith('/')) {
+    newPath = newPath.slice(0, -1);
+  }
+  
+  currentLittleFSPath = newPath;
   refreshLittleFS();
 }
 
@@ -2433,7 +2517,8 @@ async function clickLittlefsWrite() {
     butLittlefsWrite.disabled = false;
     butLittlefsClose.disabled = false;
     butLittlefsUpload.disabled = !littlefsFileInput.files.length;
-    butLittlefsMkdir.disabled = false;
+    // Re-enable mkdir only if not SPIFFS
+    butLittlefsMkdir.disabled = (currentFilesystemType === 'spiffs');
   }
 }
 
@@ -2522,10 +2607,22 @@ async function clickLittlefsUpload() {
 /**
  * Create new directory
  */
-function clickLittlefsMkdir() {
+async function clickLittlefsMkdir() {
   if (!currentLittleFS) return;
   
-  const dirName = prompt('Enter directory name:');
+  // Check if mkdir is supported (SPIFFS doesn't support directories)
+  if (currentFilesystemType === 'spiffs') {
+    errorMsg('SPIFFS does not support directories. Files are stored in a flat structure.');
+    return;
+  }
+  
+  let dirName;
+  if (isElectron) {
+    dirName = await window.electronAPI.showPrompt('Enter directory name:');
+  } else {
+    dirName = prompt('Enter directory name:');
+  }
+  
   if (!dirName || !dirName.trim()) return;
   
   try {
