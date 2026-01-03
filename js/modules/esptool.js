@@ -5386,8 +5386,6 @@ class ESPLoader extends EventTarget {
         const isUSBJTAGSerial = portInfo.usbProductId === USB_JTAG_SERIAL_PID;
         const isEspressifUSB = portInfo.usbVendorId === 0x303a;
         this.logger.log(`Detected USB: VID=0x${((_a = portInfo.usbVendorId) === null || _a === void 0 ? void 0 : _a.toString(16)) || "unknown"}, PID=0x${((_b = portInfo.usbProductId) === null || _b === void 0 ? void 0 : _b.toString(16)) || "unknown"}`);
-        this.logger.debug(`USB_JTAG_SERIAL_PID=0x${USB_JTAG_SERIAL_PID.toString(16)}`);
-        this.logger.debug(`isUSBJTAGSerial=${isUSBJTAGSerial}, isEspressifUSB=${isEspressifUSB}`);
         // Define reset strategies to try in order
         const resetStrategies = [];
         // Strategy 1: USB-JTAG/Serial reset (for ESP32-C3, C6, S3, etc.)

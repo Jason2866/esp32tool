@@ -859,12 +859,6 @@ export class ESPLoader extends EventTarget {
     this.logger.log(
       `Detected USB: VID=0x${portInfo.usbVendorId?.toString(16) || "unknown"}, PID=0x${portInfo.usbProductId?.toString(16) || "unknown"}`,
     );
-    this.logger.debug(
-      `USB_JTAG_SERIAL_PID=0x${USB_JTAG_SERIAL_PID.toString(16)}`,
-    );
-    this.logger.debug(
-      `isUSBJTAGSerial=${isUSBJTAGSerial}, isEspressifUSB=${isEspressifUSB}`,
-    );
 
     // Define reset strategies to try in order
     const resetStrategies: Array<{ name: string; fn: () => Promise<void> }> =
