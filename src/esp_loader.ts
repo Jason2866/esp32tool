@@ -1920,18 +1920,17 @@ export class ESPLoader extends EventTarget {
           if (err instanceof SlipReadError) {
             if (retryCount <= MAX_RETRIES) {
               this.logger.log(
-                `⚠️  ${err.message} at 0x${currentAddr.toString(16)}. Draining buffer and retrying (attempt ${retryCount}/${MAX_RETRIES})...`,
+                `${err.message} at 0x${currentAddr.toString(16)}. Draining buffer and retrying (attempt ${retryCount}/${MAX_RETRIES})...`,
               );
 
               try {
-                // Drain input buffer to clear any stale data
                 await this.drainInputBuffer(200);
 
                 // Clear application buffer
                 await this.flushSerialBuffers();
 
-                // Short wait since stub should have aborted immediately
-                await sleep(100);
+                // Wait before retry to let hardware settle
+                await sleep(SYNC_TIMEOUT);
 
                 // Continue to retry the same chunk (will send NEW read command)
               } catch (drainErr) {
