@@ -5206,27 +5206,22 @@ class ESPLoader extends EventTarget {
     async readPacket(timeout) {
         let partialPacket = null;
         let inEscape = false;
-        let readBytes = [];
+        const startTime = Date.now();
         while (true) {
-            const stamp = Date.now();
-            readBytes = [];
-            while (Date.now() - stamp < timeout) {
-                if (this._inputBuffer.length > 0) {
-                    readBytes.push(this._inputBuffer.shift());
-                    break;
-                }
-                else {
-                    // Reduced sleep time for faster response during high-speed transfers
-                    await sleep(1);
-                }
-            }
-            if (readBytes.length == 0) {
+            // Check timeout
+            if (Date.now() - startTime > timeout) {
                 const waitingFor = partialPacket === null ? "header" : "content";
                 throw new SlipReadError("Timed out waiting for packet " + waitingFor);
             }
-            if (this.debug)
-                this.logger.debug("Read " + readBytes.length + " bytes: " + hexFormatter(readBytes));
-            for (const b of readBytes) {
+            // If no data available, wait a bit
+            if (this._inputBuffer.length === 0) {
+                await sleep(1);
+                continue;
+            }
+            // Process all available bytes without going back to outer loop
+            // This is critical for handling high-speed burst transfers
+            while (this._inputBuffer.length > 0) {
+                const b = this._inputBuffer.shift();
                 if (partialPacket === null) {
                     // waiting for packet header
                     if (b == 0xc0) {
@@ -5234,7 +5229,7 @@ class ESPLoader extends EventTarget {
                     }
                     else {
                         if (this.debug) {
-                            this.logger.debug("Read invalid data: " + hexFormatter(readBytes));
+                            this.logger.debug("Read invalid data: " + toHex(b));
                             this.logger.debug("Remaining data in serial buffer: " +
                                 hexFormatter(this._inputBuffer));
                         }
@@ -5252,7 +5247,7 @@ class ESPLoader extends EventTarget {
                     }
                     else {
                         if (this.debug) {
-                            this.logger.debug("Read invalid data: " + hexFormatter(readBytes));
+                            this.logger.debug("Read invalid data: " + toHex(b));
                             this.logger.debug("Remaining data in serial buffer: " +
                                 hexFormatter(this._inputBuffer));
                         }
@@ -5275,7 +5270,6 @@ class ESPLoader extends EventTarget {
                 }
             }
         }
-        throw new SlipReadError("Invalid state");
     }
     /**
      * @name getResponse
