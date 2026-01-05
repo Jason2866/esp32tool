@@ -7749,7 +7749,7 @@ const connect = async (logger) => {
     // - Request a port and open a connection.
     // Try to use requestSerialPort if available (supports WebUSB for Android)
     let port;
-    if (typeof globalThis.requestSerialPort === 'function') {
+    if (typeof globalThis.requestSerialPort === "function") {
         port = await globalThis.requestSerialPort();
     }
     else {
