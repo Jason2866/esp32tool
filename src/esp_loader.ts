@@ -1838,11 +1838,15 @@ export class ESPLoader extends EventTarget {
         let resp = new Uint8Array(0);
 
         try {
-          this.logger.debug(
-            `Reading chunk at 0x${currentAddr.toString(16)}, size: 0x${chunkSize.toString(16)}`,
-          );
+          // Only log on first attempt or retries
+          if (retryCount === 0) {
+            this.logger.debug(
+              `Reading chunk at 0x${currentAddr.toString(16)}, size: 0x${chunkSize.toString(16)}`,
+            );
+          }
 
           // Send read flash command for this chunk
+          // This must be inside the retry loop so we send a fresh command after errors
           const pkt = pack("<IIII", currentAddr, chunkSize, 0x1000, 1024);
           const [res] = await this.checkCommand(ESP_READ_FLASH, pkt);
 
@@ -1861,20 +1865,11 @@ export class ESPLoader extends EventTarget {
                   `SLIP read error at ${resp.length} bytes: ${err.message}`,
                 );
 
-                // Send final ACK for any data we did receive before the error
-                if (resp.length > 0) {
-                  try {
-                    const ackData = pack("<I", resp.length);
-                    const slipEncodedAck = slipEncode(ackData);
-                    await this.writeToStream(slipEncodedAck);
-                  } catch (ackErr) {
-                    this.logger.debug(`ACK send error: ${ackErr}`);
-                  }
-                }
-
-                // Drain input buffer for CP210x compatibility on Windows
-                // This clears any stale data that may be causing the error
-                await this.drainInputBuffer(300);
+                // Don't send ACK on error - we want to abort this read operation
+                // The stub needs to know we're not continuing with this chunk
+                
+                // Drain input buffer to clear any stale data
+                await this.drainInputBuffer(200);
 
                 // If we've read all the data we need, break
                 if (resp.length >= chunkSize) {
@@ -1918,15 +1913,13 @@ export class ESPLoader extends EventTarget {
               );
 
               try {
-                await this.drainInputBuffer(300);
+                // Drain input buffer to clear any stale data
+                await this.drainInputBuffer(200);
 
                 // Clear application buffer
                 await this.flushSerialBuffers();
 
-                // Wait before retry to let hardware settle
-                await sleep(SYNC_TIMEOUT);
-
-                // Continue to retry the same chunk (will send new read command)
+                // Continue to retry the same chunk (will send NEW read command)
               } catch (drainErr) {
                 this.logger.debug(`Buffer drain error: ${drainErr}`);
               }
