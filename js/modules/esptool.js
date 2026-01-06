@@ -542,7 +542,7 @@ const getStubCode = async (chipFamily, chipRevision) => {
         stubcode = await import('./esp32s2-t0j-Iiag.js');
     }
     else if (chipFamily == CHIP_FAMILY_ESP32S3) {
-        stubcode = await import('./esp32s3-BcN2SBuH.js');
+        stubcode = await import('./esp32s3-B8l06aKE.js');
     }
     else if (chipFamily == CHIP_FAMILY_ESP8266) {
         stubcode = await import('./esp8266-nEkNAo8K.js');
@@ -551,27 +551,27 @@ const getStubCode = async (chipFamily, chipRevision) => {
         stubcode = await import('./esp32c2-JZd7VMTK.js');
     }
     else if (chipFamily == CHIP_FAMILY_ESP32C3) {
-        stubcode = await import('./esp32c3-BqX8QnqG.js');
+        stubcode = await import('./esp32c3--2RgnV8f.js');
     }
     else if (chipFamily == CHIP_FAMILY_ESP32C5) {
-        stubcode = await import('./esp32c5-zvfygk_B.js');
+        stubcode = await import('./esp32c5-D7Zxncy7.js');
     }
     else if (chipFamily == CHIP_FAMILY_ESP32C6) {
-        stubcode = await import('./esp32c6-BjXamdRW.js');
+        stubcode = await import('./esp32c6-B8dieLFx.js');
     }
     else if (chipFamily == CHIP_FAMILY_ESP32C61) {
-        stubcode = await import('./esp32c61-OlMIhJTL.js');
+        stubcode = await import('./esp32c61-CVOVhUkw.js');
     }
     else if (chipFamily == CHIP_FAMILY_ESP32H2) {
-        stubcode = await import('./esp32h2-BnoVyO7H.js');
+        stubcode = await import('./esp32h2-C7Y4kn-J.js');
     }
     else if (chipFamily == CHIP_FAMILY_ESP32P4) {
         // ESP32-P4: Use esp32p4r3.json for Rev. 300+, esp32p4.json for older revisions
         if (chipRevision !== null && chipRevision !== undefined && chipRevision >= 300) {
-            stubcode = await import('./esp32p4r3-2EWykHhr.js');
+            stubcode = await import('./esp32p4r3-CW9u2O6_.js');
         }
         else {
-            stubcode = await import('./esp32p4-DHKJKJQm.js');
+            stubcode = await import('./esp32p4-BN3KBRYS.js');
         }
     }
     // Base64 decode the text and data
@@ -6201,14 +6201,13 @@ class ESPLoader extends EventTarget {
                     // Check if it's a timeout error or SLIP error
                     if (err instanceof SlipReadError) {
                         if (retryCount <= MAX_RETRIES) {
-                            this.logger.log(`⚠️  ${err.message} at 0x${currentAddr.toString(16)}. Draining buffer and retrying (attempt ${retryCount}/${MAX_RETRIES})...`);
+                            this.logger.log(`${err.message} at 0x${currentAddr.toString(16)}. Draining buffer and retrying (attempt ${retryCount}/${MAX_RETRIES})...`);
                             try {
-                                // Drain input buffer to clear any stale data
                                 await this.drainInputBuffer(200);
                                 // Clear application buffer
                                 await this.flushSerialBuffers();
-                                // Short wait since stub should have aborted immediately
-                                await sleep(100);
+                                // Wait before retry to let hardware settle
+                                await sleep(SYNC_TIMEOUT);
                                 // Continue to retry the same chunk (will send NEW read command)
                             }
                             catch (drainErr) {
