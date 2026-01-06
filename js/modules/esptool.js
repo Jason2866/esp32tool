@@ -6053,7 +6053,7 @@ class ESPLoader extends EventTarget {
                 try {
                     this._writer.releaseLock();
                 }
-                catch (e) {
+                catch {
                     // Ignore release errors
                 }
                 this._writer = undefined;

@@ -1727,7 +1727,7 @@ export class ESPLoader extends EventTarget {
         if (this._writer) {
           try {
             this._writer.releaseLock();
-          } catch (e) {
+          } catch {
             // Ignore release errors
           }
           this._writer = undefined;
