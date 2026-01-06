@@ -14,6 +14,7 @@ let currentFilesystemType = null; // 'littlefs', 'fatfs', or 'spiffs'
 let littlefsModulePromise = null; // Cache for LittleFS WASM module
 let lastReadFlashData = null; // Store last read flash data for ESP8266
 let currentChipName = null; // Store chip name globally
+let isConnected = false; // Track connection state
 
 /**
  * Get display name for current filesystem type
