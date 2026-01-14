@@ -98,6 +98,8 @@ function createBundle() {
     const src = path.join(__dirname, 'node_modules', mod);
     const dest = path.join(nodeModulesDir, mod);
     if (fs.existsSync(src)) {
+      // Ensure parent directory exists (for scoped packages like `@scope/pkg`)
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.cpSync(src, dest, { recursive: true });
     }
   });
@@ -160,6 +162,15 @@ where node >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
     echo Error: Node.js not found
     echo Please install Node.js ${NODE_VERSION}+ from https://nodejs.org/
+    exit /b 1
+)
+
+REM Check Node.js version
+for /f "tokens=1 delims=v." %%a in ('node -v') do set NODE_MAJOR=%%a
+for /f "tokens=2 delims=v." %%a in ('node -v') do set NODE_MAJOR=%%a
+if %NODE_MAJOR% LSS ${NODE_VERSION} (
+    echo Error: Node.js ${NODE_VERSION}+ required
+    echo Please upgrade Node.js from https://nodejs.org/
     exit /b 1
 )
 
