@@ -26,6 +26,49 @@ console.log('1. Building application...');
 execSync('npm run build', { stdio: 'inherit' });
 
 /**
+ * Get all dependencies recursively from package.json
+ */
+function getAllDependencies() {
+  const dependencies = new Set();
+  
+  // Add direct dependencies from package.json
+  if (packageJson.dependencies) {
+    Object.keys(packageJson.dependencies).forEach(dep => dependencies.add(dep));
+  }
+  
+  // Add scoped packages that are dependencies of our dependencies
+  const nodeModulesDir = path.join(__dirname, 'node_modules');
+  
+  // Helper to recursively find dependencies
+  function addDepsRecursively(moduleName) {
+    const modulePath = path.join(nodeModulesDir, moduleName);
+    if (!fs.existsSync(modulePath)) return;
+    
+    const modulePackageJson = path.join(modulePath, 'package.json');
+    if (fs.existsSync(modulePackageJson)) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(modulePackageJson, 'utf8'));
+        if (pkg.dependencies) {
+          Object.keys(pkg.dependencies).forEach(dep => {
+            if (!dependencies.has(dep)) {
+              dependencies.add(dep);
+              addDepsRecursively(dep);
+            }
+          });
+        }
+      } catch (err) {
+        // Ignore invalid package.json
+      }
+    }
+  }
+  
+  // Recursively add dependencies
+  Array.from(dependencies).forEach(dep => addDepsRecursively(dep));
+  
+  return Array.from(dependencies);
+}
+
+/**
  * Create bundle directory with all necessary files
  */
 function createBundle() {
@@ -43,18 +86,10 @@ function createBundle() {
   // Copy dist
   fs.cpSync(path.join(__dirname, 'dist'), path.join(bundleDir, 'dist'), { recursive: true });
   
-  // Copy necessary node_modules
-  const modules = [
-    'serialport',
-    '@serialport',
-    'pako',
-    'tslib',
-    'detect-libc',
-    'node-addon-api',
-    'node-gyp-build',
-    'prebuild-install',
-    '@parcel'
-  ];
+  // Get all dependencies from package.json
+  const modules = getAllDependencies();
+  
+  console.log(`   Bundling ${modules.length} dependencies...`);
   
   const nodeModulesDir = path.join(bundleDir, 'node_modules');
   fs.mkdirSync(nodeModulesDir, { recursive: true });
