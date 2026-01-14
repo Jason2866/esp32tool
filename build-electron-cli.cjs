@@ -40,6 +40,20 @@ if (originalPkg.version !== cliPkg.version) {
   console.log(`   Syncing package.cli.json to ${originalPkg.version}...\n`);
   
   cliPkg.version = originalPkg.version;
+}
+
+// Sync dependencies from main package.json to CLI package.json
+if (originalPkg.dependencies) {
+  if (JSON.stringify(originalPkg.dependencies) !== JSON.stringify(cliPkg.dependencies)) {
+    console.log(`⚠️  Dependencies mismatch detected!`);
+    console.log(`   Syncing dependencies from package.json to package.cli.json...\n`);
+    cliPkg.dependencies = originalPkg.dependencies;
+  }
+}
+
+// Save synced package.cli.json if changes were made
+if (originalPkg.version !== JSON.parse(cliPackageContent).version || 
+    JSON.stringify(originalPkg.dependencies) !== JSON.stringify(JSON.parse(cliPackageContent).dependencies)) {
   fs.writeFileSync('package.cli.json', JSON.stringify(cliPkg, null, 2) + '\n');
 }
 

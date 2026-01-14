@@ -17,6 +17,11 @@
     "!dist/index.d.ts",
     "package.json"
   ],
+  "dependencies": {
+    "pako": "^2.1.0",
+    "serialport": "^12.0.0",
+    "tslib": "^2.8.1"
+  },
   "devDependencies": {
     "electron": "^39.2.5"
   },
