@@ -59,6 +59,11 @@ export function createNodeSerialAdapter(
     },
 
     async open(options: { baudRate: number }) {
+      // Prevent multiple opens
+      if (readableStream || writableStream) {
+        throw new Error("Port is already open");
+      }
+
       logger.log(`Opening port at ${options.baudRate} baud...`);
 
       // Update baud rate if needed

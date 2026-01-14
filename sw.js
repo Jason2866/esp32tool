@@ -1,5 +1,5 @@
 // Service Worker for ESP32Tool PWA
-const CACHE_NAME = 'esp32tool-v2.0.1';
+const CACHE_NAME = 'esp32tool-v1.2.0';
 const RUNTIME_CACHE = 'esp32tool-runtime';
 
 // Core files to cache on install (relative paths work for any deployment path)

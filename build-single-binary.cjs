@@ -143,6 +143,14 @@ function createUnixBinary(bundleDir, platform) {
   const outputFile = path.join(binariesDir, `esp32tool-${platform}`);
   
   try {
+    // Check if makeself is available
+    try {
+      execSync('which makeself', { stdio: 'pipe' });
+    } catch {
+      console.error(`   ✗ Skipped: makeself not installed (install with: brew install makeself / apt install makeself)`);
+      return;
+    }
+
     // Create makeself archive with .run extension
     const runFile = `${outputFile}.run`;
     execSync(
@@ -151,11 +159,12 @@ function createUnixBinary(bundleDir, platform) {
     );
     
     // Create wrapper script that adds -- automatically
+    const runFileName = path.basename(runFile);
     const wrapper = `#!/bin/bash
 # ESP32Tool CLI Wrapper
 
 SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
-exec "$SCRIPT_DIR/$(basename "${runFile}")" -- "$@"
+exec "$SCRIPT_DIR/${runFileName}" -- "$@"
 `;
     
     fs.writeFileSync(outputFile, wrapper);

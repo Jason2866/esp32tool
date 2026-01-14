@@ -507,10 +507,15 @@ const isDirectRun =
     process.argv[1].endsWith("/cli-fixed.js") ||
     process.argv[1].endsWith("\\cli-fixed.js") ||
     process.argv[1].endsWith("/esp32tool") ||
-    process.argv[1].endsWith("\\esp32tool"));
+    process.argv[1].endsWith("\\esp32tool") ||
+    process.argv[1].endsWith("/esp32tool.exe") ||
+    process.argv[1].endsWith("\\esp32tool.exe"));
 
 if (isDirectRun) {
-  main();
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
 }
 
 export { main as runCLI };
