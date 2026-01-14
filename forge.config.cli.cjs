@@ -35,23 +35,16 @@ module.exports = {
     ignore: (filePath) => {
       if (!filePath) return false;
       
-      // Whitelist approach - only include what we need
-      const shouldKeep = (
-        filePath === '/electron' ||
-        filePath === '/electron/cli-main.cjs' ||
-        filePath === '/dist' ||
-        filePath.startsWith('/dist/') ||
-        filePath === '/package.json' ||
-        filePath.startsWith('/node_modules/')
-      );
+      // Always keep these
+      if (filePath === '/package.json') return false;
+      if (filePath === '/electron' || filePath === '/electron/cli-main.cjs') return false;
+      if (filePath === '/dist' || (filePath.startsWith('/dist/') && !filePath.startsWith('/dist/web/') && filePath !== '/dist/index.js' && filePath !== '/dist/index.d.ts')) return false;
       
-      // Exclude dist/web and dist/index.js even if in dist/
-      if (filePath.startsWith('/dist/web/') || filePath === '/dist/index.js' || filePath === '/dist/index.d.ts') {
-        return true;  // ignore (exclude)
-      }
+      // Let Electron Forge handle node_modules - don't ignore them
+      if (filePath.startsWith('/node_modules/')) return false;
       
-      // If not in whitelist, ignore it
-      return !shouldKeep;
+      // Ignore everything else (GUI files, source files, etc.)
+      return true;
     },
   },
   rebuildConfig: {},
