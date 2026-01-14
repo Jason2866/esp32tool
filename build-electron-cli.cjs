@@ -3,6 +3,14 @@
 /**
  * Build standalone Electron-based CLI binaries
  * Creates truly standalone executables that don't require Node.js installation
+ * 
+ * IMPORTANT: This script temporarily swaps package.json with package.cli.json
+ * during the build process, then restores the original package.json.
+ * 
+ * When releasing a new version:
+ * 1. Update version in package.json
+ * 2. Update version in package.cli.json (keep in sync!)
+ * 3. Run this script to build CLI binaries
  */
 
 const { execSync } = require('child_process');
@@ -17,9 +25,25 @@ if (!fs.existsSync('dist/cli.js')) {
   execSync('npm run build', { stdio: 'inherit' });
 }
 
-// Copy package.cli.json to package.json temporarily
+// Read package files
 const originalPackage = fs.readFileSync('package.json', 'utf8');
-const cliPackage = fs.readFileSync('package.cli.json', 'utf8');
+const cliPackageContent = fs.readFileSync('package.cli.json', 'utf8');
+
+// Parse and sync versions
+const originalPkg = JSON.parse(originalPackage);
+const cliPkg = JSON.parse(cliPackageContent);
+
+if (originalPkg.version !== cliPkg.version) {
+  console.log(`⚠️  Version mismatch detected!`);
+  console.log(`   package.json: ${originalPkg.version}`);
+  console.log(`   package.cli.json: ${cliPkg.version}`);
+  console.log(`   Syncing package.cli.json to ${originalPkg.version}...\n`);
+  
+  cliPkg.version = originalPkg.version;
+  fs.writeFileSync('package.cli.json', JSON.stringify(cliPkg, null, 2) + '\n');
+}
+
+const cliPackage = JSON.stringify(cliPkg, null, 2);
 
 try {
   // Backup original package.json

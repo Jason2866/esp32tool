@@ -1,8 +1,9 @@
 {
   "name": "esp32tool",
   "version": "1.2.0",
+  "private": true,
   "type": "module",
-  "description": "ESP32Tool - Standalone command-line tool",
+  "description": "ESP32Tool - Standalone command-line tool (build-time config only)",
   "main": "electron/cli-main.cjs",
   "author": "Johann Obermeier",
   "license": "MIT",
@@ -18,5 +19,6 @@
   ],
   "devDependencies": {
     "electron": "^39.2.5"
-  }
+  },
+  "_comment": "This file is ONLY used during CLI builds. It is temporarily swapped with package.json by build-electron-cli.cjs, then restored. Never publish this file to npm. Keep version in sync with main package.json when releasing."
 }
