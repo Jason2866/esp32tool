@@ -112,40 +112,39 @@ try {
   // Rename release files to add -CLI suffix
   const makeDir = path.join('out-cli', 'make');
   if (fs.existsSync(makeDir)) {
-      const renameInDir = (dir) => {
-        if (!fs.existsSync(dir)) return;
-        const files = fs.readdirSync(dir, { recursive: true, withFileTypes: true });
-        files.forEach(file => {
-          if (file.isFile()) {
-            const oldPath = path.join(file.path || file.parentPath, file.name);
-            let newName = file.name;
-            
-            // Handle different file types
-            if (file.name.endsWith('.dmg')) {
-              // ESP32Tool-1.2.0-arm64.dmg -> ESP32Tool-CLI-1.2.0-arm64.dmg
-              // ESP32Tool-1.2.0-x64.dmg -> ESP32Tool-CLI-1.2.0-x64.dmg
-              newName = file.name.replace(/^ESP32Tool-/, 'ESP32Tool-CLI-');
-            } else if (file.name.endsWith('.zip') || file.name.endsWith('.exe')) {
-              // Add -CLI before the platform identifier
-              newName = file.name.replace(/(ESP32Tool)(-darwin|-linux|-win32)/, '$1-CLI$2');
-            } else if (file.name.endsWith('.deb')) {
-              // esp32tool_1.2.0_amd64.deb -> esp32tool-cli_1.2.0_amd64.deb
-              newName = file.name.replace(/^esp32tool_/, 'esp32tool-cli_');
-            } else if (file.name.endsWith('.rpm')) {
-              // esp32tool-1.2.0-1.x86_64.rpm -> esp32tool-cli-1.2.0-1.x86_64.rpm
-              newName = file.name.replace(/^esp32tool-/, 'esp32tool-cli-');
-            }
-            
-            const newPath = path.join(file.path || file.parentPath, newName);
-            if (oldPath !== newPath) {
-              fs.renameSync(oldPath, newPath);
-              console.log(`Renamed: ${file.name} -> ${newName}`);
-            }
+    const renameInDir = (dir) => {
+      if (!fs.existsSync(dir)) return;
+      const files = fs.readdirSync(dir, { recursive: true, withFileTypes: true });
+      files.forEach(file => {
+        if (file.isFile()) {
+          const oldPath = path.join(file.path || file.parentPath, file.name);
+          let newName = file.name;
+          
+          // Handle different file types
+          if (file.name.endsWith('.dmg')) {
+            // ESP32Tool-1.2.0-arm64.dmg -> ESP32Tool-CLI-1.2.0-arm64.dmg
+            // ESP32Tool-1.2.0-x64.dmg -> ESP32Tool-CLI-1.2.0-x64.dmg
+            newName = file.name.replace(/^ESP32Tool-/, 'ESP32Tool-CLI-');
+          } else if (file.name.endsWith('.zip') || file.name.endsWith('.exe')) {
+            // Add -CLI before the platform identifier
+            newName = file.name.replace(/(ESP32Tool)(-darwin|-linux|-win32)/, '$1-CLI$2');
+          } else if (file.name.endsWith('.deb')) {
+            // esp32tool_1.2.0_amd64.deb -> esp32tool-cli_1.2.0_amd64.deb
+            newName = file.name.replace(/^esp32tool_/, 'esp32tool-cli_');
+          } else if (file.name.endsWith('.rpm')) {
+            // esp32tool-1.2.0-1.x86_64.rpm -> esp32tool-cli-1.2.0-1.x86_64.rpm
+            newName = file.name.replace(/^esp32tool-/, 'esp32tool-cli-');
           }
-        });
-      };
-      renameInDir(makeDir);
-    }
+          
+          const newPath = path.join(file.path || file.parentPath, newName);
+          if (oldPath !== newPath) {
+            fs.renameSync(oldPath, newPath);
+            console.log(`Renamed: ${file.name} -> ${newName}`);
+          }
+        }
+      });
+    };
+    renameInDir(makeDir);
   }
   
   console.log('\n✓ CLI binaries built successfully!');
