@@ -408,7 +408,7 @@ async function main() {
           );
         });
       }
-      
+
       // Clean exit without process.exit() to avoid native module cleanup issues
       return;
     }
@@ -481,7 +481,7 @@ async function main() {
 
     // Disconnect
     await esploader.disconnect();
-    
+
     // Clean exit - let Electron handle the exit
     return;
   } catch (error: any) {
