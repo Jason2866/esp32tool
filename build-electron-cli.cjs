@@ -66,24 +66,52 @@ try {
   
   console.log(`\nBuilding CLI for ${platform}-${arch}...`);
   
-  execSync(`npx electron-forge package --platform=${platform} --arch=${arch}`, {
-    stdio: 'inherit'
-  });
-  
-  execSync(`npx electron-forge make --platform=${platform} --arch=${arch}`, {
-    stdio: 'inherit'
-  });
-  
-  // Move output to out-cli directory and rename release files
+  // Backup GUI builds if they exist
+  let guiBackupPath = null;
   if (fs.existsSync('out')) {
-    if (fs.existsSync('out-cli')) {
-      fs.rmSync('out-cli', { recursive: true, force: true });
-    }
-    fs.renameSync('out', 'out-cli');
+    guiBackupPath = 'out-gui-backup-' + Date.now();
+    console.log(`⚠️  Backing up existing GUI builds to ${guiBackupPath}...`);
+    fs.renameSync('out', guiBackupPath);
+  }
+  
+  try {
+    execSync(`npx electron-forge package --platform=${platform} --arch=${arch}`, {
+      stdio: 'inherit'
+    });
     
-    // Rename release files to add -CLI suffix
-    const makeDir = path.join('out-cli', 'make');
-    if (fs.existsSync(makeDir)) {
+    execSync(`npx electron-forge make --platform=${platform} --arch=${arch}`, {
+      stdio: 'inherit'
+    });
+    
+    // Move CLI output to out-cli directory
+    if (fs.existsSync('out')) {
+      if (fs.existsSync('out-cli')) {
+        fs.rmSync('out-cli', { recursive: true, force: true });
+      }
+      fs.renameSync('out', 'out-cli');
+    }
+    
+    // Restore GUI builds
+    if (guiBackupPath && fs.existsSync(guiBackupPath)) {
+      console.log('✓ Restoring GUI builds...');
+      fs.renameSync(guiBackupPath, 'out');
+    }
+  } catch (error) {
+    // Restore GUI builds even on error
+    if (guiBackupPath && fs.existsSync(guiBackupPath)) {
+      console.log('⚠️  Restoring GUI builds after error...');
+      if (fs.existsSync('out')) {
+        fs.rmSync('out', { recursive: true, force: true });
+      }
+      fs.renameSync(guiBackupPath, 'out');
+    }
+    throw error;
+  }
+  
+  
+  // Rename release files to add -CLI suffix
+  const makeDir = path.join('out-cli', 'make');
+  if (fs.existsSync(makeDir)) {
       const renameInDir = (dir) => {
         if (!fs.existsSync(dir)) return;
         const files = fs.readdirSync(dir, { recursive: true, withFileTypes: true });
