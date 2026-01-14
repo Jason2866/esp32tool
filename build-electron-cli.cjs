@@ -93,7 +93,11 @@ try {
             let newName = file.name;
             
             // Handle different file types
-            if (file.name.endsWith('.dmg') || file.name.endsWith('.zip') || file.name.endsWith('.exe')) {
+            if (file.name.endsWith('.dmg')) {
+              // ESP32Tool-1.2.0-arm64.dmg -> ESP32Tool-CLI-1.2.0-arm64.dmg
+              // ESP32Tool-1.2.0-x64.dmg -> ESP32Tool-CLI-1.2.0-x64.dmg
+              newName = file.name.replace(/^ESP32Tool-/, 'ESP32Tool-CLI-');
+            } else if (file.name.endsWith('.zip') || file.name.endsWith('.exe')) {
               // Add -CLI before the platform identifier
               newName = file.name.replace(/(ESP32Tool)(-darwin|-linux|-win32)/, '$1-CLI$2');
             } else if (file.name.endsWith('.deb')) {
