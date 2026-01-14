@@ -66,6 +66,16 @@ export function createNodeSerialAdapter(
 
       logger.log(`Opening port at ${options.baudRate} baud...`);
 
+      // Re-open nodePort if it was closed
+      if (!nodePort.isOpen) {
+        await new Promise<void>((resolve, reject) => {
+          nodePort.open((err: Error | null | undefined) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      }
+
       // Update baud rate if needed
       if (nodePort.baudRate !== options.baudRate) {
         await nodePort.update({ baudRate: options.baudRate });
