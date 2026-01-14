@@ -60,6 +60,29 @@ module.exports = {
       name: '@electron-forge/maker-zip',
       platforms: ['darwin', 'linux', 'win32'],
     },
+    {
+      name: '@electron-forge/maker-deb',
+      config: {
+        options: {
+          name: 'esp32tool',
+          bin: 'esp32tool',
+          maintainer: 'Johann Obermeier',
+          homepage: 'https://github.com/Jason2866/esp32tool',
+          categories: ['Development', 'Utility'],
+        },
+      },
+    },
+    {
+      name: '@electron-forge/maker-rpm',
+      config: {
+        options: {
+          name: 'esp32tool',
+          bin: 'esp32tool',
+          homepage: 'https://github.com/Jason2866/esp32tool',
+          categories: ['Development', 'Utility'],
+        },
+      },
+    },
   ],
   plugins: [
     {

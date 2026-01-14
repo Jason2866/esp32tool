@@ -101,6 +101,8 @@ jobs:
             out/make/deb/**/*.deb
             out/make/rpm/**/*.rpm
             out/make/zip/**/*.zip
+            out-cli/make/deb/**/*.deb
+            out-cli/make/rpm/**/*.rpm
             out-cli/make/zip/**/*.zip
           retention-days: 5
 
