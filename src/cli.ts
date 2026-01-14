@@ -408,7 +408,9 @@ async function main() {
           );
         });
       }
-      process.exit(0);
+      
+      // Clean exit without process.exit() to avoid native module cleanup issues
+      return;
     }
 
     // Connect to device
@@ -479,7 +481,9 @@ async function main() {
 
     // Disconnect
     await esploader.disconnect();
-    process.exit(0);
+    
+    // Clean exit - let Electron handle the exit
+    return;
   } catch (error: any) {
     // Clean up device connection on failure
     if (esploader) {

@@ -32,23 +32,27 @@ module.exports = {
     // Override main entry point for CLI
     extraResource: [],
     // Files to exclude from the app
-    ignore: [
-      /^\/src\/(?!wasm)/,  // Exclude src/ but keep src/wasm/
-      /^\/script/,
-      /^\/\.github/,
-      /^\/tools/,
-      /^\/electron\/main\.cjs$/,  // Exclude GUI main
-      /^\/index\.html$/,  // Exclude GUI HTML
-      /^\/css/,
-      /^\/icons/,
-      /^\/screenshots/,
-      /\.git/,
-      /\.eslint/,
-      /\.prettier/,
-      /tsconfig\.json/,
-      /rollup\.config\.(js|mjs)$/,
-      /\.md$/,
-    ],
+    ignore: (filePath) => {
+      if (!filePath) return false;
+      
+      // Whitelist approach - only include what we need
+      const shouldKeep = (
+        filePath === '/electron' ||
+        filePath === '/electron/cli-main.cjs' ||
+        filePath === '/dist' ||
+        filePath.startsWith('/dist/') ||
+        filePath === '/package.json' ||
+        filePath.startsWith('/node_modules/')
+      );
+      
+      // Exclude dist/web and dist/index.js even if in dist/
+      if (filePath.startsWith('/dist/web/') || filePath === '/dist/index.js' || filePath === '/dist/index.d.ts') {
+        return true;  // ignore (exclude)
+      }
+      
+      // If not in whitelist, ignore it
+      return !shouldKeep;
+    },
   },
   rebuildConfig: {},
   makers: [

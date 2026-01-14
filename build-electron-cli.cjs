@@ -28,26 +28,26 @@ try {
   // Use CLI package.json
   fs.writeFileSync('package.json', cliPackage);
   
+  // Temporarily swap forge configs
+  if (fs.existsSync('forge.config.cjs')) {
+    fs.renameSync('forge.config.cjs', 'forge.config.cjs.gui-backup');
+  }
+  if (fs.existsSync('forge.config.cli.cjs')) {
+    fs.renameSync('forge.config.cli.cjs', 'forge.config.cjs');
+  }
+  
   // Build for current platform
   const platform = process.platform;
   const arch = process.arch;
   
   console.log(`\nBuilding CLI for ${platform}-${arch}...`);
   
-  // Use ELECTRON_FORGE_CONFIG environment variable
-  const env = { 
-    ...process.env, 
-    ELECTRON_FORGE_CONFIG: path.resolve(__dirname, 'forge.config.cli.cjs')
-  };
-  
   execSync(`npx electron-forge package --platform=${platform} --arch=${arch}`, {
-    stdio: 'inherit',
-    env
+    stdio: 'inherit'
   });
   
   execSync(`npx electron-forge make --platform=${platform} --arch=${arch}`, {
-    stdio: 'inherit',
-    env
+    stdio: 'inherit'
   });
   
   // Move output to out-cli directory and rename files
@@ -83,6 +83,14 @@ try {
   console.log('Output: out-cli/make/');
   
 } finally {
+  // Restore forge configs
+  if (fs.existsSync('forge.config.cjs')) {
+    fs.renameSync('forge.config.cjs', 'forge.config.cli.cjs');
+  }
+  if (fs.existsSync('forge.config.cjs.gui-backup')) {
+    fs.renameSync('forge.config.cjs.gui-backup', 'forge.config.cjs');
+  }
+  
   // Restore original package.json
   fs.writeFileSync('package.json', originalPackage);
   if (fs.existsSync('package.json.backup')) {

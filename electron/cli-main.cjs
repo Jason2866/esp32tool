@@ -34,14 +34,18 @@ app.whenReady().then(async () => {
     // Run the CLI
     await cliModule.runCLI();
     
-    // Exit successfully
-    app.exit(0);
+    // Give a small delay for cleanup
+    setTimeout(() => {
+      app.exit(0);
+    }, 100);
   } catch (error) {
     console.error('CLI Error:', error.message);
     if (process.env.DEBUG) {
       console.error(error.stack);
     }
-    app.exit(1);
+    setTimeout(() => {
+      app.exit(1);
+    }, 100);
   }
 });
 
