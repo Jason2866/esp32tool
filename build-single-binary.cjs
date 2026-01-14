@@ -9,7 +9,9 @@ const path = require('path');
 const { execSync } = require('child_process');
 const archiver = require('archiver');
 
-const VERSION = require('./package.json').version;
+const packageJson = require('./package.json');
+const VERSION = packageJson.version;
+const NODE_VERSION = packageJson.engines.node.replace(/[^\d.]/g, '').split('.')[0]; // Extract major version
 
 console.log(`Building ESP32Tool CLI v${VERSION} single executables...\n`);
 
@@ -87,14 +89,14 @@ DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 # Check for Node.js
 if ! command -v node &> /dev/null; then
     echo "Error: Node.js not found"
-    echo "Please install Node.js 18+ from https://nodejs.org/"
+    echo "Please install Node.js ${NODE_VERSION}+ from https://nodejs.org/"
     exit 1
 fi
 
 # Check Node.js version
-NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 18 ]; then
-    echo "Error: Node.js 18+ required (found: $(node -v))"
+CURRENT_NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+if [ "$CURRENT_NODE_VERSION" -lt ${NODE_VERSION} ]; then
+    echo "Error: Node.js ${NODE_VERSION}+ required (found: $(node -v))"
     echo "Please upgrade Node.js from https://nodejs.org/"
     exit 1
 fi
@@ -122,7 +124,7 @@ REM Check for Node.js
 where node >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
     echo Error: Node.js not found
-    echo Please install Node.js 18+ from https://nodejs.org/
+    echo Please install Node.js ${NODE_VERSION}+ from https://nodejs.org/
     exit /b 1
 )
 
@@ -232,7 +234,7 @@ async function main() {
     console.log('  macOS:   ./binaries/esp32tool-macos list-ports');
     console.log('  Linux:   ./binaries/esp32tool-linux-x64 list-ports');
     console.log('  Windows: Extract zip, then: esp32tool.bat list-ports');
-    console.log('\nNote: Requires Node.js 18+ on target system');
+    console.log(`\nNote: Requires Node.js ${NODE_VERSION}+ on target system`);
     
   } catch (error) {
     console.error('\nError:', error.message);
