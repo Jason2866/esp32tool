@@ -66,7 +66,7 @@ jobs:
       - name: Build Electron CLI app
         run: npm run build:cli-electron
 
-      # macOS: Upload DMG and CLI artifacts
+      # macOS: Upload DMG and ZIP artifacts (GUI), ZIP only for CLI
       - name: Upload macOS artifacts
         if: matrix.platform == 'darwin'
         uses: actions/upload-artifact@v6
@@ -75,7 +75,6 @@ jobs:
           path: |
             out/make/*.dmg
             out/make/zip/**/*.zip
-            out-cli/make/*.dmg
             out-cli/make/zip/**/*.zip
           if-no-files-found: warn
           retention-days: 5
