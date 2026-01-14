@@ -11,6 +11,7 @@
 rollup.config.mjs
 tsconfig.json
 forge.config.cjs
+forge.config.js
 .eslint.config.js
 .prettierignore
 .package.json
