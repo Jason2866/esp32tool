@@ -50,14 +50,14 @@ try {
     stdio: 'inherit'
   });
   
-  // Move output to out-cli directory and rename files
+  // Move output to out-cli directory and rename release files
   if (fs.existsSync('out')) {
     if (fs.existsSync('out-cli')) {
       fs.rmSync('out-cli', { recursive: true, force: true });
     }
     fs.renameSync('out', 'out-cli');
     
-    // Rename DMG/ZIP files to include -cli suffix
+    // Rename DMG/ZIP files to add -CLI suffix for releases
     const makeDir = path.join('out-cli', 'make');
     if (fs.existsSync(makeDir)) {
       const renameInDir = (dir) => {
@@ -66,7 +66,8 @@ try {
         files.forEach(file => {
           if (file.isFile() && (file.name.endsWith('.dmg') || file.name.endsWith('.zip') || file.name.endsWith('.exe'))) {
             const oldPath = path.join(file.path || file.parentPath, file.name);
-            const newName = file.name.replace(/ESP32Tool/, 'ESP32Tool-CLI');
+            // Add -CLI before the version number
+            const newName = file.name.replace(/(ESP32Tool)(-darwin|-linux|-win32)/, '$1-CLI$2');
             const newPath = path.join(file.path || file.parentPath, newName);
             if (oldPath !== newPath) {
               fs.renameSync(oldPath, newPath);

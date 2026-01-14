@@ -15,7 +15,7 @@ const FuseV1Options = {
 
 module.exports = {
   packagerConfig: {
-    name: 'esp32tool-cli',
+    name: 'ESP32Tool',
     executableName: 'esp32tool',
     asar: true,
     // Output to separate directory
@@ -24,10 +24,10 @@ module.exports = {
     electronZipDir: undefined,
     // Ensure consistent executable name across platforms
     win32metadata: {
-      FileDescription: 'ESP32Tool CLI',
-      ProductName: 'ESP32Tool CLI',
+      FileDescription: 'ESP32Tool',
+      ProductName: 'ESP32Tool',
     },
-    appBundleId: 'com.esp32tool.cli',
+    appBundleId: 'com.esp32tool',
     appCategoryType: 'public.app-category.developer-tools',
     // Override main entry point for CLI
     extraResource: [],

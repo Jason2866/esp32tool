@@ -1,8 +1,8 @@
 {
-  "name": "esp32tool-cli",
+  "name": "esp32tool",
   "version": "1.2.0",
   "type": "module",
-  "description": "ESP32Tool CLI - Standalone command-line tool",
+  "description": "ESP32Tool - Standalone command-line tool",
   "main": "electron/cli-main.cjs",
   "author": "Johann Obermeier",
   "license": "MIT",
