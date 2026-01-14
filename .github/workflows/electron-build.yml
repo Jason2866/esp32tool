@@ -63,6 +63,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Cleanup DMG volumes (macOS only)
+        if: matrix.platform == 'darwin'
+        run: |
+          echo "Unmounting any ESP32Tool DMG volumes..."
+          hdiutil detach /Volumes/ESP32Tool 2>/dev/null || true
+          hdiutil detach "/Volumes/ESP32Tool 1" 2>/dev/null || true
+          sleep 2
+
       - name: Build Electron CLI app
         run: npm run build:cli-electron
 
