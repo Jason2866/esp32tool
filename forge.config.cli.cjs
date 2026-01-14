@@ -32,20 +32,47 @@ module.exports = {
     // Override main entry point for CLI
     extraResource: [],
     // Files to exclude from the app
-    ignore: (filePath) => {
-      if (!filePath) return false;
+    // Use same approach as GUI config but exclude GUI-specific files
+    ignore: [
+      /^\/src\/(?!wasm)/,  // Exclude src/ but keep src/wasm/
+      /^\/script/,
+      /^\/\.github/,
+      /^\/tools/,
+      /^\/binaries/,
+      /^\/out-cli/,
+      /^\/out/,
+      /^\/screenshots/,
+      /^\/installers/,
       
-      // Always keep these
-      if (filePath === '/package.json') return false;
-      if (filePath === '/electron' || filePath === '/electron/cli-main.cjs') return false;
-      if (filePath === '/dist' || (filePath.startsWith('/dist/') && !filePath.startsWith('/dist/web/') && filePath !== '/dist/index.js' && filePath !== '/dist/index.d.ts')) return false;
+      // GUI-specific files
+      /^\/electron\/main\.cjs$/,
+      /^\/electron\/preload\.js$/,
+      /^\/index\.html$/,
+      /^\/install-android\.html$/,
+      /^\/css\//,
+      /^\/js\//,
+      /^\/icons\//,
+      /^\/apple-touch-icon\.png$/,
+      /^\/favicon\.ico$/,
+      /^\/manifest\.json$/,
+      /^\/sw\.js$/,
       
-      // Let Electron Forge handle node_modules - don't ignore them
-      if (filePath.startsWith('/node_modules/')) return false;
+      // Build artifacts
+      /^\/dist\/web\//,
+      /^\/dist\/index\.(js|d\.ts)$/,
       
-      // Ignore everything else (GUI files, source files, etc.)
-      return true;
-    },
+      // Config files
+      /\.git/,
+      /\.eslint/,
+      /\.prettier/,
+      /tsconfig\.json/,
+      /rollup\.config\.(js|mjs)$/,
+      /forge\.config.*\.cjs$/,
+      /package\.cli\.json$/,
+      /build-.*\.cjs$/,
+      /fix-.*\.cjs$/,
+      /\.md$/,
+    ],
   },
   rebuildConfig: {},
   makers: [
