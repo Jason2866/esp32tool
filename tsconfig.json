@@ -14,7 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "importHelpers": true,
-    "skipLibCheck": false
+    "skipLibCheck": true
   },
   "include": ["src/*"]
 }

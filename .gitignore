@@ -3,3 +3,11 @@
 node_modules
 dist
 out
+out-cli
+
+# CLI build artifacts
+esp32tool@*
+node
+binaries
+.bundle-temp
+package.json.backup

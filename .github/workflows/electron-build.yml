@@ -58,21 +58,28 @@ jobs:
       - name: Build TypeScript and Rollup
         run: npm run prepublishOnly
 
-      - name: Build Electron app
+      - name: Build Electron GUI app
         run: npm run make -- --arch=${{ matrix.arch }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # macOS: Upload only DMG
-      - name: Upload macOS DMG
+      - name: Build Electron CLI app
+        run: npm run build:cli-electron
+
+      # macOS: Upload DMG and CLI artifacts
+      - name: Upload macOS artifacts
         if: matrix.platform == 'darwin'
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact_name }}
-          path: out/make/*.dmg
+          path: |
+            out/make/*.dmg
+            out/make/zip/**/*.zip
+            out-cli/make/*.dmg
+            out-cli/make/zip/**/*.zip
           retention-days: 5
 
-      # Windows: Upload Squirrel installer and ZIP
+      # Windows: Upload Squirrel installer, ZIP, and CLI artifacts
       - name: Upload Windows artifacts
         if: matrix.platform == 'win32'
         uses: actions/upload-artifact@v6
@@ -81,9 +88,10 @@ jobs:
           path: |
             out/make/squirrel.windows/**/*.exe
             out/make/zip/**/*.zip
+            out-cli/make/zip/**/*.zip
           retention-days: 5
 
-      # Linux: Upload DEB and RPM
+      # Linux: Upload DEB, RPM, and CLI artifacts
       - name: Upload Linux artifacts
         if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v6
@@ -93,6 +101,7 @@ jobs:
             out/make/deb/**/*.deb
             out/make/rpm/**/*.rpm
             out/make/zip/**/*.zip
+            out-cli/make/zip/**/*.zip
           retention-days: 5
 
   release:
@@ -122,14 +131,27 @@ jobs:
             
             ### Downloads
             
+            #### Electron GUI Apps
+            
             | Platform | Architecture | File |
             |----------|--------------|------|
-            | macOS | Apple Silicon | `*.arm64.dmg` |
-            | macOS | Intel | `*.x64.dmg` |
-            | Windows | x64 | `*.exe` / `*.zip` |
-            | Linux | x64 | `*.deb` / `*.rpm` / `*.zip` |
+            | macOS | Apple Silicon | `ESP32Tool-*-arm64.dmg` |
+            | macOS | Intel | `ESP32Tool-*-x64.dmg` |
+            | Windows | x64 | `*.exe` / `ESP32Tool-*.zip` |
+            | Linux | x64 | `*.deb` / `*.rpm` / `ESP32Tool-*.zip` |
+            
+            #### Electron CLI Tools (Standalone, No Node.js Required!)
+            
+            | Platform | File | Size |
+            |----------|------|------|
+            | macOS | `ESP32Tool-CLI-*-arm64.dmg` / `.zip` | ~114MB |
+            | macOS | `ESP32Tool-CLI-*-x64.dmg` / `.zip` | ~114MB |
+            | Linux | `ESP32Tool-CLI-*.zip` | ~114MB |
+            | Windows | `ESP32Tool-CLI-*.zip` | ~114MB |
             
             ### Installation
+            
+            #### GUI Apps
             
             **macOS Apple Silicon:** Download with `curl -L -O "https://github.com/Jason2866/esp32tool/releases/download/${{ github.ref_name }}/ESP32Tool-${{ steps.version.outputs.VERSION }}-arm64.dmg"` to avoid Gatekeeper flags the package. Open the DMG and drag the app to Applications.
             
@@ -138,6 +160,44 @@ jobs:
             **Windows:** Run the `.exe` installer or extract the `.zip` archive.
             
             **Linux:** Install via `sudo dpkg -i *.deb` or `sudo rpm -i *.rpm`, or extract the `.zip` archive.
+            
+            #### CLI Tools
+            
+            **Standalone Electron-based CLI - No Node.js installation required!**
+            
+            **macOS:**
+            ```bash
+            # Install: Open DMG and drag to /Applications
+            # Run from terminal:
+            /Applications/ESP32Tool.app/Contents/MacOS/esp32tool list-ports
+            /Applications/ESP32Tool.app/Contents/MacOS/esp32tool --port /dev/ttyUSB0 chip-id
+            
+            # Optional: Create symlink for easier access
+            sudo ln -s /Applications/ESP32Tool.app/Contents/MacOS/esp32tool /usr/local/bin/esp32tool
+            # Then simply:
+            esp32tool list-ports
+            ```
+            
+            **Linux:**
+            ```bash
+            # Extract ZIP and run
+            unzip ESP32Tool-CLI-*.zip
+            cd ESP32Tool-linux-*/
+            ./esp32tool list-ports
+            ./esp32tool --port /dev/ttyUSB0 chip-id
+            
+            # Optional: Install system-wide
+            sudo ln -s $(pwd)/esp32tool /usr/local/bin/esp32tool
+            ```
+            
+            **Windows:**
+            ```cmd
+            # Extract ZIP and run from extracted folder
+            esp32tool.exe list-ports
+            esp32tool.exe --port COM3 chip-id
+            
+            # Optional: Add folder to PATH for system-wide access
+            ```
           draft: false
           prerelease: false
           files: |
