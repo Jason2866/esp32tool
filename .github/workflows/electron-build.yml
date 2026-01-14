@@ -77,6 +77,7 @@ jobs:
             out/make/zip/**/*.zip
             out-cli/make/*.dmg
             out-cli/make/zip/**/*.zip
+          if-no-files-found: warn
           retention-days: 5
 
       # Windows: Upload Squirrel installer, ZIP, and CLI artifacts
@@ -89,6 +90,7 @@ jobs:
             out/make/squirrel.windows/**/*.exe
             out/make/zip/**/*.zip
             out-cli/make/zip/**/*.zip
+          if-no-files-found: warn
           retention-days: 5
 
       # Linux: Upload DEB, RPM, and CLI artifacts
@@ -104,6 +106,7 @@ jobs:
             out-cli/make/deb/**/*.deb
             out-cli/make/rpm/**/*.rpm
             out-cli/make/zip/**/*.zip
+          if-no-files-found: warn
           retention-days: 5
 
   release:
