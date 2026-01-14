@@ -148,10 +148,9 @@ jobs:
             
             | Platform | File | Size |
             |----------|------|------|
-            | macOS | `ESP32Tool-CLI-*-arm64.dmg` / `.zip` | ~114MB |
-            | macOS | `ESP32Tool-CLI-*-x64.dmg` / `.zip` | ~114MB |
-            | Linux | `ESP32Tool-CLI-*.zip` | ~114MB |
-            | Windows | `ESP32Tool-CLI-*.zip` | ~114MB |
+            | macOS | `ESP32Tool-CLI-darwin-*.zip` | ~106-110MB |
+            | Linux | `ESP32Tool-CLI-linux-*.zip` / `esp32tool-cli_*.deb` / `esp32tool-cli-*.rpm` | ~83-108MB |
+            | Windows | `ESP32Tool-CLI-win32-*.zip` | ~130MB |
             
             ### Installation
             
@@ -171,12 +170,17 @@ jobs:
             
             **macOS:**
             ```bash
-            # Install: Open DMG and drag to /Applications
-            # Run from terminal:
-            /Applications/ESP32Tool.app/Contents/MacOS/esp32tool list-ports
-            /Applications/ESP32Tool.app/Contents/MacOS/esp32tool --port /dev/ttyUSB0 chip-id
+            # Download and extract ZIP
+            curl -L -O "https://github.com/Jason2866/esp32tool/releases/download/${{ github.ref_name }}/ESP32Tool-CLI-darwin-arm64-${{ steps.version.outputs.VERSION }}.zip"
+            unzip ESP32Tool-CLI-darwin-arm64-${{ steps.version.outputs.VERSION }}.zip
             
-            # Optional: Create symlink for easier access
+            # Run from extracted folder
+            cd ESP32Tool-darwin-arm64/
+            ./ESP32Tool.app/Contents/MacOS/esp32tool list-ports
+            ./ESP32Tool.app/Contents/MacOS/esp32tool --port /dev/ttyUSB0 chip-id
+            
+            # Optional: Install to /Applications and create symlink
+            sudo cp -r ESP32Tool.app /Applications/
             sudo ln -s /Applications/ESP32Tool.app/Contents/MacOS/esp32tool /usr/local/bin/esp32tool
             # Then simply:
             esp32tool list-ports
@@ -184,13 +188,21 @@ jobs:
             
             **Linux:**
             ```bash
-            # Extract ZIP and run
-            unzip ESP32Tool-CLI-*.zip
-            cd ESP32Tool-linux-*/
+            # Option 1: Install DEB package (Debian/Ubuntu)
+            sudo dpkg -i esp32tool-cli_${{ steps.version.outputs.VERSION }}_amd64.deb
+            esp32tool list-ports
+            
+            # Option 2: Install RPM package (Fedora/RHEL/CentOS)
+            sudo rpm -i esp32tool-cli-${{ steps.version.outputs.VERSION }}-1.x86_64.rpm
+            esp32tool list-ports
+            
+            # Option 3: Extract ZIP and run
+            unzip ESP32Tool-CLI-linux-x64-${{ steps.version.outputs.VERSION }}.zip
+            cd ESP32Tool-linux-x64/
             ./esp32tool list-ports
             ./esp32tool --port /dev/ttyUSB0 chip-id
             
-            # Optional: Install system-wide
+            # Optional: Install system-wide from ZIP
             sudo ln -s $(pwd)/esp32tool /usr/local/bin/esp32tool
             ```
             
