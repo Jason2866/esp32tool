@@ -56,7 +56,7 @@ jobs:
         run: npm ci
 
       - name: Build TypeScript and Rollup
-        run: npm run prepublishOnly
+        run: npm run build
 
       - name: Build Electron GUI app
         run: npm run make -- --arch=${{ matrix.arch }}
