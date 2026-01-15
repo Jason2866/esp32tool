@@ -165,16 +165,14 @@ async function connectToDevice(
   // List available ports if none specified
   if (!portPath) {
     cliLogger.log("No port specified. Available USB devices:");
-    
+
     const usbPorts = await listUSBPorts();
     if (usbPorts.length === 0) {
       throw new Error("No USB devices found");
     }
 
     usbPorts.forEach((port, idx) => {
-      console.log(
-        `  [${idx}] ${port.path}`,
-      );
+      console.log(`  [${idx}] ${port.path}`);
     });
 
     throw new Error("Please specify a device with --port <USB:vid:pid>");
@@ -208,7 +206,7 @@ async function connectViaUSB(
 
   try {
     const usb = await import("usb");
-    
+
     // Find USB device
     const devices = usb.getDeviceList();
     let device;
@@ -219,9 +217,11 @@ async function connectViaUSB(
           d.deviceDescriptor.idVendor === targetVid &&
           d.deviceDescriptor.idProduct === targetPid,
       );
-      
+
       if (!device) {
-        throw new Error(`USB device not found: VID=0x${targetVid.toString(16)}, PID=0x${targetPid.toString(16)}`);
+        throw new Error(
+          `USB device not found: VID=0x${targetVid.toString(16)}, PID=0x${targetPid.toString(16)}`,
+        );
       }
     } else {
       // Find first USB-Serial device
@@ -235,12 +235,16 @@ async function connectViaUSB(
           vid === 0x067b
         ); // PL2303
       });
-      
+
       if (!device) {
-        throw new Error("No USB-Serial device found. Run 'list-ports' to see available devices.");
+        throw new Error(
+          "No USB-Serial device found. Run 'list-ports' to see available devices.",
+        );
       }
-      
-      cliLogger.log(`Auto-detected USB device: VID=0x${device.deviceDescriptor.idVendor.toString(16)}, PID=0x${device.deviceDescriptor.idProduct.toString(16)}`);
+
+      cliLogger.log(
+        `Auto-detected USB device: VID=0x${device.deviceDescriptor.idVendor.toString(16)}, PID=0x${device.deviceDescriptor.idProduct.toString(16)}`,
+      );
     }
 
     // Create USB adapter
@@ -268,19 +272,22 @@ async function connectViaUSB(
       }
     }
 
-    if (err.code === "ERR_MODULE_NOT_FOUND" || err.code === "MODULE_NOT_FOUND") {
+    if (
+      err.code === "ERR_MODULE_NOT_FOUND" ||
+      err.code === "MODULE_NOT_FOUND"
+    ) {
       throw new Error("usb package not installed. Run: npm install usb");
     }
-    
+
     // Check for permission errors
     if (err.message && err.message.includes("LIBUSB_ERROR_ACCESS")) {
       throw new Error(
         "USB access denied. On macOS/Linux, you may need to run with sudo:\n" +
-        "  sudo node dist/cli-fixed.js -p USB:10c4:ea60 chip-id\n\n" +
-        "Or use the Electron GUI version which doesn't require special permissions."
+          "  sudo node dist/cli-fixed.js -p USB:10c4:ea60 chip-id\n\n" +
+          "Or use the Electron GUI version which doesn't require special permissions.",
       );
     }
-    
+
     throw err;
   }
 }
@@ -322,7 +329,7 @@ async function cmdReadFlash(
 
   // Use stub for reading
   const stub = await esploader.runStub();
-  
+
   // Change to higher baudrate for faster transfers (if not already at high speed)
   const currentBaud = 115200; // Default ROM baudrate
   const targetBaud = 2000000; // Fast baudrate for reading
@@ -334,7 +341,7 @@ async function cmdReadFlash(
       cliLogger.log(`Warning: Could not increase baudrate: ${err.message}`);
     }
   }
-  
+
   let lastProgress = 0;
   const data = await stub.readFlash(
     offset,
@@ -348,7 +355,7 @@ async function cmdReadFlash(
           `\rProgress: ${percent}% (${progress}/${totalSize} bytes)`,
         );
       }
-    }
+    },
   );
 
   console.log(""); // New line after progress
@@ -456,7 +463,7 @@ async function cmdVerifyFlash(
 
   // Use stub for reading
   const stub = await esploader.runStub();
-  
+
   let lastProgress = 0;
   const flashData = await stub.readFlash(
     offset,
@@ -470,11 +477,11 @@ async function cmdVerifyFlash(
           `\rReading: ${percent}% (${progress}/${totalSize} bytes)`,
         );
       }
-    }
+    },
   );
 
   console.log(""); // New line after progress
-  
+
   cliLogger.log("Comparing data...");
   if (Buffer.compare(Buffer.from(flashData), fileData) === 0) {
     cliLogger.log("Verification successful!");
@@ -499,7 +506,7 @@ async function main() {
     // Special command: list-ports (doesn't need device connection)
     if (cliArgs.command === "list-ports") {
       const usbPorts = await listUSBPorts();
-      
+
       if (usbPorts.length === 0) {
         cliLogger.log("No USB devices found");
       } else {

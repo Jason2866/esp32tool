@@ -63,7 +63,7 @@ export function createNodeUSBAdapter(
 
   const adapter: NodeUSBPort = {
     isWebUSB: true, // Mark this as WebUSB-like behavior for reset strategy selection
-    
+
     get readable() {
       return readableStream;
     },
@@ -121,7 +121,9 @@ export function createNodeUSBAdapter(
             interfaceNumber = iface[0].bInterfaceNumber;
             endpointInNumber = inEpNum;
             endpointOutNumber = outEpNum;
-            logger.debug(`Found interface ${interfaceNumber} with IN=0x${inEpNum?.toString(16)}, OUT=0x${outEpNum?.toString(16)}`);
+            logger.debug(
+              `Found interface ${interfaceNumber} with IN=0x${inEpNum?.toString(16)}, OUT=0x${outEpNum?.toString(16)}`,
+            );
             break;
           }
         }
@@ -134,7 +136,7 @@ export function createNodeUSBAdapter(
 
       // Claim interface
       const usbInterface = device.interface(interfaceNumber);
-      
+
       // Detach kernel driver if active (Linux/macOS)
       try {
         if (usbInterface.isKernelDriverActive()) {
@@ -143,28 +145,34 @@ export function createNodeUSBAdapter(
       } catch (err) {
         // Ignore - may not be supported on all platforms
       }
-      
+
       usbInterface.claim();
 
       controlInterface = interfaceNumber;
 
       // Get the actual endpoints from the claimed interface
       const endpoints = usbInterface.endpoints;
-      logger.debug(`Found ${endpoints.length} endpoints on interface ${interfaceNumber}`);
-      
+      logger.debug(
+        `Found ${endpoints.length} endpoints on interface ${interfaceNumber}`,
+      );
+
       // Find endpoints by address
       endpointIn = endpoints.find(
-        (ep: any) => ep.address === endpointInNumber
+        (ep: any) => ep.address === endpointInNumber,
       ) as InEndpoint;
       endpointOut = endpoints.find(
-        (ep: any) => ep.address === endpointOutNumber
+        (ep: any) => ep.address === endpointOutNumber,
       ) as OutEndpoint;
 
       if (!endpointIn || !endpointOut) {
-        throw new Error(`Could not find endpoints: IN=0x${endpointInNumber?.toString(16)}, OUT=0x${endpointOutNumber?.toString(16)}`);
+        throw new Error(
+          `Could not find endpoints: IN=0x${endpointInNumber?.toString(16)}, OUT=0x${endpointOutNumber?.toString(16)}`,
+        );
       }
-      
-      logger.debug(`Endpoints ready: IN=0x${endpointIn.address.toString(16)}, OUT=0x${endpointOut.address.toString(16)}`);
+
+      logger.debug(
+        `Endpoints ready: IN=0x${endpointIn.address.toString(16)}, OUT=0x${endpointOut.address.toString(16)}`,
+      );
 
       // Initialize chip-specific settings
       try {
@@ -188,10 +196,10 @@ export function createNodeUSBAdapter(
               (err) => {
                 if (err) logger.debug(`Clear halt IN failed: ${err.message}`);
                 resolve();
-              }
+              },
             );
           });
-          
+
           await new Promise<void>((resolve, reject) => {
             device.controlTransfer(
               0x02, // Clear Feature, Endpoint
@@ -202,7 +210,7 @@ export function createNodeUSBAdapter(
               (err) => {
                 if (err) logger.debug(`Clear halt OUT failed: ${err.message}`);
                 resolve();
-              }
+              },
             );
           });
         } catch (err) {
@@ -211,14 +219,13 @@ export function createNodeUSBAdapter(
       }
 
       // Wait for chip to be ready
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Create streams
       createStreams();
     },
 
     async close() {
-
       // Stop polling and remove event listeners BEFORE cancelling streams
       if (endpointIn) {
         try {
@@ -248,7 +255,7 @@ export function createNodeUSBAdapter(
       }
 
       // Small delay to let any pending callbacks complete
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       if (interfaceNumber !== null) {
         try {
@@ -264,7 +271,6 @@ export function createNodeUSBAdapter(
       } catch (err) {
         // Ignore
       }
-
     },
 
     async setSignals(signals: {
@@ -285,7 +291,7 @@ export function createNodeUSBAdapter(
       currentDTR = dtr;
       currentRTS = rts;
 
-//      logger.log(`Setting signals: DTR=${dtr}, RTS=${rts} (CP2102: GPIO0=${dtr ? 'LOW' : 'HIGH'}, EN=${rts ? 'LOW' : 'HIGH'})`);
+      //      logger.log(`Setting signals: DTR=${dtr}, RTS=${rts} (CP2102: GPIO0=${dtr ? 'LOW' : 'HIGH'}, EN=${rts ? 'LOW' : 'HIGH'})`);
 
       // CP2102 (Silicon Labs VID: 0x10c4)
       if (vendorId === 0x10c4) {
@@ -439,7 +445,7 @@ export function createNodeUSBAdapter(
     if (!endpointIn || !endpointOut) {
       throw new Error("Endpoints not configured");
     }
-    
+
     // Start polling immediately (not in ReadableStream.start)
     try {
       endpointIn.startPoll(2, 64);
@@ -450,7 +456,6 @@ export function createNodeUSBAdapter(
     // ReadableStream for incoming data
     readableStream = new ReadableStream({
       start(controller) {
-        
         endpointIn!.on("data", (data: Buffer) => {
           try {
             if (data.length > 0) {
@@ -535,7 +540,7 @@ async function initializeChip(
       requestType: "vendor",
       recipient: "device",
       request: 0x00, // IFC_ENABLE
-      value: 0x01,   // UART_ENABLE
+      value: 0x01, // UART_ENABLE
       index: 0x00,
     });
 
@@ -574,7 +579,7 @@ async function initializeChip(
       },
       baudrateBuffer,
     );
-    
+
     logger.debug("CP2102: Initialization complete");
   }
   // CH340 (WCH)
@@ -746,12 +751,12 @@ async function setSignalsCP2102(
   // Bit 0: DTR value, Bit 1: RTS value
   // Bit 8: DTR mask (MUST be set to change DTR)
   // Bit 9: RTS mask (MUST be set to change RTS)
-  
+
   let value = 0;
-  value |= (dtr ? 1 : 0);  // DTR value
-  value |= (rts ? 2 : 0);  // RTS value
-  value |= 0x100;          // DTR mask (ALWAYS set)
-  value |= 0x200;          // RTS mask (ALWAYS set)
+  value |= dtr ? 1 : 0; // DTR value
+  value |= rts ? 2 : 0; // RTS value
+  value |= 0x100; // DTR mask (ALWAYS set)
+  value |= 0x200; // RTS mask (ALWAYS set)
 
   await controlTransferOut(device, {
     requestType: "vendor",
@@ -909,7 +914,10 @@ export async function listUSBPorts(): Promise<
       };
     });
   } catch (err: any) {
-    if (err.code === "ERR_MODULE_NOT_FOUND" || err.code === "MODULE_NOT_FOUND") {
+    if (
+      err.code === "ERR_MODULE_NOT_FOUND" ||
+      err.code === "MODULE_NOT_FOUND"
+    ) {
       throw new Error("usb package not installed. Run: npm install usb");
     }
     throw err;

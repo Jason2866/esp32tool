@@ -1275,7 +1275,7 @@ export class ESPLoader extends EventTarget {
       const portInfo = this.port.getInfo();
       const isCP2102 = portInfo.usbVendorId === 0x10c4;
       const isCH34x = portInfo.usbVendorId === 0x1a86;
-      
+
       // Strategy: USB-JTAG/Serial reset
       if (isUSBJTAGSerial || isEspressifUSB) {
         resetStrategies.push({
@@ -1294,21 +1294,21 @@ export class ESPLoader extends EventTarget {
             return await self.hardResetUnixTight();
           },
         });
-        
+
         resetStrategies.push({
           name: "Inverted Both (CP2102)",
           fn: async function () {
             return await self.hardResetInverted();
           },
         });
-        
+
         resetStrategies.push({
           name: "Inverted RTS (CP2102)",
           fn: async function () {
             return await self.hardResetInvertedRTS();
           },
         });
-        
+
         resetStrategies.push({
           name: "Inverted DTR (CP2102)",
           fn: async function () {
@@ -1316,7 +1316,7 @@ export class ESPLoader extends EventTarget {
           },
         });
       }
-      
+
       // For CH34x, try UnixTight first
       if (isCH34x) {
         resetStrategies.push({
@@ -1334,7 +1334,7 @@ export class ESPLoader extends EventTarget {
           return await self.hardResetClassic();
         },
       });
-      
+
       // Add UnixTight as fallback for other chips
       if (!isCP2102 && !isCH34x) {
         resetStrategies.push({
@@ -2065,7 +2065,12 @@ export class ESPLoader extends EventTarget {
       try {
         const [, data] = await this.getResponse(ESP_SYNC, SYNC_TIMEOUT);
         if (this.debug) {
-          this.logger.debug(`Sync response ${i + 1}: ${data.slice(0, 10).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
+          this.logger.debug(
+            `Sync response ${i + 1}: ${data
+              .slice(0, 10)
+              .map((b) => "0x" + b.toString(16).padStart(2, "0"))
+              .join(" ")}`,
+          );
         }
         if (data.length > 1 && data[0] == 0 && data[1] == 0) {
           return true;
@@ -2799,17 +2804,21 @@ export class ESPLoader extends EventTarget {
         resolve(undefined);
         return;
       }
-      
+
       // Set a timeout to prevent hanging (important for node-usb)
       const timeout = setTimeout(() => {
         this.logger.debug("Disconnect timeout - forcing resolution");
         resolve(undefined);
       }, 1000);
-      
-      this.addEventListener("disconnect", () => {
-        clearTimeout(timeout);
-        resolve(undefined);
-      }, { once: true });
+
+      this.addEventListener(
+        "disconnect",
+        () => {
+          clearTimeout(timeout);
+          resolve(undefined);
+        },
+        { once: true },
+      );
 
       // Only cancel if reader is still active
       try {
