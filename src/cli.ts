@@ -322,8 +322,36 @@ async function cmdReadFlash(
 
   // Use stub for reading
   const stub = await esploader.runStub();
-  const data = await stub.readFlash(offset, size);
+  
+  // Change to higher baudrate for faster transfers (if not already at high speed)
+  const currentBaud = 115200; // Default ROM baudrate
+  const targetBaud = 2000000; // Fast baudrate for reading
+  if (currentBaud < targetBaud) {
+    try {
+      await stub.setBaudrate(targetBaud);
+      cliLogger.log(`Baudrate increased to ${targetBaud} for faster reading`);
+    } catch (err: any) {
+      cliLogger.log(`Warning: Could not increase baudrate: ${err.message}`);
+    }
+  }
+  
+  let lastProgress = 0;
+  const data = await stub.readFlash(
+    offset,
+    size,
+    (packet: Uint8Array, progress: number, totalSize: number) => {
+      const percent = Math.round((progress / totalSize) * 100);
+      // Only update display every 1% to avoid too many updates
+      if (percent > lastProgress) {
+        lastProgress = percent;
+        process.stdout.write(
+          `\rProgress: ${percent}% (${progress}/${totalSize} bytes)`,
+        );
+      }
+    }
+  );
 
+  console.log(""); // New line after progress
   fs.writeFileSync(filename, Buffer.from(data));
 
   cliLogger.log(`Saved to ${filename}`);
@@ -345,6 +373,18 @@ async function cmdWriteFlash(
 
   // Use stub for writing
   const stub = await esploader.runStub();
+
+  // Change to higher baudrate for faster transfers
+  const currentBaud = 115200; // Default ROM baudrate
+  const targetBaud = 2000000; // Fast baudrate for writing
+  if (currentBaud < targetBaud) {
+    try {
+      await stub.setBaudrate(targetBaud);
+      cliLogger.log(`Baudrate increased to ${targetBaud} for faster writing`);
+    } catch (err: any) {
+      cliLogger.log(`Warning: Could not increase baudrate: ${err.message}`);
+    }
+  }
 
   // Write flash using the stub's flash methods
   // Create a proper ArrayBuffer from the Buffer to avoid byteOffset issues
@@ -416,8 +456,26 @@ async function cmdVerifyFlash(
 
   // Use stub for reading
   const stub = await esploader.runStub();
-  const flashData = await stub.readFlash(offset, size);
+  
+  let lastProgress = 0;
+  const flashData = await stub.readFlash(
+    offset,
+    size,
+    (packet: Uint8Array, progress: number, totalSize: number) => {
+      const percent = Math.round((progress / totalSize) * 100);
+      // Only update display every 1% to avoid too many updates
+      if (percent > lastProgress) {
+        lastProgress = percent;
+        process.stdout.write(
+          `\rReading: ${percent}% (${progress}/${totalSize} bytes)`,
+        );
+      }
+    }
+  );
 
+  console.log(""); // New line after progress
+  
+  cliLogger.log("Comparing data...");
   if (Buffer.compare(Buffer.from(flashData), fileData) === 0) {
     cliLogger.log("Verification successful!");
   } else {

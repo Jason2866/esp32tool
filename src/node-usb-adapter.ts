@@ -22,6 +22,8 @@ export interface NodeUSBPort {
     break?: boolean;
   }): Promise<void>;
 
+  setBaudRate(baudRate: number): Promise<void>; // Add baudrate change support
+
   getSignals(): Promise<{
     dataCarrierDetect: boolean;
     clearToSend: boolean;
@@ -305,6 +307,114 @@ export function createNodeUSBAdapter(
       // Match WebUSB timing - 50ms delay is critical for bootloader entry
       // This ensures signals are stable before next operation
       await new Promise((resolve) => setTimeout(resolve, 50));
+    },
+
+    async setBaudRate(baudRate: number) {
+      logger.log(`[USB] Changing baudrate to ${baudRate}...`);
+
+      // CP2102 (Silicon Labs VID: 0x10c4)
+      if (vendorId === 0x10c4) {
+        logger.debug(`[USB] CP2102: Setting baudrate via IFC_SET_BAUDRATE`);
+        const baudrateBuffer = Buffer.alloc(4);
+        baudrateBuffer.writeUInt32LE(baudRate, 0);
+        await controlTransferOut(
+          device,
+          {
+            requestType: "vendor",
+            recipient: "interface",
+            request: 0x1e, // IFC_SET_BAUDRATE
+            value: 0,
+            index: 0,
+          },
+          baudrateBuffer,
+        );
+      }
+      // CH340 (WCH VID: 0x1a86, but not CH343 PID: 0x55d3)
+      else if (vendorId === 0x1a86 && productId !== 0x55d3) {
+        const CH341_BAUDBASE_FACTOR = 1532620800;
+        const CH341_BAUDBASE_DIVMAX = 3;
+
+        let factor = Math.floor(CH341_BAUDBASE_FACTOR / baudRate);
+        let divisor = CH341_BAUDBASE_DIVMAX;
+
+        while (factor > 0xfff0 && divisor > 0) {
+          factor >>= 3;
+          divisor--;
+        }
+
+        factor = 0x10000 - factor;
+        const a = (factor & 0xff00) | divisor;
+        const b = factor & 0xff;
+
+        await controlTransferOut(device, {
+          requestType: "vendor",
+          recipient: "device",
+          request: 0x9a,
+          value: 0x1312,
+          index: a,
+        });
+
+        await controlTransferOut(device, {
+          requestType: "vendor",
+          recipient: "device",
+          request: 0x9a,
+          value: 0x0f2c,
+          index: b,
+        });
+      }
+      // FTDI (VID: 0x0403)
+      else if (vendorId === 0x0403) {
+        const baseClock = 3000000;
+        const divisor = baseClock / baudRate;
+        const integerPart = Math.floor(divisor);
+        const fractionalPart = divisor - integerPart;
+
+        let subInteger;
+        if (fractionalPart < 0.0625) subInteger = 0;
+        else if (fractionalPart < 0.1875) subInteger = 1;
+        else if (fractionalPart < 0.3125) subInteger = 2;
+        else if (fractionalPart < 0.4375) subInteger = 3;
+        else if (fractionalPart < 0.5625) subInteger = 4;
+        else if (fractionalPart < 0.6875) subInteger = 5;
+        else if (fractionalPart < 0.8125) subInteger = 6;
+        else subInteger = 7;
+
+        const value =
+          (integerPart & 0xff) |
+          ((subInteger & 0x07) << 14) |
+          (((integerPart >> 8) & 0x3f) << 8);
+        const index = (integerPart >> 14) & 0x03;
+
+        await controlTransferOut(device, {
+          requestType: "vendor",
+          recipient: "device",
+          request: 0x03,
+          value: value,
+          index: index,
+        });
+      }
+      // CDC/ACM (CH343, Native USB, etc.)
+      else {
+        const lineCoding = Buffer.alloc(7);
+        lineCoding.writeUInt32LE(baudRate, 0);
+        lineCoding[4] = 0x00; // 1 stop bit
+        lineCoding[5] = 0x00; // No parity
+        lineCoding[6] = 0x08; // 8 data bits
+
+        await controlTransferOut(
+          device,
+          {
+            requestType: "class",
+            recipient: "interface",
+            request: 0x20,
+            value: 0,
+            index: controlInterface || 0,
+          },
+          lineCoding,
+        );
+      }
+
+      logger.log(`[USB] Baudrate changed to ${baudRate}`);
     },
 
     async getSignals() {
