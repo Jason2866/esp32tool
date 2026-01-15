@@ -147,26 +147,19 @@ export function createNodeUSBAdapter(
       const endpoints = usbInterface.endpoints;
       logger.debug(`Found ${endpoints.length} endpoints on interface ${interfaceNumber}`);
       
-      for (const ep of endpoints) {
-        const epAny = ep as any;
-        logger.debug(`  Endpoint: address=0x${epAny.address?.toString(16)}, direction=${epAny.direction}, transferType=${epAny.transferType}`);
-      }
-      
+      // Find endpoints by address
       endpointIn = endpoints.find(
-        (ep: any) => ep.direction === "in" && ep.transferType === "bulk"
+        (ep: any) => ep.address === endpointInNumber
       ) as InEndpoint;
       endpointOut = endpoints.find(
-        (ep: any) => ep.direction === "out" && ep.transferType === "bulk"
+        (ep: any) => ep.address === endpointOutNumber
       ) as OutEndpoint;
 
       if (!endpointIn || !endpointOut) {
-        // Try alternative: use the endpoints we found during interface search
-        logger.log("Using endpoints from interface descriptor...");
-        // endpointIn and endpointOut were already set during interface search
-        if (!endpointIn || !endpointOut) {
-          throw new Error("Could not find bulk endpoints");
-        }
+        throw new Error(`Could not find endpoints: IN=0x${endpointInNumber?.toString(16)}, OUT=0x${endpointOutNumber?.toString(16)}`);
       }
+      
+      logger.debug(`Endpoints ready: IN=0x${endpointIn.address.toString(16)}, OUT=0x${endpointOut.address.toString(16)}`);
 
       // Initialize chip-specific settings
       await initializeChip(device, vendorId, productId, baudRate, logger);
