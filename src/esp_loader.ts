@@ -1556,7 +1556,9 @@ export class ESPLoader extends EventTarget {
           // Periodic timeout check to prevent hang on slow data
           if (Date.now() - startTime > timeout) {
             const waitingFor = partialPacket === null ? "header" : "content";
-            throw new SlipReadError("Timed out waiting for packet " + waitingFor);
+            throw new SlipReadError(
+              "Timed out waiting for packet " + waitingFor,
+            );
           }
 
           const b = this._readByte()!;
