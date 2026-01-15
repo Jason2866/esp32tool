@@ -548,9 +548,16 @@ async function setSignalsCP2102(
   dtr: boolean,
   rts: boolean,
 ): Promise<void> {
+  // CP2102 uses vendor-specific request 0x07 (SET_MHS)
+  // Bit 0: DTR value, Bit 1: RTS value
+  // Bit 8: DTR mask (MUST be set to change DTR)
+  // Bit 9: RTS mask (MUST be set to change RTS)
+  
   let value = 0;
-  value |= (dtr ? 1 : 0) | 0x100;
-  value |= (rts ? 2 : 0) | 0x200;
+  value |= (dtr ? 1 : 0);  // DTR value
+  value |= (rts ? 2 : 0);  // RTS value
+  value |= 0x100;          // DTR mask (ALWAYS set)
+  value |= 0x200;          // RTS mask (ALWAYS set)
 
   await controlTransferOut(device, {
     requestType: "vendor",
