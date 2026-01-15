@@ -162,7 +162,14 @@ export function createNodeUSBAdapter(
       logger.debug(`Endpoints ready: IN=0x${endpointIn.address.toString(16)}, OUT=0x${endpointOut.address.toString(16)}`);
 
       // Initialize chip-specific settings
-      await initializeChip(device, vendorId, productId, baudRate, logger);
+      logger.log("Initializing USB chip...");
+      try {
+        await initializeChip(device, vendorId, productId, baudRate, logger);
+        logger.log("USB chip initialized successfully");
+      } catch (err: any) {
+        logger.error(`Failed to initialize chip: ${err.message}`);
+        throw err;
+      }
 
       // For CP2102: Clear any pending data
       if (vendorId === 0x10c4) {
@@ -204,9 +211,9 @@ export function createNodeUSBAdapter(
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Create streams
-      logger.debug("Creating USB streams...");
+      logger.log("Creating USB streams...");
       createStreams();
-      logger.debug("USB streams created");
+      logger.log("USB streams created successfully");
 
       logger.log("USB device opened successfully");
     },
@@ -314,12 +321,12 @@ export function createNodeUSBAdapter(
       throw new Error("Endpoints not configured");
     }
 
-    logger.debug(`Starting USB read poll on endpoint 0x${endpointIn.address.toString(16)}`);
+    logger.log(`Starting USB read poll on endpoint 0x${endpointIn.address.toString(16)}`);
     
     // Start polling immediately (not in ReadableStream.start)
     try {
       endpointIn.startPoll(2, 64);
-      logger.debug("USB read poll started successfully");
+      logger.log("USB read poll started successfully");
     } catch (err: any) {
       logger.error(`Failed to start poll: ${err.message}`);
     }
@@ -327,10 +334,10 @@ export function createNodeUSBAdapter(
     // ReadableStream for incoming data
     readableStream = new ReadableStream({
       start(controller) {
+        logger.log("ReadableStream start() called");
+        
         endpointIn!.on("data", (data: Buffer) => {
-          if (data.length > 0) {
-            logger.debug(`USB RX: ${data.length} bytes`);
-          }
+          logger.log(`USB RX: ${data.length} bytes`);
           controller.enqueue(new Uint8Array(data));
         });
 
@@ -340,13 +347,13 @@ export function createNodeUSBAdapter(
         });
 
         endpointIn!.on("end", () => {
-          logger.debug("USB read ended");
+          logger.log("USB read ended");
           controller.close();
         });
       },
 
       cancel() {
-        logger.debug("Cancelling USB read");
+        logger.log("Cancelling USB read");
         if (endpointIn) {
           try {
             endpointIn.stopPoll();
@@ -360,7 +367,7 @@ export function createNodeUSBAdapter(
     // WritableStream for outgoing data
     writableStream = new WritableStream({
       async write(chunk: Uint8Array) {
-        logger.debug(`USB TX: ${chunk.length} bytes`);
+        logger.log(`USB TX: ${chunk.length} bytes`);
         return new Promise((resolve, reject) => {
           if (!endpointOut) {
             reject(new Error("Endpoint not configured"));
@@ -369,6 +376,7 @@ export function createNodeUSBAdapter(
 
           endpointOut.transfer(Buffer.from(chunk), (err) => {
             if (err) {
+              logger.error(`USB TX error: ${err.message}`);
               reject(err);
             } else {
               resolve();
