@@ -5293,10 +5293,10 @@ class ESPLoader extends EventTarget {
         await this.sleep(200);
     }
     /**
-      * @name hardResetUnixTight
-      * Unix Tight reset for Web Serial (Desktop) - sets DTR and RTS simultaneously
-      * Works well with CP2102 and CH340
-      */
+     * @name hardResetUnixTight
+     * Unix Tight reset for Web Serial (Desktop) - sets DTR and RTS simultaneously
+     * Works well with CP2102 and CH340
+     */
     async hardResetUnixTight() {
         await this.setDTRandRTS(false, false);
         await this.sleep(100);

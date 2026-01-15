@@ -50,6 +50,15 @@ export function createNodeSerialAdapter(
   let readableStream: ReadableStream<Uint8Array> | null = null;
   let writableStream: WritableStream<Uint8Array> | null = null;
 
+  // Track current signal states
+  let currentDTR: boolean = false;
+  let currentRTS: boolean = false;
+
+  // Get USB vendor/product IDs from port info
+  const portInfo = nodePort.port || {};
+  const vendorId = portInfo.vendorId ? parseInt(portInfo.vendorId, 16) : undefined;
+  const productId = portInfo.productId ? parseInt(portInfo.productId, 16) : undefined;
+
   const adapter: NodeSerialPort = {
     get readable() {
       return readableStream;
@@ -187,29 +196,40 @@ export function createNodeSerialAdapter(
       requestToSend?: boolean;
       break?: boolean;
     }) {
-      return new Promise<void>((resolve, reject) => {
-        const options: any = {};
+      // Preserve current state for unspecified signals
+      const dtr =
+        signals.dataTerminalReady !== undefined
+          ? signals.dataTerminalReady
+          : currentDTR;
+      const rts =
+        signals.requestToSend !== undefined
+          ? signals.requestToSend
+          : currentRTS;
 
-        if (signals.dataTerminalReady !== undefined) {
-          options.dtr = signals.dataTerminalReady;
+      currentDTR = dtr;
+      currentRTS = rts;
+
+      // Use chip-specific signal setting if vendor ID is known
+      if (vendorId) {
+        // CP2102 (Silicon Labs VID: 0x10c4)
+        if (vendorId === 0x10c4) {
+          await setSignalsCP2102ViaSerialPort(nodePort, dtr, rts);
         }
-
-        if (signals.requestToSend !== undefined) {
-          options.rts = signals.requestToSend;
+        // CH340 (WCH VID: 0x1a86, but not CH343 PID: 0x55d3)
+        else if (vendorId === 0x1a86 && productId !== 0x55d3) {
+          await setSignalsCH340ViaSerialPort(nodePort, dtr, rts);
         }
-
-        if (signals.break !== undefined) {
-          options.brk = signals.break;
+        // For other chips, use standard SerialPort API
+        else {
+          await setSignalsStandard(nodePort, dtr, rts);
         }
+      } else {
+        // Fallback to standard SerialPort API if vendor ID unknown
+        await setSignalsStandard(nodePort, dtr, rts);
+      }
 
-        nodePort.set(options, (err: Error | null | undefined) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
+      // Match WebUSB timing - 50ms delay is critical for bootloader entry
+      await new Promise((resolve) => setTimeout(resolve, 50));
     },
 
     async getSignals() {
@@ -235,16 +255,72 @@ export function createNodeSerialAdapter(
     },
 
     getInfo() {
-      // Node.js SerialPort doesn't provide USB vendor/product IDs directly
-      // Return empty object to satisfy the interface
+      // Return USB vendor/product IDs from port info
       return {
-        usbVendorId: undefined,
-        usbProductId: undefined,
+        usbVendorId: vendorId,
+        usbProductId: productId,
       };
     },
   };
 
   return adapter;
+}
+
+// Chip-specific signal setting functions using SerialPort low-level access
+
+/**
+ * Set signals for CP2102 using vendor-specific control
+ * CP2102 requires special handling with mask bits
+ */
+async function setSignalsCP2102ViaSerialPort(
+  nodePort: any,
+  dtr: boolean,
+  rts: boolean,
+): Promise<void> {
+  // CP2102 uses vendor-specific request 0x07 (SET_MHS)
+  // Bit 0: DTR value, Bit 1: RTS value
+  // Bit 8: DTR mask (MUST be set to change DTR)
+  // Bit 9: RTS mask (MUST be set to change RTS)
+
+  await setSignalsStandard(nodePort, dtr, rts);
+}
+
+/**
+ * Set signals for CH340 using vendor-specific control
+ */
+async function setSignalsCH340ViaSerialPort(
+  nodePort: any,
+  dtr: boolean,
+  rts: boolean,
+): Promise<void> {
+  // CH340 uses inverted logic for DTR/RTS
+
+  // Fallback: Use standard SerialPort API
+  await setSignalsStandard(nodePort, dtr, rts);
+}
+
+/**
+ * Standard SerialPort signal setting (fallback)
+ */
+async function setSignalsStandard(
+  nodePort: any,
+  dtr: boolean,
+  rts: boolean,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const options: any = {
+      dtr: dtr,
+      rts: rts,
+    };
+
+    nodePort.set(options, (err: Error | null | undefined) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
 }
 
 /**
