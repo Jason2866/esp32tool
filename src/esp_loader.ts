@@ -117,6 +117,7 @@ export class ESPLoader extends EventTarget {
   }
 
   // Chip properties with parent delegation
+  // chipFamily accessed before initialization as designed
   get chipFamily(): ChipFamily {
     return this._parent ? this._parent.chipFamily : this.__chipFamily!;
   }
