@@ -318,7 +318,7 @@ export function createNodeUSBAdapter(
     async setBaudRate(baudRate: number) {
       // CP2102 (Silicon Labs VID: 0x10c4)
       if (vendorId === 0x10c4) {
-        logger.debug(`[USB] CP2102: Setting baudrate to ${baudRate}...`);
+//        logger.debug(`[USB] CP2102: Setting baudrate to ${baudRate}...`);
         const baudrateBuffer = Buffer.alloc(4);
         baudrateBuffer.writeUInt32LE(baudRate, 0);
         await controlTransferOut(
@@ -417,8 +417,6 @@ export function createNodeUSBAdapter(
           lineCoding,
         );
       }
-
-      logger.log(`[USB] Baudrate changed to ${baudRate}`);
     },
 
     async getSignals() {
