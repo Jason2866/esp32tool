@@ -294,8 +294,8 @@ export function createNodeUSBAdapter(
         await setSignalsCDC(device, dtr, rts, controlInterface || 0);
       }
 
-      // Wait for signals to stabilize
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Minimal delay - CP2102 needs very little time
+      await new Promise((resolve) => setTimeout(resolve, 10));
     },
 
     async getSignals() {
@@ -337,8 +337,12 @@ export function createNodeUSBAdapter(
         logger.log("ReadableStream start() called");
         
         endpointIn!.on("data", (data: Buffer) => {
-          logger.log(`USB RX: ${data.length} bytes`);
-          controller.enqueue(new Uint8Array(data));
+          if (data.length > 0) {
+            logger.log(`USB RX [${data.length}]: ${data.toString('hex')}`);
+            controller.enqueue(new Uint8Array(data));
+          } else {
+            logger.log(`USB RX: 0 bytes (ignored)`);
+          }
         });
 
         endpointIn!.on("error", (err: Error) => {
@@ -367,7 +371,8 @@ export function createNodeUSBAdapter(
     // WritableStream for outgoing data
     writableStream = new WritableStream({
       async write(chunk: Uint8Array) {
-        logger.log(`USB TX: ${chunk.length} bytes`);
+        const hexData = Buffer.from(chunk).toString('hex');
+        logger.log(`USB TX [${chunk.length}]: ${hexData}`);
         return new Promise((resolve, reject) => {
           if (!endpointOut) {
             reject(new Error("Endpoint not configured"));
