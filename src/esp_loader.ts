@@ -173,7 +173,13 @@ export class ESPLoader extends EventTarget {
   }
 
   private get _inputBuffer(): number[] {
-    return this._parent ? this._parent._inputBuffer : this.__inputBuffer!;
+   if (this._parent) {
+     return this._parent._inputBuffer;
+   }
+   if (this.__inputBuffer === undefined) {
+     throw new Error("_inputBuffer accessed before initialization");
+   }
+   return this.__inputBuffer;
   }
 
   private get _inputBufferReadIndex(): number {
