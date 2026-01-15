@@ -4772,14 +4772,9 @@ class ESPLoader extends EventTarget {
         this.__writeChain = Promise.resolve();
     }
     // Chip properties with parent delegation
+    // chipFamily accessed before initialization as designed
     get chipFamily() {
-        if (this._parent) {
-            return this._parent.chipFamily;
-        }
-        if (this.__chipFamily === undefined) {
-            throw new Error("chipFamily accessed before initialization");
-        }
-        return this.__chipFamily;
+        return this._parent ? this._parent.chipFamily : this.__chipFamily;
     }
     set chipFamily(value) {
         if (this._parent) {
@@ -6013,13 +6008,19 @@ class ESPLoader extends EventTarget {
         else {
             // Byte-by-byte version: Stable for non CDC USB-Serial adapters (CH340, CP2102, etc.)
             let readBytes = [];
+            const operationStart = Date.now();
             while (true) {
                 // Check abandon flag (for reset strategy timeout)
                 if (this._abandonCurrentOperation) {
                     throw new SlipReadError("Operation abandoned (reset strategy timeout)");
                 }
-                const stamp = Date.now();
+                // Check overall operation timeout
+                if (Date.now() - operationStart > timeout) {
+                    const waitingFor = partialPacket === null ? "header" : "content";
+                    throw new SlipReadError("Timed out waiting for packet " + waitingFor);
+                }
                 readBytes = [];
+                const stamp = Date.now();
                 while (Date.now() - stamp < timeout) {
                     if (this._inputBufferAvailable > 0) {
                         readBytes.push(this._readByte());
