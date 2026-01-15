@@ -1,7 +1,7 @@
 /**
  * Node.js SerialPort Adapter
  *
- * Adapts Node.js SerialPort to work with ESPLoader (designed for Web Serial API)
+ * Adapts Node.js SerialPort to work with ESPLoader
  */
 
 import { Logger } from "./const";
@@ -10,6 +10,7 @@ import { Logger } from "./const";
 export interface NodeSerialPort {
   readable: ReadableStream<Uint8Array> | null;
   writable: WritableStream<Uint8Array> | null;
+  //  isWebUSB?: boolean; // Flag to indicate this behaves like WebUSB
 
   open(options: { baudRate: number }): Promise<void>;
   close(): Promise<void>;
@@ -261,14 +262,6 @@ export async function listPorts(): Promise<
       serialNumber: port.serialNumber,
     }));
   } catch (err: any) {
-    if (
-      err.code === "ERR_MODULE_NOT_FOUND" ||
-      err.code === "MODULE_NOT_FOUND"
-    ) {
-      throw new Error(
-        "serialport package not installed. Run: npm install serialport",
-      );
-    }
     throw err;
   }
 }
