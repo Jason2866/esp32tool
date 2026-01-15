@@ -663,7 +663,13 @@ export class ESPLoader extends EventTarget {
       }
     } catch {
       this.logger.error("Read loop got disconnected");
+    } finally {
+      // Always reset reconfiguring flag when read loop ends
+      // This prevents "Cannot write during port reconfiguration" errors
+      // when the read loop dies unexpectedly
+      this._isReconfiguring = false;
     }
+
     // Disconnected!
     this.connected = false;
 
@@ -959,6 +965,7 @@ export class ESPLoader extends EventTarget {
     const resetStrategies: Array<{ name: string; fn: () => Promise<void> }> =
       [];
 
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
     // WebUSB (Android) uses different reset methods than Web Serial (Desktop)
@@ -1880,6 +1887,7 @@ export class ESPLoader extends EventTarget {
           await sleep(SYNC_TIMEOUT);
           return true;
         }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         // Check abandon flag after error
         if (this._abandonCurrentOperation) {
@@ -2622,50 +2630,43 @@ export class ESPLoader extends EventTarget {
       return;
     }
 
+    // Wait for pending writes to complete
     try {
-      // Wait for pending writes to complete
-      try {
-        await this._writeChain;
-      } catch (err) {
-        this.logger.debug(`Pending write error during disconnect: ${err}`);
-      }
-
-      // Block new writes during disconnect
-      this._isReconfiguring = true;
-
-      // Release persistent writer before closing
-      if (this._writer) {
-        try {
-          await this._writer.close();
-          this._writer.releaseLock();
-        } catch (err) {
-          this.logger.debug(`Writer close/release error: ${err}`);
-        }
-        this._writer = undefined;
-      } else {
-        // No persistent writer exists, close stream directly
-        // This path is taken when no writes have been queued
-        try {
-          const writer = this.port.writable.getWriter();
-          await writer.close();
-          writer.releaseLock();
-        } catch (err) {
-          this.logger.debug(`Direct writer close error: ${err}`);
-        }
-      }
-
-      await new Promise((resolve) => {
-        if (!this._reader) {
-          resolve(undefined);
-          return;
-        }
-        this.addEventListener("disconnect", resolve, { once: true });
-        this._reader!.cancel();
-      });
-      this.connected = false;
-    } finally {
-      this._isReconfiguring = false;
+      await this._writeChain;
+    } catch (err) {
+      this.logger.debug(`Pending write error during disconnect: ${err}`);
     }
+
+    // Release persistent writer before closing
+    if (this._writer) {
+      try {
+        await this._writer.close();
+        this._writer.releaseLock();
+      } catch (err) {
+        this.logger.debug(`Writer close/release error: ${err}`);
+      }
+      this._writer = undefined;
+    } else {
+      // No persistent writer exists, close stream directly
+      // This path is taken when no writes have been queued
+      try {
+        const writer = this.port.writable.getWriter();
+        await writer.close();
+        writer.releaseLock();
+      } catch (err) {
+        this.logger.debug(`Direct writer close error: ${err}`);
+      }
+    }
+
+    await new Promise((resolve) => {
+      if (!this._reader) {
+        resolve(undefined);
+        return;
+      }
+      this.addEventListener("disconnect", resolve, { once: true });
+      this._reader!.cancel();
+    });
+    this.connected = false;
   }
 
   /**
@@ -2937,7 +2938,7 @@ export class ESPLoader extends EventTarget {
       CHUNK_SIZE = 0x4 * 0x1000; // 4KB = 16384 bytes
     } else {
       // Web Serial: Use larger chunks for better performance
-      CHUNK_SIZE = 0x80 * 0x1000;
+      CHUNK_SIZE = 0x40 * 0x1000;
     }
 
     let allData = new Uint8Array(0);
