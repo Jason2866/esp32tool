@@ -17,7 +17,7 @@
 
 import { ESPLoader } from "./esp_loader";
 import { Logger } from "./const";
-import { createNodeSerialAdapter, listPorts } from "./node-serial-adapter";
+import { createNodeUSBAdapter, listUSBPorts } from "./node-usb-adapter";
 import * as fs from "fs";
 
 // CLI Logger
@@ -164,56 +164,89 @@ async function connectToDevice(
 ): Promise<ESPLoader> {
   // List available ports if none specified
   if (!portPath) {
-    cliLogger.log("No port specified. Available ports:");
-    const ports = await listPorts();
-
-    if (ports.length === 0) {
-      throw new Error("No serial ports found");
+    cliLogger.log("No port specified. Available USB devices:");
+    
+    const usbPorts = await listUSBPorts();
+    if (usbPorts.length === 0) {
+      throw new Error("No USB devices found");
     }
 
-    ports.forEach((port, idx) => {
+    usbPorts.forEach((port, idx) => {
       console.log(
-        `  [${idx}] ${port.path}${port.manufacturer ? ` (${port.manufacturer})` : ""}`,
+        `  [${idx}] ${port.path}`,
       );
     });
 
-    throw new Error("Please specify a port with --port <path>");
+    throw new Error("Please specify a device with --port <USB:vid:pid>");
   }
 
   cliLogger.log(`Connecting to ${portPath} at ${baudRate} baud...`);
 
-  let nodePort: any = null;
+  // Parse port path - support USB:vid:pid format
+  let targetVid: number | undefined;
+  let targetPid: number | undefined;
+
+  if (portPath.toUpperCase().startsWith("USB:")) {
+    // Format: USB:vid:pid
+    const parts = portPath.split(":");
+    if (parts.length === 3) {
+      targetVid = parseInt(parts[1], 16);
+      targetPid = parseInt(parts[2], 16);
+    }
+  }
+
+  return await connectViaUSB(targetVid, targetPid, baudRate);
+}
+
+// Connect via USB (direct USB access)
+async function connectViaUSB(
+  targetVid: number | undefined,
+  targetPid: number | undefined,
+  baudRate: number,
+): Promise<ESPLoader> {
   let webPort: any = null;
 
   try {
-    // Import serialport package dynamically
-    const { SerialPort } = await import("serialport");
+    const usb = await import("usb");
+    
+    // Find USB device
+    const devices = usb.getDeviceList();
+    let device;
 
-    // Get port info (VID/PID) before opening
-    const ports = await listPorts();
-    const portInfo = ports.find(p => p.path === portPath);
-    const vendorId = portInfo?.vendorId;
-    const productId = portInfo?.productId;
-
-    // Create Node.js SerialPort instance
-    nodePort = new SerialPort({
-      path: portPath,
-      baudRate: baudRate,
-      autoOpen: false,
-    });
-
-    // Open the port
-    await new Promise<void>((resolve, reject) => {
-      nodePort.open((err: Error | null | undefined) => {
-        if (err) reject(err);
-        else resolve();
+    if (targetVid !== undefined && targetPid !== undefined) {
+      device = devices.find(
+        (d) =>
+          d.deviceDescriptor.idVendor === targetVid &&
+          d.deviceDescriptor.idProduct === targetPid,
+      );
+      
+      if (!device) {
+        throw new Error(`USB device not found: VID=0x${targetVid.toString(16)}, PID=0x${targetPid.toString(16)}`);
+      }
+    } else {
+      // Find first USB-Serial device
+      device = devices.find((d) => {
+        const vid = d.deviceDescriptor.idVendor;
+        return (
+          vid === 0x303a || // Espressif
+          vid === 0x0403 || // FTDI
+          vid === 0x1a86 || // CH340/CH343
+          vid === 0x10c4 || // CP210x
+          vid === 0x067b
+        ); // PL2303
       });
-    });
+      
+      if (!device) {
+        throw new Error("No USB-Serial device found. Run 'list-ports' to see available devices.");
+      }
+      
+      cliLogger.log(`Auto-detected USB device: VID=0x${device.deviceDescriptor.idVendor.toString(16)}, PID=0x${device.deviceDescriptor.idProduct.toString(16)}`);
+    }
 
-    // Create Web Serial API compatible adapter with port info
-    webPort = createNodeSerialAdapter(nodePort, cliLogger, { vendorId, productId });
+    // Create USB adapter
+    webPort = createNodeUSBAdapter(device, cliLogger);
 
-    // Initialize the adapter's streams
+    // Open the device
     await webPort.open({ baudRate });
 
     // Create ESPLoader instance
@@ -234,26 +267,25 @@ async function connectToDevice(
         // Ignore close errors
       }
     }
-    if (nodePort && nodePort.isOpen) {
-      try {
-        nodePort.close();
-      } catch (closeErr) {
-        // Ignore close errors
-      }
-    }
 
-    if (
-      err.code === "ERR_MODULE_NOT_FOUND" ||
-      err.code === "MODULE_NOT_FOUND"
-    ) {
+    if (err.code === "ERR_MODULE_NOT_FOUND" || err.code === "MODULE_NOT_FOUND") {
+      throw new Error("usb package not installed. Run: npm install usb");
+    }
+    
+    // Check for permission errors
+    if (err.message && err.message.includes("LIBUSB_ERROR_ACCESS")) {
       throw new Error(
-        "serialport package not installed. Run: npm install serialport",
+        "USB access denied. On macOS/Linux, you may need to run with sudo:\n" +
+        "  sudo node dist/cli-fixed.js -p USB:10c4:ea60 chip-id\n\n" +
+        "Or use the Electron GUI version which doesn't require special permissions."
       );
     }
+    
     throw err;
   }
 }
 
+// Connect via Serial Port (fallback for compatibility)
 // Command implementations
 async function cmdChipId(esploader: ESPLoader) {
   cliLogger.log(`Chip Family: ${esploader.chipFamily}`);
@@ -402,13 +434,13 @@ async function main() {
   try {
     // Special command: list-ports (doesn't need device connection)
     if (cliArgs.command === "list-ports") {
-      const ports = await listPorts();
-
-      if (ports.length === 0) {
-        cliLogger.log("No serial ports found");
+      const usbPorts = await listUSBPorts();
+      
+      if (usbPorts.length === 0) {
+        cliLogger.log("No USB devices found");
       } else {
-        cliLogger.log("Available serial ports:");
-        ports.forEach((port) => {
+        cliLogger.log("Available USB devices:");
+        usbPorts.forEach((port) => {
           console.log(
             `  ${port.path}${port.manufacturer ? ` (${port.manufacturer})` : ""}${port.serialNumber ? ` [${port.serialNumber}]` : ""}`,
           );

@@ -98,21 +98,24 @@ export function createNodeSerialAdapter(
       }
 
       // IMPORTANT: When a serial port opens, DTR and RTS are often set to true by default
-      // node-serialport sets them to true on open, so we track this
-      currentDTR = true;
-      currentRTS = true;
+      // We need to set them to false immediately to prevent unwanted resets
+      // Wait a bit after opening to ensure port is stable
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      // Now set signals to known state (both low) for reset sequence
+      // Set both signals to false (de-asserted) as initial state
       await new Promise<void>((resolve, reject) => {
         nodePort.set({ dtr: false, rts: false }, (err: Error | null | undefined) => {
           if (err) reject(err);
           else resolve();
         });
       });
-      // Update tracking after successful set
+      
+      // Track current state
       currentDTR = false;
       currentRTS = false;
-      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Wait for signals to stabilize
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       try {
         // Create readable stream
@@ -228,8 +231,10 @@ export function createNodeSerialAdapter(
       currentRTS = rts;
 
       // Build options object for Node.js SerialPort
-      // node-serialport uses the same signal polarity as Web Serial API
-      // true = assert signal (high), false = de-assert signal (low)
+      // Signal polarity varies by platform and USB-Serial chip:
+      // - On macOS, node-serialport appears to use SAME polarity as Web Serial API
+      // - On Linux/Windows, it may be inverted
+      // For now, use non-inverted (same as Web Serial API) and test
       const options: any = {
         dtr: dtr,
         rts: rts,
@@ -241,6 +246,9 @@ export function createNodeSerialAdapter(
 
       if (process.env.DEBUG) {
         logger.debug(`setSignals: DTR=${dtr} (set=${options.dtr}), RTS=${rts} (set=${options.rts})`);
+      } else {
+        // Always log signal changes for debugging reset issues
+        logger.log(`Setting signals: DTR=${dtr}, RTS=${rts}`);
       }
 
       // ALWAYS set both DTR and RTS to avoid signal flipping on CP2102
@@ -255,9 +263,10 @@ export function createNodeSerialAdapter(
         });
       });
 
-      // Small delay to ensure signals are physically set
-      // CP2102 needs time to process signal changes
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Longer delay to ensure signals are physically set
+      // CP2102 and other USB-Serial chips need time to process signal changes
+      // macOS may need even more time than other platforms
+      await new Promise(resolve => setTimeout(resolve, 100));
     },
 
     async getSignals() {
