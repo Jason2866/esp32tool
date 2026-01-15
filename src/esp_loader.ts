@@ -101,8 +101,7 @@ export class ESPLoader extends EventTarget {
   private __isReconfiguring: boolean = false;
   private __abandonCurrentOperation: boolean = false;
 
-  // Adaptive speed adjustment for flash read operations - DISABLED
-  // Using fixed conservative values that work reliably
+  // Adaptive speed adjustment for flash read operations
   private __adaptiveBlockMultiplier: number = 1;
   private __adaptiveMaxInFlightMultiplier: number = 1;
   private __consecutiveSuccessfulChunks: number = 0;
@@ -167,7 +166,13 @@ export class ESPLoader extends EventTarget {
   }
 
   private get _inputBuffer(): number[] {
-    return this._parent ? this._parent._inputBuffer : this.__inputBuffer!;
+    if (this._parent) {
+      return this._parent._inputBuffer;
+    }
+    if (this.__inputBuffer === undefined) {
+      throw new Error("_inputBuffer accessed before initialization");
+    }
+    return this.__inputBuffer;
   }
 
   private get _inputBufferReadIndex(): number {
