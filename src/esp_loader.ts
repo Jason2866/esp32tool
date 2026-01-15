@@ -3520,6 +3520,12 @@ class EspStubLoader extends ESPLoader {
     if (size > maxValue) {
       throw new Error(`Size ${size} exceeds maximum value ${maxValue}`);
     }
+    // Check for wrap-around
+    if (offset + size > maxValue) {
+      throw new Error(
+        `Region end (offset + size = ${offset + size}) exceeds maximum addressable range ${maxValue}`,
+      );
+    }
 
     const timeout = timeoutPerMb(ERASE_REGION_TIMEOUT_PER_MB, size);
     const buffer = pack("<II", offset, size);
