@@ -208,14 +208,6 @@ export class ESPLoader extends EventTarget {
     return this._inputBuffer[this._inputBufferReadIndex++];
   }
 
-  // Read one byte from buffer (ring-buffer style with index pointer)
-  private _readByte(): number | undefined {
-    if (this._inputBufferReadIndex >= this._inputBuffer.length) {
-      return undefined;
-    }
-    return this._inputBuffer[this._inputBufferReadIndex++];
-  }
-
   // Clear input buffer and reset read index
   private _clearInputBuffer(): void {
     this._inputBuffer.length = 0;

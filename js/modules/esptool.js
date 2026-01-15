@@ -4761,8 +4761,7 @@ class ESPLoader extends EventTarget {
         this.__commandLock = Promise.resolve([0, []]);
         this.__isReconfiguring = false;
         this.__abandonCurrentOperation = false;
-        // Adaptive speed adjustment for flash read operations - DISABLED
-        // Using fixed conservative values that work reliably
+        // Adaptive speed adjustment for flash read operations
         this.__adaptiveBlockMultiplier = 1;
         this.__adaptiveMaxInFlightMultiplier = 1;
         this.__consecutiveSuccessfulChunks = 0;
@@ -4824,7 +4823,13 @@ class ESPLoader extends EventTarget {
         }
     }
     get _inputBuffer() {
-        return this._parent ? this._parent._inputBuffer : this.__inputBuffer;
+        if (this._parent) {
+            return this._parent._inputBuffer;
+        }
+        if (this.__inputBuffer === undefined) {
+            throw new Error("_inputBuffer accessed before initialization");
+        }
+        return this.__inputBuffer;
     }
     get _inputBufferReadIndex() {
         return this._parent
