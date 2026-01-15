@@ -119,7 +119,13 @@ export class ESPLoader extends EventTarget {
 
   // Chip properties with parent delegation
   get chipFamily(): ChipFamily {
-    return this._parent ? this._parent.chipFamily : this.__chipFamily!;
+   if (this._parent) {
+     return this._parent.chipFamily;
+   }
+   if (this.__chipFamily === undefined) {
+     throw new Error("chipFamily accessed before initialization");
+   }
+   return this.__chipFamily;
   }
 
   set chipFamily(value: ChipFamily) {
