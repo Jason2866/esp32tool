@@ -6348,15 +6348,19 @@ class ESPLoader extends EventTarget {
                 // Other chips (CH340, CP2102, FTDI) MUST use setBaudRate()
                 if (!isCH343 &&
                     typeof this.port.setBaudRate === "function") {
-                    this.logger.log(`[WebUSB] Changing baudrate to ${baud} using setBaudRate()...`);
+                    //          this.logger.log(
+                    //            `[WebUSB] Changing baudrate to ${baud} using setBaudRate()...`,
+                    //          );
                     await this.port.setBaudRate(baud);
-                    this.logger.log(`[WebUSB] Baudrate changed to ${baud}`);
+                    //          this.logger.log(`[WebUSB] Baudrate changed to ${baud}`);
                     // Give the chip time to adjust to new baudrate
                     await sleep(100);
                     return;
                 }
                 else if (isCH343) {
-                    this.logger.log(`[WebUSB] CH343 detected - using close/reopen for baudrate change`);
+                    //          this.logger.log(
+                    //            `[WebUSB] CH343 detected - using close/reopen for baudrate change`,
+                    //          );
                 }
             }
             // Web Serial or CH343: Close and reopen port
@@ -6455,7 +6459,10 @@ class ESPLoader extends EventTarget {
             try {
                 const [, data] = await this.getResponse(ESP_SYNC, SYNC_TIMEOUT);
                 if (this.debug) {
-                    this.logger.debug(`Sync response ${i + 1}: ${data.slice(0, 10).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
+                    this.logger.debug(`Sync response ${i + 1}: ${data
+                        .slice(0, 10)
+                        .map((b) => "0x" + b.toString(16).padStart(2, "0"))
+                        .join(" ")}`);
                 }
                 if (data.length > 1 && data[0] == 0 && data[1] == 0) {
                     return true;
