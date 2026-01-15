@@ -80,7 +80,7 @@ class WebUSBSerial {
                 );
                 
                 if (device) {
-                    // Device already authorized, will reuse it
+                    log('[WebUSB] Reusing previously authorized device');
                 }
             } catch (err) {
                 // Can't use this._log in static method, use console as fallback
@@ -90,6 +90,9 @@ class WebUSBSerial {
 
         // If no device found or forceNew is true, request a new device
         if (!device) {
+            if (!navigator.usb) {
+                throw new Error('WebUSB not available');
+            }
             device = await navigator.usb.requestDevice({ filters });
         }
 

@@ -70,8 +70,13 @@ function setupSerialPortHandlers(ses) {
       // Try to find ESP-compatible port
       const espPort = portList.find(port => {
         const name = (port.displayName || port.portName || '').toLowerCase();
-        return name.includes('cp210') ||
-               name.includes('ch910') ||
+        return name.includes('cp2102') ||
+               name.includes('cp2103') ||
+               name.includes('cp2104') ||
+               name.includes('cp2105') ||
+               name.includes('cp2108') ||
+               name.includes('ch9102') ||
+               name.includes('ch9104') ||
                name.includes('ch340') ||
                name.includes('ch341') ||
                name.includes('ch343') ||

@@ -166,8 +166,11 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 REM Check Node.js version
-for /f "tokens=1 delims=v." %%a in ('node -v') do set NODE_MAJOR=%%a
-for /f "tokens=2 delims=v." %%a in ('node -v') do set NODE_MAJOR=%%a
+for /f "tokens=2 delims=v." %%a in ('node -v') do (
+    set NODE_MAJOR=%%a
+    goto :check_version
+)
+:check_version
 if %NODE_MAJOR% LSS ${NODE_VERSION} (
     echo Error: Node.js ${NODE_VERSION}+ required
     echo Please upgrade Node.js from https://nodejs.org/

@@ -81,51 +81,64 @@ export function createNodeSerialAdapter(
         await nodePort.update({ baudRate: options.baudRate });
       }
 
-      // Create readable stream
-      readableStream = new ReadableStream({
-        start(controller) {
-          nodePort.on("data", (data: Buffer) => {
-            controller.enqueue(new Uint8Array(data));
-          });
+      try {
+        // Create readable stream
+        readableStream = new ReadableStream({
+          start(controller) {
+            nodePort.on("data", (data: Buffer) => {
+              controller.enqueue(new Uint8Array(data));
+            });
 
-          nodePort.on("close", () => {
-            controller.close();
-          });
+            nodePort.on("close", () => {
+              controller.close();
+            });
 
-          nodePort.on("error", (err: Error) => {
-            controller.error(err);
-          });
-        },
+            nodePort.on("error", (err: Error) => {
+              controller.error(err);
+            });
+          },
 
-        cancel() {
-          // Clean up listeners
-          nodePort.removeAllListeners("data");
-          nodePort.removeAllListeners("close");
-          nodePort.removeAllListeners("error");
-        },
-      });
+          cancel() {
+            // Clean up listeners
+            nodePort.removeAllListeners("data");
+            nodePort.removeAllListeners("close");
+            nodePort.removeAllListeners("error");
+          },
+        });
 
-      // Create writable stream
-      writableStream = new WritableStream({
-        async write(chunk: Uint8Array) {
-          return new Promise((resolve, reject) => {
-            nodePort.write(
-              Buffer.from(chunk),
-              (err: Error | null | undefined) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve();
-                }
-              },
-            );
-          });
-        },
+        // Create writable stream
+        writableStream = new WritableStream({
+          async write(chunk: Uint8Array) {
+            return new Promise((resolve, reject) => {
+              nodePort.write(
+                Buffer.from(chunk),
+                (err: Error | null | undefined) => {
+                  if (err) {
+                    reject(err);
+                  } else {
+                    resolve();
+                  }
+                },
+              );
+            });
+          },
 
-        async close() {
-          await nodePort.drain();
-        },
-      });
+          async close() {
+            await nodePort.drain();
+          },
+        });
+      } catch (err) {
+        // Clean up readable stream if writable stream creation fails
+        if (readableStream) {
+          try {
+            await readableStream.cancel();
+          } catch (cancelErr) {
+            // Ignore cancel errors
+          }
+          readableStream = null;
+        }
+        throw err;
+      }
 
       logger.log("Port opened successfully");
     },

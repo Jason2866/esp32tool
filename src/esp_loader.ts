@@ -695,6 +695,7 @@ export class ESPLoader extends EventTarget {
   }
 
   state_DTR = false;
+  state_RTS = false;
 
   // ============================================================================
   // Web Serial (Desktop) - DTR/RTS Signal Handling & Reset Strategies
@@ -759,6 +760,7 @@ export class ESPLoader extends EventTarget {
   // ============================================================================
 
   async setRTSWebUSB(state: boolean) {
+    this.state_RTS = state;
     // Always specify both signals to avoid flipping the other line
     // The WebUSB setSignals() now preserves unspecified signals, but being explicit is safer
     await (this.port as WebUSBSerialPort).setSignals({
@@ -772,12 +774,13 @@ export class ESPLoader extends EventTarget {
     // Always specify both signals to avoid flipping the other line
     await (this.port as WebUSBSerialPort).setSignals({
       dataTerminalReady: state,
-      requestToSend: undefined, // Let setSignals preserve current RTS state
+      requestToSend: this.state_RTS, // Explicitly preserve current RTS state
     });
   }
 
   async setDTRandRTSWebUSB(dtr: boolean, rts: boolean) {
     this.state_DTR = dtr;
+    this.state_RTS = rts;
     await (this.port as WebUSBSerialPort).setSignals({
       dataTerminalReady: dtr,
       requestToSend: rts,
@@ -1280,7 +1283,7 @@ export class ESPLoader extends EventTarget {
 
     // All strategies failed - reset abandon flag before throwing
     this._abandonCurrentOperation = false;
-    
+
     throw new Error(
       `Couldn't sync to ESP. Try resetting manually. Last error: ${lastError?.message}`,
     );
@@ -2666,7 +2669,7 @@ export class ESPLoader extends EventTarget {
         return;
       }
       this.addEventListener("disconnect", resolve, { once: true });
-      
+
       // Only cancel if reader is still active
       try {
         this._reader.cancel();

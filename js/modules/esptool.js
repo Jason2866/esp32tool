@@ -4769,6 +4769,7 @@ class ESPLoader extends EventTarget {
         this.__lastAdaptiveAdjustment = 0;
         this.__isCDCDevice = false;
         this.state_DTR = false;
+        this.state_RTS = false;
         this.__writeChain = Promise.resolve();
     }
     // Chip properties with parent delegation
@@ -5215,6 +5216,12 @@ class ESPLoader extends EventTarget {
         catch {
             this.logger.error("Read loop got disconnected");
         }
+        finally {
+            // Always reset reconfiguring flag when read loop ends
+            // This prevents "Cannot write during port reconfiguration" errors
+            // when the read loop dies unexpectedly
+            this._isReconfiguring = false;
+        }
         // Disconnected!
         this.connected = false;
         // Check if this is ESP32-S2 Native USB that needs port reselection
@@ -5283,6 +5290,7 @@ class ESPLoader extends EventTarget {
     // WebUSB (Android) - DTR/RTS Signal Handling & Reset Strategies
     // ============================================================================
     async setRTSWebUSB(state) {
+        this.state_RTS = state;
         // Always specify both signals to avoid flipping the other line
         // The WebUSB setSignals() now preserves unspecified signals, but being explicit is safer
         await this.port.setSignals({
@@ -5295,11 +5303,12 @@ class ESPLoader extends EventTarget {
         // Always specify both signals to avoid flipping the other line
         await this.port.setSignals({
             dataTerminalReady: state,
-            requestToSend: undefined, // Let setSignals preserve current RTS state
+            requestToSend: this.state_RTS, // Explicitly preserve current RTS state
         });
     }
     async setDTRandRTSWebUSB(dtr, rts) {
         this.state_DTR = dtr;
+        this.state_RTS = rts;
         await this.port.setSignals({
             dataTerminalReady: dtr,
             requestToSend: rts,
@@ -5464,6 +5473,7 @@ class ESPLoader extends EventTarget {
         //    );
         // Define reset strategies to try in order
         const resetStrategies = [];
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
         // WebUSB (Android) uses different reset methods than Web Serial (Desktop)
         if (this.isWebUSB()) {
@@ -5745,7 +5755,8 @@ class ESPLoader extends EventTarget {
                 await this.flushSerialBuffers();
             }
         }
-        // All strategies failed
+        // All strategies failed - reset abandon flag before throwing
+        this._abandonCurrentOperation = false;
         throw new Error(`Couldn't sync to ESP. Try resetting manually. Last error: ${lastError === null || lastError === void 0 ? void 0 : lastError.message}`);
     }
     async hardReset(bootloader = false) {
@@ -6292,6 +6303,7 @@ class ESPLoader extends EventTarget {
                     await sleep(SYNC_TIMEOUT);
                     return true;
                 }
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             }
             catch (e) {
                 // Check abandon flag after error
@@ -6855,52 +6867,53 @@ class ESPLoader extends EventTarget {
             this.logger.debug("Port already closed, skipping disconnect");
             return;
         }
+        // Wait for pending writes to complete
         try {
-            // Wait for pending writes to complete
+            await this._writeChain;
+        }
+        catch (err) {
+            this.logger.debug(`Pending write error during disconnect: ${err}`);
+        }
+        // Release persistent writer before closing
+        if (this._writer) {
             try {
-                await this._writeChain;
+                await this._writer.close();
+                this._writer.releaseLock();
             }
             catch (err) {
-                this.logger.debug(`Pending write error during disconnect: ${err}`);
+                this.logger.debug(`Writer close/release error: ${err}`);
             }
-            // Block new writes during disconnect
-            this._isReconfiguring = true;
-            // Release persistent writer before closing
-            if (this._writer) {
-                try {
-                    await this._writer.close();
-                    this._writer.releaseLock();
-                }
-                catch (err) {
-                    this.logger.debug(`Writer close/release error: ${err}`);
-                }
-                this._writer = undefined;
+            this._writer = undefined;
+        }
+        else {
+            // No persistent writer exists, close stream directly
+            // This path is taken when no writes have been queued
+            try {
+                const writer = this.port.writable.getWriter();
+                await writer.close();
+                writer.releaseLock();
             }
-            else {
-                // No persistent writer exists, close stream directly
-                // This path is taken when no writes have been queued
-                try {
-                    const writer = this.port.writable.getWriter();
-                    await writer.close();
-                    writer.releaseLock();
-                }
-                catch (err) {
-                    this.logger.debug(`Direct writer close error: ${err}`);
-                }
+            catch (err) {
+                this.logger.debug(`Direct writer close error: ${err}`);
             }
-            await new Promise((resolve) => {
-                if (!this._reader) {
-                    resolve(undefined);
-                    return;
-                }
-                this.addEventListener("disconnect", resolve, { once: true });
+        }
+        await new Promise((resolve) => {
+            if (!this._reader) {
+                resolve(undefined);
+                return;
+            }
+            this.addEventListener("disconnect", resolve, { once: true });
+            // Only cancel if reader is still active
+            try {
                 this._reader.cancel();
-            });
-            this.connected = false;
-        }
-        finally {
-            this._isReconfiguring = false;
-        }
+            }
+            catch (err) {
+                this.logger.debug(`Reader cancel error: ${err}`);
+                // Reader already released, resolve immediately
+                resolve(undefined);
+            }
+        });
+        this.connected = false;
     }
     /**
      * @name reconnectAndResume
@@ -7123,7 +7136,7 @@ class ESPLoader extends EventTarget {
         }
         else {
             // Web Serial: Use larger chunks for better performance
-            CHUNK_SIZE = 0x80 * 0x1000;
+            CHUNK_SIZE = 0x40 * 0x1000;
         }
         let allData = new Uint8Array(0);
         let currentAddr = addr;
