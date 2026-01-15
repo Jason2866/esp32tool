@@ -1252,9 +1252,9 @@ export class ESPLoader extends EventTarget {
       // just reset (no bootloader mode)
       if (this.isWebUSB()) {
         // WebUSB: Use longer delays for better compatibility
-        await this.setRTS(true); // EN->LOW
+        await this.setRTSWebUSB(true); // EN->LOW
         await this.sleep(200);
-        await this.setRTS(false);
+        await this.setRTSWebUSB(false);
         await this.sleep(200);
         this.logger.log("Hard reset (WebUSB).");
       } else {
