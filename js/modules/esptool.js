@@ -7021,7 +7021,15 @@ class ESPLoader extends EventTarget {
                 resolve(undefined);
                 return;
             }
-            this.addEventListener("disconnect", resolve, { once: true });
+            // Set a timeout to prevent hanging (important for node-usb)
+            const timeout = setTimeout(() => {
+                this.logger.debug("Disconnect timeout - forcing resolution");
+                resolve(undefined);
+            }, 1000);
+            this.addEventListener("disconnect", () => {
+                clearTimeout(timeout);
+                resolve(undefined);
+            }, { once: true });
             // Only cancel if reader is still active
             try {
                 this._reader.cancel();
@@ -7029,10 +7037,19 @@ class ESPLoader extends EventTarget {
             catch (err) {
                 this.logger.debug(`Reader cancel error: ${err}`);
                 // Reader already released, resolve immediately
+                clearTimeout(timeout);
                 resolve(undefined);
             }
         });
         this.connected = false;
+        // Close the port (important for node-usb adapter)
+        try {
+            await this.port.close();
+            this.logger.debug("Port closed successfully");
+        }
+        catch (err) {
+            this.logger.debug(`Port close error: ${err}`);
+        }
     }
     /**
      * @name reconnectAndResume

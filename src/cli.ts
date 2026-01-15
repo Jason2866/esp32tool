@@ -432,6 +432,12 @@ async function main() {
   let esploader: ESPLoader | null = null;
 
   try {
+    // Validate command
+    if (!cliArgs.command) {
+      showHelp();
+      process.exit(1);
+    }
+
     // Special command: list-ports (doesn't need device connection)
     if (cliArgs.command === "list-ports") {
       const usbPorts = await listUSBPorts();
@@ -519,6 +525,12 @@ async function main() {
 
     // Disconnect
     await esploader.disconnect();
+
+    // Force exit after a short delay to ensure clean shutdown
+    // This is necessary for node-usb which may have pending callbacks
+    setTimeout(() => {
+      process.exit(0);
+    }, 100);
 
     // Clean exit - let Electron handle the exit
     return;

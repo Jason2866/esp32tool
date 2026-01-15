@@ -11,6 +11,7 @@ import type { Device, InEndpoint, OutEndpoint } from "usb";
 export interface NodeUSBPort {
   readable: ReadableStream<Uint8Array> | null;
   writable: WritableStream<Uint8Array> | null;
+  isWebUSB?: boolean; // Flag to indicate this behaves like WebUSB
 
   open(options: { baudRate: number }): Promise<void>;
   close(): Promise<void>;
@@ -59,6 +60,8 @@ export function createNodeUSBAdapter(
   const productId = device.deviceDescriptor.idProduct;
 
   const adapter: NodeUSBPort = {
+    isWebUSB: true, // Mark this as WebUSB-like behavior for reset strategy selection
+    
     get readable() {
       return readableStream;
     },
@@ -221,6 +224,16 @@ export function createNodeUSBAdapter(
     async close() {
       logger.log("Closing USB device...");
 
+      // Stop polling and remove event listeners BEFORE cancelling streams
+      if (endpointIn) {
+        try {
+          endpointIn.stopPoll();
+          endpointIn.removeAllListeners();
+        } catch (err) {
+          // Ignore
+        }
+      }
+
       if (readableStream) {
         try {
           await readableStream.cancel();
@@ -238,6 +251,9 @@ export function createNodeUSBAdapter(
         }
         writableStream = null;
       }
+
+      // Small delay to let any pending callbacks complete
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       if (interfaceNumber !== null) {
         try {
@@ -275,7 +291,7 @@ export function createNodeUSBAdapter(
       currentDTR = dtr;
       currentRTS = rts;
 
-      logger.log(`Setting signals: DTR=${dtr}, RTS=${rts}`);
+      logger.log(`Setting signals: DTR=${dtr}, RTS=${rts} (CP2102: GPIO0=${dtr ? 'LOW' : 'HIGH'}, EN=${rts ? 'LOW' : 'HIGH'})`);
 
       // CP2102 (Silicon Labs VID: 0x10c4)
       if (vendorId === 0x10c4) {
@@ -294,8 +310,9 @@ export function createNodeUSBAdapter(
         await setSignalsCDC(device, dtr, rts, controlInterface || 0);
       }
 
-      // Minimal delay - CP2102 needs very little time
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      // Match WebUSB timing - 50ms delay is critical for bootloader entry
+      // This ensures signals are stable before next operation
+      await new Promise((resolve) => setTimeout(resolve, 50));
     },
 
     async getSignals() {
@@ -337,22 +354,34 @@ export function createNodeUSBAdapter(
         logger.log("ReadableStream start() called");
         
         endpointIn!.on("data", (data: Buffer) => {
-          if (data.length > 0) {
-            logger.log(`USB RX [${data.length}]: ${data.toString('hex')}`);
-            controller.enqueue(new Uint8Array(data));
-          } else {
-            logger.log(`USB RX: 0 bytes (ignored)`);
+          try {
+            if (data.length > 0) {
+              logger.log(`USB RX [${data.length}]: ${data.toString('hex')}`);
+              controller.enqueue(new Uint8Array(data));
+            } else {
+              logger.log(`USB RX: 0 bytes (ignored)`);
+            }
+          } catch (err: any) {
+            logger.error(`USB RX handler error: ${err.message}`);
           }
         });
 
         endpointIn!.on("error", (err: Error) => {
-          logger.error(`USB read error: ${err.message}`);
-          // Don't close on error, just log it
+          try {
+            logger.error(`USB read error: ${err.message}`);
+            // Don't close on error, just log it
+          } catch (e) {
+            // Ignore errors in error handler
+          }
         });
 
         endpointIn!.on("end", () => {
-          logger.log("USB read ended");
-          controller.close();
+          try {
+            logger.log("USB read ended");
+            controller.close();
+          } catch (err) {
+            // Ignore errors when closing controller
+          }
         });
       },
 
@@ -361,6 +390,7 @@ export function createNodeUSBAdapter(
         if (endpointIn) {
           try {
             endpointIn.stopPoll();
+            endpointIn.removeAllListeners();
           } catch (err) {
             // Ignore
           }
