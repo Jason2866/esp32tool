@@ -1204,7 +1204,6 @@ export class ESPLoader extends EventTarget {
         }
       }
     } else {
-
       // Strategy: USB-JTAG/Serial reset
       if (isUSBJTAGSerial || isEspressifUSB) {
         resetStrategies.push({
