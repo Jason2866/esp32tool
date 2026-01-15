@@ -50,6 +50,10 @@ export function createNodeSerialAdapter(
   let readableStream: ReadableStream<Uint8Array> | null = null;
   let writableStream: WritableStream<Uint8Array> | null = null;
   
+  // Track current signal states to avoid unintended flipping
+  let currentDTR: boolean = false;
+  let currentRTS: boolean = false;
+  
   // Parse VID/PID from hex strings to numbers
   const cachedPortInfo: { usbVendorId?: number; usbProductId?: number } = {
     usbVendorId: portInfo?.vendorId ? parseInt(portInfo.vendorId, 16) : undefined,
@@ -92,6 +96,23 @@ export function createNodeSerialAdapter(
         // Wait after baud rate change
         await new Promise(resolve => setTimeout(resolve, 50));
       }
+
+      // IMPORTANT: When a serial port opens, DTR and RTS are often set to true by default
+      // node-serialport sets them to true on open, so we track this
+      currentDTR = true;
+      currentRTS = true;
+
+      // Now set signals to known state (both low) for reset sequence
+      await new Promise<void>((resolve, reject) => {
+        nodePort.set({ dtr: false, rts: false }, (err: Error | null | undefined) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      // Update tracking after successful set
+      currentDTR = false;
+      currentRTS = false;
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       try {
         // Create readable stream
@@ -198,26 +219,31 @@ export function createNodeSerialAdapter(
       requestToSend?: boolean;
       break?: boolean;
     }) {
+      // Preserve current state for unspecified signals (Web Serial semantics)
+      const dtr = signals.dataTerminalReady !== undefined ? signals.dataTerminalReady : currentDTR;
+      const rts = signals.requestToSend !== undefined ? signals.requestToSend : currentRTS;
+      
+      // Update tracked state
+      currentDTR = dtr;
+      currentRTS = rts;
+
       // Build options object for Node.js SerialPort
-      const options: any = {};
-
-      if (signals.dataTerminalReady !== undefined) {
-        options.dtr = signals.dataTerminalReady;
-      }
-
-      if (signals.requestToSend !== undefined) {
-        options.rts = signals.requestToSend;
-      }
+      // node-serialport uses the same signal polarity as Web Serial API
+      // true = assert signal (high), false = de-assert signal (low)
+      const options: any = {
+        dtr: dtr,
+        rts: rts,
+      };
 
       if (signals.break !== undefined) {
         options.brk = signals.break;
       }
 
-      // If no signals to set, return immediately
-      if (Object.keys(options).length === 0) {
-        return;
+      if (process.env.DEBUG) {
+        logger.debug(`setSignals: DTR=${dtr} (set=${options.dtr}), RTS=${rts} (set=${options.rts})`);
       }
 
+      // ALWAYS set both DTR and RTS to avoid signal flipping on CP2102
       // Use nodePort.set() for setting signals
       await new Promise<void>((resolve, reject) => {
         nodePort.set(options, (err: Error | null | undefined) => {
@@ -230,8 +256,8 @@ export function createNodeSerialAdapter(
       });
 
       // Small delay to ensure signals are physically set
-      // Reduced from 50ms to 10ms for faster reset sequences
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // CP2102 needs time to process signal changes
+      await new Promise(resolve => setTimeout(resolve, 50));
     },
 
     async getSignals() {

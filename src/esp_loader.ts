@@ -2064,6 +2064,9 @@ export class ESPLoader extends EventTarget {
     for (let i = 0; i < 8; i++) {
       try {
         const [, data] = await this.getResponse(ESP_SYNC, SYNC_TIMEOUT);
+        if (this.debug) {
+          this.logger.debug(`Sync response ${i + 1}: ${data.slice(0, 10).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
+        }
         if (data.length > 1 && data[0] == 0 && data[1] == 0) {
           return true;
         }

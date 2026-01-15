@@ -5279,12 +5279,12 @@ class ESPLoader extends EventTarget {
     async hardResetClassic() {
         await this.setDTR(false); // IO0=HIGH
         await this.setRTS(true); // EN=LOW, chip in reset
-        await this.sleep(200);
+        await this.sleep(100);
         await this.setDTR(true); // IO0=LOW
         await this.setRTS(false); // EN=HIGH, chip out of reset
-        await this.sleep(100);
+        await this.sleep(50);
         await this.setDTR(false); // IO0=HIGH, done
-        await this.sleep(300);
+        await this.sleep(200);
     }
     /**
      * @name hardResetUnixTight
@@ -5293,11 +5293,11 @@ class ESPLoader extends EventTarget {
      */
     async hardResetUnixTight() {
         await this.setDTRandRTS(false, false);
-        await this.sleep(200);
-        await this.setDTRandRTS(true, true);
         await this.sleep(100);
+        await this.setDTRandRTS(true, true);
+        await this.sleep(50);
         await this.setDTRandRTS(false, false);
-        await this.sleep(300);
+        await this.sleep(200);
     }
     /**
      * @name hardResetInverted
@@ -5307,12 +5307,12 @@ class ESPLoader extends EventTarget {
     async hardResetInverted() {
         await this.setDTR(true); // IO0=HIGH (inverted)
         await this.setRTS(false); // EN=LOW, chip in reset (inverted)
-        await this.sleep(200);
+        await this.sleep(100);
         await this.setDTR(false); // IO0=LOW (inverted)
         await this.setRTS(true); // EN=HIGH, chip out of reset (inverted)
-        await this.sleep(100);
+        await this.sleep(50);
         await this.setDTR(true); // IO0=HIGH, done (inverted)
-        await this.sleep(300);
+        await this.sleep(200);
     }
     /**
      * @name hardResetInvertedDTR
@@ -6458,6 +6458,9 @@ class ESPLoader extends EventTarget {
         for (let i = 0; i < 8; i++) {
             try {
                 const [, data] = await this.getResponse(ESP_SYNC, SYNC_TIMEOUT);
+                if (this.debug) {
+                    this.logger.debug(`Sync response ${i + 1}: ${data.slice(0, 10).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
+                }
                 if (data.length > 1 && data[0] == 0 && data[1] == 0) {
                     return true;
                 }
