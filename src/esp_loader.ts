@@ -1277,10 +1277,6 @@ export class ESPLoader extends EventTarget {
         }
       }
     } else {
-      // Web Serial (Desktop) strategies
-      const portInfo = this.port.getInfo();
-      const isCP2102 = portInfo.usbVendorId === 0x10c4;
-      const isCH34x = portInfo.usbVendorId === 0x1a86;
 
       // Strategy: USB-JTAG/Serial reset
       if (isUSBJTAGSerial || isEspressifUSB) {
@@ -1292,47 +1288,6 @@ export class ESPLoader extends EventTarget {
         });
       }
 
-      // For CP2102, try UnixTight and inverted strategies first
-      if (isCP2102) {
-        resetStrategies.push({
-          name: "UnixTight (CP2102)",
-          fn: async function () {
-            return await self.hardResetUnixTight();
-          },
-        });
-
-        resetStrategies.push({
-          name: "Inverted Both (CP2102)",
-          fn: async function () {
-            return await self.hardResetInverted();
-          },
-        });
-
-        resetStrategies.push({
-          name: "Inverted RTS (CP2102)",
-          fn: async function () {
-            return await self.hardResetInvertedRTS();
-          },
-        });
-
-        resetStrategies.push({
-          name: "Inverted DTR (CP2102)",
-          fn: async function () {
-            return await self.hardResetInvertedDTR();
-          },
-        });
-      }
-
-      // For CH34x, try UnixTight first
-      if (isCH34x) {
-        resetStrategies.push({
-          name: "UnixTight (CH34x)",
-          fn: async function () {
-            return await self.hardResetUnixTight();
-          },
-        });
-      }
-
       // Strategy: Classic reset
       resetStrategies.push({
         name: "Classic",
@@ -1340,16 +1295,6 @@ export class ESPLoader extends EventTarget {
           return await self.hardResetClassic();
         },
       });
-
-      // Add UnixTight as fallback for other chips
-      if (!isCP2102 && !isCH34x) {
-        resetStrategies.push({
-          name: "UnixTight (fallback)",
-          fn: async function () {
-            return await self.hardResetUnixTight();
-          },
-        });
-      }
 
       // Strategy: USB-JTAG/Serial fallback
       if (!isUSBJTAGSerial && !isEspressifUSB) {
