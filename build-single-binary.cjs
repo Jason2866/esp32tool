@@ -244,6 +244,7 @@ function createWindowsBinary(bundleDir) {
       resolve();
     });
     
+    output.on('error', reject);
     archive.on('error', reject);
     archive.pipe(output);
     archive.directory(bundleDir, false);
