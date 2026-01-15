@@ -250,18 +250,31 @@ async function connectViaUSB(
     // Create USB adapter
     webPort = createNodeUSBAdapter(device, cliLogger);
 
-    // Open the device
-    await webPort.open({ baudRate });
+    // ALWAYS open at 115200 baud (ROM bootloader speed)
+    await webPort.open({ baudRate: 115200 });
 
     // Create ESPLoader instance
     const esploader = new ESPLoader(webPort as any, cliLogger);
 
-    // Initialize connection
+    // Initialize connection at ROM speed
     await esploader.initialize();
 
     cliLogger.log(`Connected to ${esploader.chipName || esploader.chipFamily}`);
 
-    return esploader;
+    // Load stub code for better performance and features
+    const stub = await esploader.runStub();
+
+    // Change to requested baudrate if different from ROM speed
+    if (baudRate !== 115200) {
+      try {
+        await stub.setBaudrate(baudRate);
+        cliLogger.log(`Baudrate changed to ${baudRate}`);
+      } catch (err: any) {
+        cliLogger.log(`Warning: Could not change baudrate: ${err.message}`);
+      }
+    }
+
+    return stub;
   } catch (err: any) {
     // Clean up port on failure
     if (webPort) {
@@ -272,18 +285,10 @@ async function connectViaUSB(
       }
     }
 
-    if (
-      err.code === "ERR_MODULE_NOT_FOUND" ||
-      err.code === "MODULE_NOT_FOUND"
-    ) {
-      throw new Error("usb package not installed. Run: npm install usb");
-    }
-
     // Check for permission errors
     if (err.message && err.message.includes("LIBUSB_ERROR_ACCESS")) {
       throw new Error(
         "USB access denied. On macOS/Linux, you may need to run with sudo:\n" +
-          "  sudo node dist/cli-fixed.js -p USB:10c4:ea60 chip-id\n\n" +
           "Or use the Electron GUI version which doesn't require special permissions.",
       );
     }
@@ -292,7 +297,6 @@ async function connectViaUSB(
   }
 }
 
-// Connect via Serial Port (fallback for compatibility)
 // Command implementations
 async function cmdChipId(esploader: ESPLoader) {
   cliLogger.log(`Chip Family: ${esploader.chipFamily}`);
@@ -327,23 +331,9 @@ async function cmdReadFlash(
     `Reading ${size} bytes from offset 0x${offset.toString(16)}...`,
   );
 
-  // Use stub for reading
-  const stub = await esploader.runStub();
-
-  // Change to higher baudrate for faster transfers (if not already at high speed)
-  const currentBaud = 115200; // Default ROM baudrate
-  const targetBaud = 2000000; // Fast baudrate for reading
-  if (currentBaud < targetBaud) {
-    try {
-      await stub.setBaudrate(targetBaud);
-      cliLogger.log(`Baudrate increased to ${targetBaud} for faster reading`);
-    } catch (err: any) {
-      cliLogger.log(`Warning: Could not increase baudrate: ${err.message}`);
-    }
-  }
-
+  // esploader is already a stub loader from connectViaUSB with correct baudrate
   let lastProgress = 0;
-  const data = await stub.readFlash(
+  const data = await esploader.readFlash(
     offset,
     size,
     (packet: Uint8Array, progress: number, totalSize: number) => {
@@ -380,18 +370,6 @@ async function cmdWriteFlash(
 
   // Use stub for writing
   const stub = await esploader.runStub();
-
-  // Change to higher baudrate for faster transfers
-  const currentBaud = 115200; // Default ROM baudrate
-  const targetBaud = 2000000; // Fast baudrate for writing
-  if (currentBaud < targetBaud) {
-    try {
-      await stub.setBaudrate(targetBaud);
-      cliLogger.log(`Baudrate increased to ${targetBaud} for faster writing`);
-    } catch (err: any) {
-      cliLogger.log(`Warning: Could not increase baudrate: ${err.message}`);
-    }
-  }
 
   // Write flash using the stub's flash methods
   // Create a proper ArrayBuffer from the Buffer to avoid byteOffset issues
