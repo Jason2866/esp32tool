@@ -45,9 +45,16 @@ export interface NodeSerialPort {
 export function createNodeSerialAdapter(
   nodePort: any, // Node.js SerialPort instance
   logger: Logger,
+  portInfo?: { vendorId?: string; productId?: string },
 ): NodeSerialPort {
   let readableStream: ReadableStream<Uint8Array> | null = null;
   let writableStream: WritableStream<Uint8Array> | null = null;
+  
+  // Parse VID/PID from hex strings to numbers
+  const cachedPortInfo: { usbVendorId?: number; usbProductId?: number } = {
+    usbVendorId: portInfo?.vendorId ? parseInt(portInfo.vendorId, 16) : undefined,
+    usbProductId: portInfo?.productId ? parseInt(portInfo.productId, 16) : undefined,
+  };
 
   const adapter: NodeSerialPort = {
     get readable() {
@@ -74,11 +81,16 @@ export function createNodeSerialAdapter(
             else resolve();
           });
         });
+        
+        // Wait a bit after opening to ensure port is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       // Update baud rate if needed
       if (nodePort.baudRate !== options.baudRate) {
         await nodePort.update({ baudRate: options.baudRate });
+        // Wait after baud rate change
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       try {
@@ -186,21 +198,28 @@ export function createNodeSerialAdapter(
       requestToSend?: boolean;
       break?: boolean;
     }) {
-      return new Promise<void>((resolve, reject) => {
-        const options: any = {};
+      // Build options object for Node.js SerialPort
+      const options: any = {};
 
-        if (signals.dataTerminalReady !== undefined) {
-          options.dtr = signals.dataTerminalReady;
-        }
+      if (signals.dataTerminalReady !== undefined) {
+        options.dtr = signals.dataTerminalReady;
+      }
 
-        if (signals.requestToSend !== undefined) {
-          options.rts = signals.requestToSend;
-        }
+      if (signals.requestToSend !== undefined) {
+        options.rts = signals.requestToSend;
+      }
 
-        if (signals.break !== undefined) {
-          options.brk = signals.break;
-        }
+      if (signals.break !== undefined) {
+        options.brk = signals.break;
+      }
 
+      // If no signals to set, return immediately
+      if (Object.keys(options).length === 0) {
+        return;
+      }
+
+      // Use nodePort.set() for setting signals
+      await new Promise<void>((resolve, reject) => {
         nodePort.set(options, (err: Error | null | undefined) => {
           if (err) {
             reject(err);
@@ -209,6 +228,10 @@ export function createNodeSerialAdapter(
           }
         });
       });
+
+      // Small delay to ensure signals are physically set
+      // Reduced from 50ms to 10ms for faster reset sequences
+      await new Promise(resolve => setTimeout(resolve, 10));
     },
 
     async getSignals() {
@@ -234,11 +257,10 @@ export function createNodeSerialAdapter(
     },
 
     getInfo() {
-      // Node.js SerialPort doesn't provide USB vendor/product IDs directly
-      // Return empty object to satisfy the interface
+      // Return cached port info (VID/PID) if available
       return {
-        usbVendorId: undefined,
-        usbProductId: undefined,
+        usbVendorId: cachedPortInfo.usbVendorId,
+        usbProductId: cachedPortInfo.usbProductId,
       };
     },
   };
@@ -250,7 +272,7 @@ export function createNodeSerialAdapter(
  * List available serial ports
  */
 export async function listPorts(): Promise<
-  Array<{ path: string; manufacturer?: string; serialNumber?: string }>
+  Array<{ path: string; manufacturer?: string; serialNumber?: string; vendorId?: string; productId?: string }>
 > {
   try {
     const { SerialPort } = await import("serialport");
@@ -259,6 +281,8 @@ export async function listPorts(): Promise<
       path: port.path,
       manufacturer: port.manufacturer,
       serialNumber: port.serialNumber,
+      vendorId: port.vendorId,
+      productId: port.productId,
     }));
   } catch (err: any) {
     if (

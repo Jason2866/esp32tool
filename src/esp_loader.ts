@@ -755,6 +755,79 @@ export class ESPLoader extends EventTarget {
     await this.sleep(200);
   }
 
+  /**
+   * @name hardResetUnixTight
+   * Unix Tight reset for Web Serial (Desktop) - sets DTR and RTS simultaneously
+   * Works well with CP2102 and CH340
+   */
+  async hardResetUnixTight() {
+    await this.setDTRandRTS(false, false);
+    await this.sleep(100);
+    await this.setDTRandRTS(true, true);
+    await this.sleep(50);
+    await this.setDTRandRTS(false, false);
+    await this.sleep(200);
+  }
+
+  /**
+   * @name hardResetInverted
+   * Inverted reset for Web Serial (Desktop) - both signals inverted
+   * Some CP2102 chips need this
+   */
+  async hardResetInverted() {
+    await this.setDTR(true); // IO0=HIGH (inverted)
+    await this.setRTS(false); // EN=LOW, chip in reset (inverted)
+    await this.sleep(100);
+    await this.setDTR(false); // IO0=LOW (inverted)
+    await this.setRTS(true); // EN=HIGH, chip out of reset (inverted)
+    await this.sleep(50);
+    await this.setDTR(true); // IO0=HIGH, done (inverted)
+    await this.sleep(200);
+  }
+
+  /**
+   * @name hardResetInvertedDTR
+   * Only DTR inverted for Web Serial (Desktop)
+   */
+  async hardResetInvertedDTR() {
+    await this.setDTR(true); // IO0=HIGH (DTR inverted)
+    await this.setRTS(true); // EN=LOW, chip in reset (RTS normal)
+    await this.sleep(100);
+    await this.setDTR(false); // IO0=LOW (DTR inverted)
+    await this.setRTS(false); // EN=HIGH, chip out of reset (RTS normal)
+    await this.sleep(50);
+    await this.setDTR(true); // IO0=HIGH, done (DTR inverted)
+    await this.sleep(200);
+  }
+
+  /**
+   * @name hardResetInvertedRTS
+   * Only RTS inverted for Web Serial (Desktop)
+   */
+  async hardResetInvertedRTS() {
+    await this.setDTR(false); // IO0=HIGH (DTR normal)
+    await this.setRTS(false); // EN=LOW, chip in reset (RTS inverted)
+    await this.sleep(100);
+    await this.setDTR(true); // IO0=LOW (DTR normal)
+    await this.setRTS(true); // EN=HIGH, chip out of reset (RTS inverted)
+    await this.sleep(50);
+    await this.setDTR(false); // IO0=HIGH, done (DTR normal)
+    await this.sleep(200);
+  }
+
+  /**
+   * @name setDTRandRTS
+   * Set both DTR and RTS simultaneously for Web Serial (Desktop)
+   */
+  async setDTRandRTS(dtr: boolean, rts: boolean) {
+    this.state_DTR = dtr;
+    this.state_RTS = rts;
+    await this.port.setSignals({
+      dataTerminalReady: dtr,
+      requestToSend: rts,
+    });
+  }
+
   // ============================================================================
   // WebUSB (Android) - DTR/RTS Signal Handling & Reset Strategies
   // ============================================================================
@@ -1199,12 +1272,57 @@ export class ESPLoader extends EventTarget {
       }
     } else {
       // Web Serial (Desktop) strategies
+      const portInfo = this.port.getInfo();
+      const isCP2102 = portInfo.usbVendorId === 0x10c4;
+      const isCH34x = portInfo.usbVendorId === 0x1a86;
+      
       // Strategy: USB-JTAG/Serial reset
       if (isUSBJTAGSerial || isEspressifUSB) {
         resetStrategies.push({
           name: "USB-JTAG/Serial",
           fn: async function () {
             return await self.hardResetUSBJTAGSerial();
+          },
+        });
+      }
+
+      // For CP2102, try UnixTight and inverted strategies first
+      if (isCP2102) {
+        resetStrategies.push({
+          name: "UnixTight (CP2102)",
+          fn: async function () {
+            return await self.hardResetUnixTight();
+          },
+        });
+        
+        resetStrategies.push({
+          name: "Inverted Both (CP2102)",
+          fn: async function () {
+            return await self.hardResetInverted();
+          },
+        });
+        
+        resetStrategies.push({
+          name: "Inverted RTS (CP2102)",
+          fn: async function () {
+            return await self.hardResetInvertedRTS();
+          },
+        });
+        
+        resetStrategies.push({
+          name: "Inverted DTR (CP2102)",
+          fn: async function () {
+            return await self.hardResetInvertedDTR();
+          },
+        });
+      }
+      
+      // For CH34x, try UnixTight first
+      if (isCH34x) {
+        resetStrategies.push({
+          name: "UnixTight (CH34x)",
+          fn: async function () {
+            return await self.hardResetUnixTight();
           },
         });
       }
@@ -1216,6 +1334,16 @@ export class ESPLoader extends EventTarget {
           return await self.hardResetClassic();
         },
       });
+      
+      // Add UnixTight as fallback for other chips
+      if (!isCP2102 && !isCH34x) {
+        resetStrategies.push({
+          name: "UnixTight (fallback)",
+          fn: async function () {
+            return await self.hardResetUnixTight();
+          },
+        });
+      }
 
       // Strategy: USB-JTAG/Serial fallback
       if (!isUSBJTAGSerial && !isEspressifUSB) {

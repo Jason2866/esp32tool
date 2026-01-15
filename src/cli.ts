@@ -189,6 +189,12 @@ async function connectToDevice(
     // Import serialport package dynamically
     const { SerialPort } = await import("serialport");
 
+    // Get port info (VID/PID) before opening
+    const ports = await listPorts();
+    const portInfo = ports.find(p => p.path === portPath);
+    const vendorId = portInfo?.vendorId;
+    const productId = portInfo?.productId;
+
     // Create Node.js SerialPort instance
     nodePort = new SerialPort({
       path: portPath,
@@ -204,8 +210,8 @@ async function connectToDevice(
       });
     });
 
-    // Create Web Serial API compatible adapter
-    webPort = createNodeSerialAdapter(nodePort, cliLogger);
+    // Create Web Serial API compatible adapter with port info
+    webPort = createNodeSerialAdapter(nodePort, cliLogger, { vendorId, productId });
 
     // Initialize the adapter's streams
     await webPort.open({ baudRate });
