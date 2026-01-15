@@ -164,8 +164,49 @@ export function createNodeUSBAdapter(
       // Initialize chip-specific settings
       await initializeChip(device, vendorId, productId, baudRate, logger);
 
+      // For CP2102: Clear any pending data
+      if (vendorId === 0x10c4) {
+        try {
+          // Clear halt on endpoints
+          await new Promise<void>((resolve, reject) => {
+            device.controlTransfer(
+              0x02, // Clear Feature, Endpoint
+              0x01, // ENDPOINT_HALT
+              0,
+              endpointIn!.address,
+              Buffer.alloc(0),
+              (err) => {
+                if (err) logger.debug(`Clear halt IN failed: ${err.message}`);
+                resolve();
+              }
+            );
+          });
+          
+          await new Promise<void>((resolve, reject) => {
+            device.controlTransfer(
+              0x02, // Clear Feature, Endpoint
+              0x01, // ENDPOINT_HALT
+              0,
+              endpointOut!.address,
+              Buffer.alloc(0),
+              (err) => {
+                if (err) logger.debug(`Clear halt OUT failed: ${err.message}`);
+                resolve();
+              }
+            );
+          });
+        } catch (err) {
+          // Ignore
+        }
+      }
+
+      // Wait for chip to be ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Create streams
+      logger.debug("Creating USB streams...");
       createStreams();
+      logger.debug("USB streams created");
 
       logger.log("USB device opened successfully");
     },
@@ -273,13 +314,23 @@ export function createNodeUSBAdapter(
       throw new Error("Endpoints not configured");
     }
 
+    logger.debug(`Starting USB read poll on endpoint 0x${endpointIn.address.toString(16)}`);
+    
+    // Start polling immediately (not in ReadableStream.start)
+    try {
+      endpointIn.startPoll(2, 64);
+      logger.debug("USB read poll started successfully");
+    } catch (err: any) {
+      logger.error(`Failed to start poll: ${err.message}`);
+    }
+
     // ReadableStream for incoming data
     readableStream = new ReadableStream({
       start(controller) {
-        // Use startPoll for continuous reading
-        endpointIn!.startPoll(2, 64);
-
         endpointIn!.on("data", (data: Buffer) => {
+          if (data.length > 0) {
+            logger.debug(`USB RX: ${data.length} bytes`);
+          }
           controller.enqueue(new Uint8Array(data));
         });
 
@@ -289,11 +340,13 @@ export function createNodeUSBAdapter(
         });
 
         endpointIn!.on("end", () => {
+          logger.debug("USB read ended");
           controller.close();
         });
       },
 
       cancel() {
+        logger.debug("Cancelling USB read");
         if (endpointIn) {
           try {
             endpointIn.stopPoll();
@@ -307,6 +360,7 @@ export function createNodeUSBAdapter(
     // WritableStream for outgoing data
     writableStream = new WritableStream({
       async write(chunk: Uint8Array) {
+        logger.debug(`USB TX: ${chunk.length} bytes`);
         return new Promise((resolve, reject) => {
           if (!endpointOut) {
             reject(new Error("Endpoint not configured"));
@@ -341,34 +395,38 @@ async function initializeChip(
   if (vendorId === 0x10c4) {
     logger.debug("Initializing CP2102...");
 
-    // Enable UART
+    // Step 1: Enable UART
+    logger.debug("CP2102: Enabling UART interface...");
     await controlTransferOut(device, {
       requestType: "vendor",
       recipient: "device",
-      request: 0x00,
-      value: 0x01,
+      request: 0x00, // IFC_ENABLE
+      value: 0x01,   // UART_ENABLE
       index: 0x00,
     });
 
-    // Set line control (8N1)
+    // Step 2: Set line control (8N1)
+    logger.debug("CP2102: Setting line control (8N1)...");
     await controlTransferOut(device, {
       requestType: "vendor",
       recipient: "device",
-      request: 0x03,
-      value: 0x0800,
+      request: 0x03, // SET_LINE_CTL
+      value: 0x0800, // 8 data bits, no parity, 1 stop bit
       index: 0x00,
     });
 
-    // Set DTR/RTS
+    // Step 3: Set DTR/RTS
+    logger.debug("CP2102: Setting DTR/RTS...");
     await controlTransferOut(device, {
       requestType: "vendor",
       recipient: "device",
-      request: 0x07,
-      value: 0x03 | 0x0100 | 0x0200,
+      request: 0x07, // SET_MHS
+      value: 0x03 | 0x0100 | 0x0200, // DTR=1, RTS=1 with masks
       index: 0x00,
     });
 
-    // Set baudrate
+    // Step 4: Set baudrate
+    logger.debug(`CP2102: Setting baudrate to ${baudRate}...`);
     const baudrateBuffer = Buffer.alloc(4);
     baudrateBuffer.writeUInt32LE(baudRate, 0);
     await controlTransferOut(
@@ -376,12 +434,14 @@ async function initializeChip(
       {
         requestType: "vendor",
         recipient: "interface",
-        request: 0x1e,
+        request: 0x1e, // IFC_SET_BAUDRATE
         value: 0,
         index: 0,
       },
       baudrateBuffer,
     );
+    
+    logger.debug("CP2102: Initialization complete");
   }
   // CH340 (WCH)
   else if (vendorId === 0x1a86 && productId !== 0x55d3) {
@@ -638,7 +698,12 @@ async function controlTransferOut(
   data?: Buffer,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
+    // bmRequestType = Direction | Type | Recipient
+    // Direction: 0x00 = Host-to-Device (OUT), 0x80 = Device-to-Host (IN)
+    // Type: 0x00 = Standard, 0x20 = Class, 0x40 = Vendor
+    // Recipient: 0x00 = Device, 0x01 = Interface, 0x02 = Endpoint, 0x03 = Other
     const bmRequestType =
+      0x00 | // Direction: Host-to-Device (OUT)
       (params.requestType === "standard"
         ? 0x00
         : params.requestType === "class"
