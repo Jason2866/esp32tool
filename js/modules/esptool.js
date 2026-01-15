@@ -4772,6 +4772,7 @@ class ESPLoader extends EventTarget {
         this.__writeChain = Promise.resolve();
     }
     // Chip properties with parent delegation
+    // chipFamily accessed before initialization as designed
     get chipFamily() {
         return this._parent ? this._parent.chipFamily : this.__chipFamily;
     }
@@ -6468,12 +6469,6 @@ class ESPLoader extends EventTarget {
         for (let i = 0; i < 8; i++) {
             try {
                 const [, data] = await this.getResponse(ESP_SYNC, SYNC_TIMEOUT);
-                if (this.debug) {
-                    this.logger.debug(`Sync response ${i + 1}: ${data
-                        .slice(0, 10)
-                        .map((b) => "0x" + b.toString(16).padStart(2, "0"))
-                        .join(" ")}`);
-                }
                 if (data.length > 1 && data[0] == 0 && data[1] == 0) {
                     return true;
                 }
@@ -7580,6 +7575,10 @@ class EspStubLoader extends ESPLoader {
         }
         if (size > maxValue) {
             throw new Error(`Size ${size} exceeds maximum value ${maxValue}`);
+        }
+        // Check for wrap-around
+        if (offset + size > maxValue) {
+            throw new Error(`Region end (offset + size = ${offset + size}) exceeds maximum addressable range ${maxValue}`);
         }
         const timeout = timeoutPerMb(ERASE_REGION_TIMEOUT_PER_MB, size);
         const buffer = pack("<II", offset, size);
