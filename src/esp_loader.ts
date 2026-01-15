@@ -974,6 +974,9 @@ export class ESPLoader extends EventTarget {
     const resetStrategies: Array<{ name: string; fn: () => Promise<void> }> =
       [];
 
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+
     // WebUSB (Android) uses different reset methods than Web Serial (Desktop)
     if (this.isWebUSB()) {
       // For USB-Serial chips (CP2102, CH340, etc.), try inverted strategies first
@@ -996,39 +999,53 @@ export class ESPLoader extends EventTarget {
           // Strategy 1: USB-JTAG/Serial (works in CDC mode on Desktop)
           resetStrategies.push({
             name: "USB-JTAG/Serial (WebUSB) - ESP32-S2",
-            fn: async () => this.hardResetUSBJTAGSerialWebUSB(),
+            fn: async () => {
+              return await self.hardResetUSBJTAGSerialWebUSB();
+            },
           });
 
           // Strategy 2: USB-JTAG/Serial Inverted DTR (works in JTAG mode)
           resetStrategies.push({
             name: "USB-JTAG/Serial Inverted DTR (WebUSB) - ESP32-S2",
-            fn: async () => this.hardResetUSBJTAGSerialInvertedDTRWebUSB(),
+            fn: async () => {
+              return await self.hardResetUSBJTAGSerialInvertedDTRWebUSB();
+            },
           });
 
           // Strategy 3: UnixTight (CDC fallback)
           resetStrategies.push({
             name: "UnixTight (WebUSB) - ESP32-S2 CDC",
-            fn: async () => this.hardResetUnixTightWebUSB(),
+            fn: async () => {
+              return await self.hardResetUnixTightWebUSB();
+            },
           });
 
           // Strategy 4: Classic reset (CDC fallback)
           resetStrategies.push({
             name: "Classic (WebUSB) - ESP32-S2 CDC",
-            fn: async () => this.hardResetClassicWebUSB(),
+            fn: async () => {
+              return await self.hardResetClassicWebUSB();
+            },
           });
         } else {
           // Other USB-JTAG chips: Try Inverted DTR first - works best for ESP32-H2 and other JTAG chips
           resetStrategies.push({
             name: "USB-JTAG/Serial Inverted DTR (WebUSB)",
-            fn: async () => this.hardResetUSBJTAGSerialInvertedDTRWebUSB(),
+            fn: async () => {
+              return await self.hardResetUSBJTAGSerialInvertedDTRWebUSB();
+            },
           });
           resetStrategies.push({
             name: "USB-JTAG/Serial (WebUSB)",
-            fn: async () => this.hardResetUSBJTAGSerialWebUSB(),
+            fn: async () => {
+              return await self.hardResetUSBJTAGSerialWebUSB();
+            },
           });
           resetStrategies.push({
             name: "Inverted DTR Classic (WebUSB)",
-            fn: async () => this.hardResetInvertedDTRWebUSB(),
+            fn: async () => {
+              return await self.hardResetInvertedDTRWebUSB();
+            },
           });
         }
       }
@@ -1039,23 +1056,33 @@ export class ESPLoader extends EventTarget {
           // CH340/CH343: UnixTight works best (like CP2102)
           resetStrategies.push({
             name: "UnixTight (WebUSB) - CH34x",
-            fn: async () => this.hardResetUnixTightWebUSB(),
+            fn: async () => {
+              return await self.hardResetUnixTightWebUSB();
+            },
           });
           resetStrategies.push({
             name: "Classic (WebUSB) - CH34x",
-            fn: async () => this.hardResetClassicWebUSB(),
+            fn: async () => {
+              return await self.hardResetClassicWebUSB();
+            },
           });
           resetStrategies.push({
             name: "Inverted Both (WebUSB) - CH34x",
-            fn: async () => this.hardResetInvertedWebUSB(),
+            fn: async () => {
+              return await self.hardResetInvertedWebUSB();
+            },
           });
           resetStrategies.push({
             name: "Inverted RTS (WebUSB) - CH34x",
-            fn: async () => this.hardResetInvertedRTSWebUSB(),
+            fn: async () => {
+              return await self.hardResetInvertedRTSWebUSB();
+            },
           });
           resetStrategies.push({
             name: "Inverted DTR (WebUSB) - CH34x",
-            fn: async () => this.hardResetInvertedDTRWebUSB(),
+            fn: async () => {
+              return await self.hardResetInvertedDTRWebUSB();
+            },
           });
         } else if (isCP2102) {
           // CP2102: UnixTight works best (tested and confirmed)
@@ -1063,49 +1090,69 @@ export class ESPLoader extends EventTarget {
 
           resetStrategies.push({
             name: "UnixTight (WebUSB) - CP2102",
-            fn: async () => this.hardResetUnixTightWebUSB(),
+            fn: async () => {
+              return await self.hardResetUnixTightWebUSB();
+            },
           });
 
           resetStrategies.push({
             name: "Classic (WebUSB) - CP2102",
-            fn: async () => this.hardResetClassicWebUSB(),
+            fn: async () => {
+              return await self.hardResetClassicWebUSB();
+            },
           });
 
           resetStrategies.push({
             name: "Inverted Both (WebUSB) - CP2102",
-            fn: async () => this.hardResetInvertedWebUSB(),
+            fn: async () => {
+              return await self.hardResetInvertedWebUSB();
+            },
           });
 
           resetStrategies.push({
             name: "Inverted RTS (WebUSB) - CP2102",
-            fn: async () => this.hardResetInvertedRTSWebUSB(),
+            fn: async () => {
+              return await self.hardResetInvertedRTSWebUSB();
+            },
           });
 
           resetStrategies.push({
             name: "Inverted DTR (WebUSB) - CP2102",
-            fn: async () => this.hardResetInvertedDTRWebUSB(),
+            fn: async () => {
+              return await self.hardResetInvertedDTRWebUSB();
+            },
           });
         } else {
           // For other USB-Serial chips, try UnixTight first, then multiple strategies
           resetStrategies.push({
             name: "UnixTight (WebUSB)",
-            fn: async () => this.hardResetUnixTightWebUSB(),
+            fn: async () => {
+              return await self.hardResetUnixTightWebUSB();
+            },
           });
           resetStrategies.push({
             name: "Classic (WebUSB)",
-            fn: async () => this.hardResetClassicWebUSB(),
+            fn: async function () {
+              return await self.hardResetClassicWebUSB();
+            },
           });
           resetStrategies.push({
             name: "Inverted Both (WebUSB)",
-            fn: async () => this.hardResetInvertedWebUSB(),
+            fn: async function () {
+              return await self.hardResetInvertedWebUSB();
+            },
           });
           resetStrategies.push({
             name: "Inverted RTS (WebUSB)",
-            fn: async () => this.hardResetInvertedRTSWebUSB(),
+            fn: async function () {
+              return await self.hardResetInvertedRTSWebUSB();
+            },
           });
           resetStrategies.push({
             name: "Inverted DTR (WebUSB)",
-            fn: async () => this.hardResetInvertedDTRWebUSB(),
+            fn: async function () {
+              return await self.hardResetInvertedDTRWebUSB();
+            },
           });
         }
       }
@@ -1116,57 +1163,72 @@ export class ESPLoader extends EventTarget {
         if (portInfo.usbVendorId !== 0x1a86) {
           resetStrategies.push({
             name: "Classic (WebUSB)",
-            fn: async () => this.hardResetClassicWebUSB(),
+            fn: async function () {
+              return await self.hardResetClassicWebUSB();
+            },
           });
         }
 
         // UnixTight reset (sets DTR/RTS simultaneously)
         resetStrategies.push({
           name: "UnixTight (WebUSB)",
-          fn: async () => this.hardResetUnixTightWebUSB(),
+          fn: async function () {
+            return await self.hardResetUnixTightWebUSB();
+          },
         });
 
         // WebUSB Strategy: Classic with long delays
         resetStrategies.push({
           name: "Classic Long Delay (WebUSB)",
-          fn: async () => this.hardResetClassicLongDelayWebUSB(),
+          fn: async function () {
+            return await self.hardResetClassicLongDelayWebUSB();
+          },
         });
 
         // WebUSB Strategy: Classic with short delays
         resetStrategies.push({
           name: "Classic Short Delay (WebUSB)",
-          fn: async () => this.hardResetClassicShortDelayWebUSB(),
+          fn: async function () {
+            return await self.hardResetClassicShortDelayWebUSB();
+          },
         });
 
         // WebUSB Strategy: USB-JTAG/Serial fallback
         if (!isUSBJTAGSerial && !isEspressifUSB) {
           resetStrategies.push({
             name: "USB-JTAG/Serial fallback (WebUSB)",
-            fn: async () => this.hardResetUSBJTAGSerialWebUSB(),
+            fn: async function () {
+              return await self.hardResetUSBJTAGSerialWebUSB();
+            },
           });
         }
       }
     } else {
-      // Web Serial (Desktop) strategies
       // Strategy: USB-JTAG/Serial reset
       if (isUSBJTAGSerial || isEspressifUSB) {
         resetStrategies.push({
           name: "USB-JTAG/Serial",
-          fn: async () => this.hardResetUSBJTAGSerial(),
+          fn: async function () {
+            return await self.hardResetUSBJTAGSerial();
+          },
         });
       }
 
       // Strategy: Classic reset
       resetStrategies.push({
         name: "Classic",
-        fn: async () => this.hardResetClassic(),
+        fn: async function () {
+          return await self.hardResetClassic();
+        },
       });
 
       // Strategy: USB-JTAG/Serial fallback
       if (!isUSBJTAGSerial && !isEspressifUSB) {
         resetStrategies.push({
           name: "USB-JTAG/Serial (fallback)",
-          fn: async () => this.hardResetUSBJTAGSerial(),
+          fn: async function () {
+            return await self.hardResetUSBJTAGSerial();
+          },
         });
       }
     }
@@ -1252,9 +1314,9 @@ export class ESPLoader extends EventTarget {
       // just reset (no bootloader mode)
       if (this.isWebUSB()) {
         // WebUSB: Use longer delays for better compatibility
-        await this.setRTSWebUSB(true); // EN->LOW
+        await this.setRTS(true); // EN->LOW
         await this.sleep(200);
-        await this.setRTSWebUSB(false);
+        await this.setRTS(false);
         await this.sleep(200);
         this.logger.log("Hard reset (WebUSB).");
       } else {
@@ -1503,7 +1565,6 @@ export class ESPLoader extends EventTarget {
               "Timed out waiting for packet " + waitingFor,
             );
           }
-
           const b = this._readByte()!;
 
           if (partialPacket === null) {
@@ -1562,7 +1623,6 @@ export class ESPLoader extends EventTarget {
     } else {
       // Byte-by-byte version: Stable for non CDC USB-Serial adapters (CH340, CP2102, etc.)
       let readBytes: number[] = [];
-      const operationStart = Date.now();
       while (true) {
         // Check abandon flag (for reset strategy timeout)
         if (this._abandonCurrentOperation) {
@@ -1571,14 +1631,8 @@ export class ESPLoader extends EventTarget {
           );
         }
 
-        // Check overall operation timeout
-        if (Date.now() - operationStart > timeout) {
-          const waitingFor = partialPacket === null ? "header" : "content";
-          throw new SlipReadError("Timed out waiting for packet " + waitingFor);
-        }
-
-        readBytes = [];
         const stamp = Date.now();
+        readBytes = [];
         while (Date.now() - stamp < timeout) {
           if (this._inputBufferAvailable > 0) {
             readBytes.push(this._readByte()!);
@@ -1850,7 +1904,8 @@ export class ESPLoader extends EventTarget {
           await sleep(SYNC_TIMEOUT);
           return true;
         }
-      } catch {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (e) {
         // Check abandon flag after error
         if (this._abandonCurrentOperation) {
           return false;
@@ -2625,7 +2680,21 @@ export class ESPLoader extends EventTarget {
         resolve(undefined);
         return;
       }
-      this.addEventListener("disconnect", resolve, { once: true });
+
+      // Set a timeout to prevent hanging (important for node-usb)
+      const timeout = setTimeout(() => {
+        this.logger.debug("Disconnect timeout - forcing resolution");
+        resolve(undefined);
+      }, 1000);
+
+      this.addEventListener(
+        "disconnect",
+        () => {
+          clearTimeout(timeout);
+          resolve(undefined);
+        },
+        { once: true },
+      );
 
       // Only cancel if reader is still active
       try {
@@ -2633,10 +2702,19 @@ export class ESPLoader extends EventTarget {
       } catch (err) {
         this.logger.debug(`Reader cancel error: ${err}`);
         // Reader already released, resolve immediately
+        clearTimeout(timeout);
         resolve(undefined);
       }
     });
     this.connected = false;
+
+    // Close the port (important for node-usb adapter)
+    try {
+      await this.port.close();
+      this.logger.debug("Port closed successfully");
+    } catch (err) {
+      this.logger.debug(`Port close error: ${err}`);
+    }
   }
 
   /**

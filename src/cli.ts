@@ -17,7 +17,7 @@
 
 import { ESPLoader } from "./esp_loader";
 import { Logger } from "./const";
-import { createNodeSerialAdapter, listPorts } from "./node-serial-adapter";
+import { createNodeUSBAdapter, listUSBPorts } from "./node-usb-adapter";
 import * as fs from "fs";
 
 // CLI Logger
@@ -164,61 +164,117 @@ async function connectToDevice(
 ): Promise<ESPLoader> {
   // List available ports if none specified
   if (!portPath) {
-    cliLogger.log("No port specified. Available ports:");
-    const ports = await listPorts();
+    cliLogger.log("No port specified. Available USB devices:");
 
-    if (ports.length === 0) {
-      throw new Error("No serial ports found");
+    const usbPorts = await listUSBPorts();
+    if (usbPorts.length === 0) {
+      throw new Error("No USB devices found");
     }
 
-    ports.forEach((port, idx) => {
-      console.log(
-        `  [${idx}] ${port.path}${port.manufacturer ? ` (${port.manufacturer})` : ""}`,
-      );
+    usbPorts.forEach((port, idx) => {
+      console.log(`  [${idx}] ${port.path}`);
     });
 
-    throw new Error("Please specify a port with --port <path>");
+    throw new Error("Please specify a device with --port <USB:vid:pid>");
   }
 
   cliLogger.log(`Connecting to ${portPath} at ${baudRate} baud...`);
 
-  let nodePort: any = null;
+  // Parse port path - support USB:vid:pid format
+  let targetVid: number | undefined;
+  let targetPid: number | undefined;
+
+  if (portPath.toUpperCase().startsWith("USB:")) {
+    // Format: USB:vid:pid
+    const parts = portPath.split(":");
+    if (parts.length === 3) {
+      targetVid = parseInt(parts[1], 16);
+      targetPid = parseInt(parts[2], 16);
+    }
+  }
+
+  return await connectViaUSB(targetVid, targetPid, baudRate);
+}
+
+// Connect via USB (direct USB access)
+async function connectViaUSB(
+  targetVid: number | undefined,
+  targetPid: number | undefined,
+  baudRate: number,
+): Promise<ESPLoader> {
   let webPort: any = null;
 
   try {
-    // Import serialport package dynamically
-    const { SerialPort } = await import("serialport");
+    const usb = await import("usb");
 
-    // Create Node.js SerialPort instance
-    nodePort = new SerialPort({
-      path: portPath,
-      baudRate: baudRate,
-      autoOpen: false,
-    });
+    // Find USB device
+    const devices = usb.getDeviceList();
+    let device;
 
-    // Open the port
-    await new Promise<void>((resolve, reject) => {
-      nodePort.open((err: Error | null | undefined) => {
-        if (err) reject(err);
-        else resolve();
+    if (targetVid !== undefined && targetPid !== undefined) {
+      device = devices.find(
+        (d) =>
+          d.deviceDescriptor.idVendor === targetVid &&
+          d.deviceDescriptor.idProduct === targetPid,
+      );
+
+      if (!device) {
+        throw new Error(
+          `USB device not found: VID=0x${targetVid.toString(16)}, PID=0x${targetPid.toString(16)}`,
+        );
+      }
+    } else {
+      // Find first USB-Serial device
+      device = devices.find((d) => {
+        const vid = d.deviceDescriptor.idVendor;
+        return (
+          vid === 0x303a || // Espressif
+          vid === 0x0403 || // FTDI
+          vid === 0x1a86 || // CH340/CH343
+          vid === 0x10c4 || // CP210x
+          vid === 0x067b
+        ); // PL2303
       });
-    });
 
-    // Create Web Serial API compatible adapter
-    webPort = createNodeSerialAdapter(nodePort, cliLogger);
+      if (!device) {
+        throw new Error(
+          "No USB-Serial device found. Run 'list-ports' to see available devices.",
+        );
+      }
 
-    // Initialize the adapter's streams
-    await webPort.open({ baudRate });
+      cliLogger.log(
+        `Auto-detected USB device: VID=0x${device.deviceDescriptor.idVendor.toString(16)}, PID=0x${device.deviceDescriptor.idProduct.toString(16)}`,
+      );
+    }
+
+    // Create USB adapter
+    webPort = createNodeUSBAdapter(device, cliLogger);
+
+    // ALWAYS open at 115200 baud (ROM bootloader speed)
+    await webPort.open({ baudRate: 115200 });
 
     // Create ESPLoader instance
     const esploader = new ESPLoader(webPort as any, cliLogger);
 
-    // Initialize connection
+    // Initialize connection at ROM speed
     await esploader.initialize();
 
     cliLogger.log(`Connected to ${esploader.chipName || esploader.chipFamily}`);
 
-    return esploader;
+    // Load stub code for better performance and features
+    const stub = await esploader.runStub();
+
+    // Change to requested baudrate if different from ROM speed
+    if (baudRate !== 115200) {
+      try {
+        await stub.setBaudrate(baudRate);
+        cliLogger.log(`Baudrate changed to ${baudRate}`);
+      } catch (err: any) {
+        cliLogger.log(`Warning: Could not change baudrate: ${err.message}`);
+      }
+    }
+
+    return stub;
   } catch (err: any) {
     // Clean up port on failure
     if (webPort) {
@@ -228,22 +284,15 @@ async function connectToDevice(
         // Ignore close errors
       }
     }
-    if (nodePort && nodePort.isOpen) {
-      try {
-        nodePort.close();
-      } catch (closeErr) {
-        // Ignore close errors
-      }
-    }
 
-    if (
-      err.code === "ERR_MODULE_NOT_FOUND" ||
-      err.code === "MODULE_NOT_FOUND"
-    ) {
+    // Check for permission errors
+    if (err.message && err.message.includes("LIBUSB_ERROR_ACCESS")) {
       throw new Error(
-        "serialport package not installed. Run: npm install serialport",
+        "USB access denied. On macOS/Linux, you may need to run with sudo:\n" +
+          "Or use the Electron GUI version which doesn't require special permissions.",
       );
     }
+
     throw err;
   }
 }
@@ -282,10 +331,24 @@ async function cmdReadFlash(
     `Reading ${size} bytes from offset 0x${offset.toString(16)}...`,
   );
 
-  // Use stub for reading
-  const stub = await esploader.runStub();
-  const data = await stub.readFlash(offset, size);
+  // esploader is already a stub loader from connectViaUSB with correct baudrate
+  let lastProgress = 0;
+  const data = await esploader.readFlash(
+    offset,
+    size,
+    (packet: Uint8Array, progress: number, totalSize: number) => {
+      const percent = Math.round((progress / totalSize) * 100);
+      // Only update display every 1% to avoid too many updates
+      if (percent > lastProgress) {
+        lastProgress = percent;
+        process.stdout.write(
+          `\rProgress: ${percent}% (${progress}/${totalSize} bytes)`,
+        );
+      }
+    },
+  );
 
+  console.log(""); // New line after progress
   fs.writeFileSync(filename, Buffer.from(data));
 
   cliLogger.log(`Saved to ${filename}`);
@@ -378,8 +441,26 @@ async function cmdVerifyFlash(
 
   // Use stub for reading
   const stub = await esploader.runStub();
-  const flashData = await stub.readFlash(offset, size);
 
+  let lastProgress = 0;
+  const flashData = await stub.readFlash(
+    offset,
+    size,
+    (packet: Uint8Array, progress: number, totalSize: number) => {
+      const percent = Math.round((progress / totalSize) * 100);
+      // Only update display every 1% to avoid too many updates
+      if (percent > lastProgress) {
+        lastProgress = percent;
+        process.stdout.write(
+          `\rReading: ${percent}% (${progress}/${totalSize} bytes)`,
+        );
+      }
+    },
+  );
+
+  console.log(""); // New line after progress
+
+  cliLogger.log("Comparing data...");
   if (Buffer.compare(Buffer.from(flashData), fileData) === 0) {
     cliLogger.log("Verification successful!");
   } else {
@@ -394,15 +475,21 @@ async function main() {
   let esploader: ESPLoader | null = null;
 
   try {
+    // Validate command
+    if (!cliArgs.command) {
+      showHelp();
+      process.exit(1);
+    }
+
     // Special command: list-ports (doesn't need device connection)
     if (cliArgs.command === "list-ports") {
-      const ports = await listPorts();
+      const usbPorts = await listUSBPorts();
 
-      if (ports.length === 0) {
-        cliLogger.log("No serial ports found");
+      if (usbPorts.length === 0) {
+        cliLogger.log("No USB devices found");
       } else {
-        cliLogger.log("Available serial ports:");
-        ports.forEach((port) => {
+        cliLogger.log("Available USB devices:");
+        usbPorts.forEach((port) => {
           console.log(
             `  ${port.path}${port.manufacturer ? ` (${port.manufacturer})` : ""}${port.serialNumber ? ` [${port.serialNumber}]` : ""}`,
           );
@@ -481,6 +568,12 @@ async function main() {
 
     // Disconnect
     await esploader.disconnect();
+
+    // Force exit after a short delay to ensure clean shutdown
+    // This is necessary for node-usb which may have pending callbacks
+    setTimeout(() => {
+      process.exit(0);
+    }, 100);
 
     // Clean exit - let Electron handle the exit
     return;
