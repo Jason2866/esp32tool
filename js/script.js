@@ -110,22 +110,39 @@ const chunkSizes = [
 
 // blockSize: Size of each data block sent by ESP (in bytes)
 const blockSizes = [
-  { label: "31 B (Safe)", value: 31 },
+  { label: "31 B (Android)", value: 31 },
   { label: "62 B", value: 62 },
   { label: "124 B", value: 124 },
   { label: "248 B (CDC)", value: 248 },
+  { label: "256 B", value: 256 },
+  { label: "496 B", value: 496 },
+  { label: "512 B", value: 512 },
+  { label: "992 B", value: 992 },
   { label: "1024 B", value: 1024 },
-  { label: "4095 B (Desktop)", value: 4095 }
+  { label: "1984 B", value: 1984 },
+  { label: "2024 B", value: 2024 },
+  { label: "3968 B (Desktop)", value: 3968 },
+  { label: "4096 B (Maximum)", value: 4096 }
 ];
 
 // maxInFlight: Maximum unacknowledged bytes (in bytes)
 const maxInFlights = [
-  { label: "31 B (Safe)", value: 31 },
+  { label: "31 B (Android)", value: 31 },
   { label: "62 B", value: 62 },
   { label: "124 B", value: 124 },
-  { label: "248 B (CDC)", value: 248 },
+  { label: "248 B (Android CDC)", value: 248 },
+  { label: "512 B", value: 512 },
+  { label: "992 B", value: 992 },
   { label: "1024 B", value: 1024 },
-  { label: "8190 B (Desktop)", value: 8190 }
+  { label: "1984 B", value: 1984 },
+  { label: "2024 B", value: 2024 },
+  { label: "3968 B", value: 3968 },
+  { label: "4096 B", value: 4096 },
+  { label: "7936 B", value: 7936 },
+  { label: "8192 B", value: 8192 },
+  { label: "15872 B", value: 15872 },
+  { label: "31744 B", value: 31744 },
+  { label: "63488 B", value: 63488 }
 ];
 
 const bufferSize = 512;

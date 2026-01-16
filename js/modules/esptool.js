@@ -7194,7 +7194,8 @@ class ESPLoader extends EventTarget {
                     }
                     let blockSize;
                     let maxInFlight;
-                    if ((options === null || options === void 0 ? void 0 : options.blockSize) !== undefined && (options === null || options === void 0 ? void 0 : options.maxInFlight) !== undefined) {
+                    if ((options === null || options === void 0 ? void 0 : options.blockSize) !== undefined &&
+                        (options === null || options === void 0 ? void 0 : options.maxInFlight) !== undefined) {
                         // Use user-provided values if in advanced mode
                         blockSize = options.blockSize;
                         maxInFlight = options.maxInFlight;
