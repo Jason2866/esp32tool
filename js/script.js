@@ -256,7 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   autoscroll.addEventListener("click", clickAutoscroll);
   baudRateSelect.addEventListener("change", changeBaudRate);
-  advancedMode.addEventListener("click", clickAdvancedMode);
+  advancedMode.addEventListener("change", clickAdvancedMode);
   chunkSizeSelect.addEventListener("change", changeAdvancedParam);
   blockSizeSelect.addEventListener("change", changeAdvancedParam);
   maxInFlightSelect.addEventListener("change", changeAdvancedParam);
@@ -770,7 +770,7 @@ async function changeAdvancedParam() {
  */
 function updateAdvancedVisibility() {
   if (advancedMode.checked) {
-    advancedRow.style.display = "";
+    advancedRow.style.display = "flex";
     main.classList.add("advanced-active");
   } else {
     advancedRow.style.display = "none";
