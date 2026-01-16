@@ -1090,6 +1090,9 @@ div.clear {
   .main {
     padding-top: 80px;
   }
+  .main.advanced-active {
+    padding-top: 130px;
+  }
 
   #commands {
     min-width: unset;
@@ -1265,5 +1268,9 @@ div.clear {
     font-size: 14px;
     padding-left: 15px;
     padding-right: 15px;
+  }
+
+  .main.advanced-active {
+    padding-top: 140px;
   }
 }
