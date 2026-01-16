@@ -80,29 +80,7 @@ export const connect = async (logger: Logger) => {
 
   // Only open if not already open (requestSerialPort may return an opened port)
   if (!port.readable || !port.writable) {
-    // Windows Web Serial requires additional checks to prevent "open already in progress" errors
-    try {
-      await port.open({ baudRate: ESP_ROM_BAUD });
-    } catch (err) {
-      // If open failed due to already being in progress, wait and check state
-      if (err instanceof Error && err.message.includes("already in progress")) {
-        logger.log("Port open in progress, waiting for completion...");
-        // Wait for port to become ready (max 2 seconds)
-        for (let i = 0; i < 20; i++) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          if (port.readable && port.writable) {
-            logger.log("Port is now ready");
-            break;
-          }
-        }
-        // If still not ready, throw original error
-        if (!port.readable || !port.writable) {
-          throw err;
-        }
-      } else {
-        throw err;
-      }
-    }
+    await port.open({ baudRate: ESP_ROM_BAUD });
   }
 
   return new ESPLoader(port, logger);
@@ -116,29 +94,7 @@ export const connectWithPort = async (port: SerialPort, logger: Logger) => {
 
   // Check if port is already open, if not open it
   if (!port.readable || !port.writable) {
-    // Windows Web Serial requires additional checks to prevent "open already in progress" errors
-    try {
-      await port.open({ baudRate: ESP_ROM_BAUD });
-    } catch (err) {
-      // If open failed due to already being in progress, wait and check state
-      if (err instanceof Error && err.message.includes("already in progress")) {
-        logger.log("Port open in progress, waiting for completion...");
-        // Wait for port to become ready (max 2 seconds)
-        for (let i = 0; i < 20; i++) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          if (port.readable && port.writable) {
-            logger.log("Port is now ready");
-            break;
-          }
-        }
-        // If still not ready, throw original error
-        if (!port.readable || !port.writable) {
-          throw err;
-        }
-      } else {
-        throw err;
-      }
-    }
+    await port.open({ baudRate: ESP_ROM_BAUD });
   }
 
   return new ESPLoader(port, logger);
