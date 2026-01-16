@@ -2932,6 +2932,10 @@ export class ESPLoader extends EventTarget {
    * @param addr - Address to read from
    * @param size - Number of bytes to read
    * @param onPacketReceived - Optional callback function called when packet is received
+   * @param options - Optional parameters for advanced control
+   *   - chunkSize: Amount of data to request from ESP in one command (bytes)
+   *   - blockSize: Size of each data block sent by ESP (bytes)
+   *   - maxInFlight: Maximum unacknowledged bytes (bytes)
    * @returns Uint8Array containing the flash data
    */
   async readFlash(
@@ -2942,6 +2946,11 @@ export class ESPLoader extends EventTarget {
       progress: number,
       totalSize: number,
     ) => void,
+    options?: {
+      chunkSize?: number;
+      blockSize?: number;
+      maxInFlight?: number;
+    },
   ): Promise<Uint8Array> {
     if (!this.IS_STUB) {
       throw new Error(
@@ -2981,7 +2990,13 @@ export class ESPLoader extends EventTarget {
     // For WebUSB (Android), use smaller chunks to avoid timeouts and buffer issues
     // For Web Serial (Desktop), use larger chunks for better performance
     let CHUNK_SIZE: number;
-    if (this.isWebUSB()) {
+    if (options?.chunkSize !== undefined) {
+      // Use user-provided chunkSize if in advanced mode
+      CHUNK_SIZE = options.chunkSize;
+      this.logger.log(
+        `Using custom chunk size: 0x${CHUNK_SIZE.toString(16)} bytes`,
+      );
+    } else if (this.isWebUSB()) {
       // WebUSB: Use smaller chunks to avoid SLIP timeout issues
       CHUNK_SIZE = 0x4 * 0x1000; // 4KB = 16384 bytes
     } else {
@@ -3016,7 +3031,19 @@ export class ESPLoader extends EventTarget {
           let blockSize: number;
           let maxInFlight: number;
 
-          if (this.isWebUSB()) {
+          if (
+            options?.blockSize !== undefined &&
+            options?.maxInFlight !== undefined
+          ) {
+            // Use user-provided values if in advanced mode
+            blockSize = options.blockSize;
+            maxInFlight = options.maxInFlight;
+            if (retryCount === 0) {
+              this.logger.debug(
+                `Using custom parameters: blockSize=${blockSize}, maxInFlight=${maxInFlight}`,
+              );
+            }
+          } else if (this.isWebUSB()) {
             // WebUSB (Android): All devices use adaptive speed
             // All have maxTransferSize=64, baseBlockSize=31
             const maxTransferSize =

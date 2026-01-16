@@ -83,6 +83,20 @@
         <label for="baudRate">Baud</label>
         <select id="baudRate"></select>
         
+        <label for="advanced">Advanced</label>
+        <div class="onoffswitch">
+          <input
+            type="checkbox"
+            name="advanced"
+            class="onoffswitch-checkbox"
+            id="advanced"
+          />
+          <label class="onoffswitch-label" for="advanced">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+          </label>
+        </div>
+        
         <label for="showlog">Show Log</label>
         <div class="onoffswitch">
           <input
@@ -98,37 +112,10 @@
         </div>
 
         <span class="log-controls">
-          <label for="autoscroll">Autoscroll</label>
-          <div class="onoffswitch">
-            <input
-              type="checkbox"
-              name="autoscroll"
-              class="onoffswitch-checkbox"
-              id="autoscroll"
-            />
-            <label class="onoffswitch-label" for="autoscroll">
-              <span class="onoffswitch-inner"></span>
-              <span class="onoffswitch-switch"></span>
-            </label>
-          </div>
           <button id="butClear" type="button" class="small-btn">
             Clear
           </button>
         </span>
-
-        <label for="debugmode">Debug</label>
-        <div class="onoffswitch">
-          <input
-            type="checkbox"
-            name="debugmode"
-            class="onoffswitch-checkbox"
-            id="debugmode"
-          />
-          <label class="onoffswitch-label" for="debugmode">
-            <span class="onoffswitch-inner"></span>
-            <span class="onoffswitch-switch"></span>
-          </label>
-        </div>
 
         <label for="darkmode">Dark</label>
         <div class="onoffswitch">
@@ -139,6 +126,44 @@
             id="darkmode"
           />
           <label class="onoffswitch-label" for="darkmode">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="header-content advanced-row" style="display: none;">
+        <label for="chunkSize">Chunk</label>
+        <select id="chunkSize"></select>
+        <label for="blockSize">Block</label>
+        <select id="blockSize"></select>
+        <label for="maxInFlight">MaxInFlight</label>
+        <select id="maxInFlight"></select>
+        
+        <label for="autoscroll">Autoscroll</label>
+        <div class="onoffswitch">
+          <input
+            type="checkbox"
+            name="autoscroll"
+            class="onoffswitch-checkbox"
+            id="autoscroll"
+            checked
+          />
+          <label class="onoffswitch-label" for="autoscroll">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+          </label>
+        </div>
+        
+        <label for="debugmode">Debug</label>
+        <div class="onoffswitch">
+          <input
+            type="checkbox"
+            name="debugmode"
+            class="onoffswitch-checkbox"
+            id="debugmode"
+          />
+          <label class="onoffswitch-label" for="debugmode">
             <span class="onoffswitch-inner"></span>
             <span class="onoffswitch-switch"></span>
           </label>

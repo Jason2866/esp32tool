@@ -5,7 +5,7 @@
 .header {
   box-sizing: border-box;
   font-size: 16px;
-  height: 85px;
+  min-height: 85px;
   padding: 15px 70px;
   position: fixed;
   width: 100%;
@@ -13,8 +13,9 @@
   margin: 0;
   border-bottom: 5px solid #00a7e9;
   display: flex;
+  flex-direction: column;
   justify-content: flex-start;
-  align-items: center;
+  align-items: flex-start;
   top: 0;
   transition: transform 0.3s ease-in-out;
   overflow-x: auto;
@@ -32,6 +33,11 @@
   gap: 10px;
   flex-wrap: nowrap;
   white-space: nowrap;
+  width: 100%;
+}
+
+.header-content.advanced-row {
+  margin-top: 10px;
 }
 
 .header-content > label {
@@ -124,6 +130,10 @@ div.clear {
   overflow-y: auto;
   padding-top: 90px;
   transition: padding-top 0.3s ease-in-out;
+}
+
+.main.advanced-active {
+  padding-top: 140px;
 }
 
 .main.no-header-padding {
@@ -1080,6 +1090,9 @@ div.clear {
   .main {
     padding-top: 80px;
   }
+  .main.advanced-active {
+    padding-top: 130px;
+  }
 
   #commands {
     min-width: unset;
@@ -1255,5 +1268,9 @@ div.clear {
     font-size: 14px;
     padding-left: 15px;
     padding-right: 15px;
+  }
+
+  .main.advanced-active {
+    padding-top: 120px;
   }
 }
