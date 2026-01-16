@@ -78,9 +78,37 @@ export const connect = async (logger: Logger) => {
     port = await navigator.serial.requestPort();
   }
 
+  // Debug: Log port state after requestPort
+  logger.log(`Port state after requestPort: readable=${!!port.readable}, writable=${!!port.writable}`);
+
   // Only open if not already open (requestSerialPort may return an opened port)
   if (!port.readable || !port.writable) {
-    await port.open({ baudRate: ESP_ROM_BAUD });
+    logger.log("Attempting to open port...");
+    } catch (err) {
+      logger.error(`Port open failed: ${err instanceof Error ? err.message : err}`);
+      // If open failed due to already being in progress, wait for the existing open to complete
+      if (err instanceof Error && err.message.includes("already in progress")) {
+        logger.log("ERROR: 'open already in progress' - This means another open() call is running!");
+        logger.log("Waiting for port to become ready...");
+        // Wait for port to become ready (max 3 seconds)
+        const maxWaitTime = 3000;
+        const startTime = Date.now();
+        while (!port.readable || !port.writable) {
+          if (Date.now() - startTime > maxWaitTime) {
+            throw new Error("Timeout waiting for port to open. Please try again.");
+          }
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        logger.log("Port is now ready");
+      } else {
+        throw err;
+      }
+    }
+  } else {
+    logger.log("Port already open (readable and writable)");
+  }     throw err;
+      }
+    }
   }
 
   return new ESPLoader(port, logger);
@@ -94,7 +122,27 @@ export const connectWithPort = async (port: SerialPort, logger: Logger) => {
 
   // Check if port is already open, if not open it
   if (!port.readable || !port.writable) {
-    await port.open({ baudRate: ESP_ROM_BAUD });
+    // Windows Web Serial: Port may already be in the process of opening
+    try {
+      await port.open({ baudRate: ESP_ROM_BAUD });
+    } catch (err) {
+      // If open failed due to already being in progress, wait for it to complete
+      if (err instanceof Error && err.message.includes("already in progress")) {
+        logger.log("Port is opening, waiting for it to be ready...");
+        // Wait for port to become ready (max 3 seconds)
+        const maxWaitTime = 3000;
+        const startTime = Date.now();
+        while (!port.readable || !port.writable) {
+          if (Date.now() - startTime > maxWaitTime) {
+            throw new Error("Timeout waiting for port to open. Please try again.");
+          }
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        logger.log("Port is now ready");
+      } else {
+        throw err;
+      }
+    }
   }
 
   return new ESPLoader(port, logger);
