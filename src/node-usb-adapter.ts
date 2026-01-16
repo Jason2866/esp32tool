@@ -77,8 +77,11 @@ export function createNodeUSBAdapter(
       logger.log(`Opening USB device at ${baudRate} baud...`);
 
       // Open device
-      device.open();
-
+      try {
+        device.open();
+      } catch (err: any) {
+        throw new Error(`Failed to open USB device: ${err.message}`);
+      }
       // Select configuration
       try {
         if (device.configDescriptor?.bConfigurationValue !== 1) {
