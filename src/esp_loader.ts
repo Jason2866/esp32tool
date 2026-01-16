@@ -1861,7 +1861,28 @@ export class ESPLoader extends EventTarget {
       await this.port.close();
 
       // Reopen Port
-      await this.port.open({ baudRate: baud });
+      try {
+        await this.port.open({ baudRate: baud });
+      } catch (err) {
+        // Windows Web Serial: Handle "already in progress" errors
+        if (err instanceof Error && err.message.includes("already in progress")) {
+          this.logger.debug("Port open in progress during reconfigure, waiting...");
+          // Wait for port to become ready (max 2 seconds)
+          for (let i = 0; i < 20; i++) {
+            await sleep(100);
+            if (this.port.readable && this.port.writable) {
+              this.logger.debug("Port is now ready");
+              break;
+            }
+          }
+          // If still not ready, throw original error
+          if (!this.port.readable || !this.port.writable) {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
 
       // Clear buffer again
       await this.flushSerialBuffers();
@@ -2778,7 +2799,25 @@ export class ESPLoader extends EventTarget {
         await this.port.open({ baudRate: ESP_ROM_BAUD });
         this.connected = true;
       } catch (err) {
-        throw new Error(`Failed to open port: ${err}`);
+        // Windows Web Serial: Handle "already in progress" errors
+        if (err instanceof Error && err.message.includes("already in progress")) {
+          this.logger.log("Port open in progress during reconnect, waiting...");
+          // Wait for port to become ready (max 2 seconds)
+          for (let i = 0; i < 20; i++) {
+            await sleep(100);
+            if (this.port.readable && this.port.writable) {
+              this.logger.log("Port is now ready");
+              this.connected = true;
+              break;
+            }
+          }
+          // If still not ready, throw original error
+          if (!this.port.readable || !this.port.writable) {
+            throw new Error(`Failed to open port: ${err}`);
+          }
+        } else {
+          throw new Error(`Failed to open port: ${err}`);
+        }
       }
 
       // Verify port streams are available
