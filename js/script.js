@@ -96,6 +96,38 @@ function clearAllCachedData() {
 }
 
 const baudRates = [2000000, 1500000, 921600, 500000, 460800, 230400, 153600, 128000, 115200];
+
+// Advanced read flash parameters
+// chunkSize: Amount of data to request from ESP in one command (in KB)
+const chunkSizes = [
+  { label: "4 KB", value: 0x1000 },
+  { label: "8 KB", value: 0x2000 },
+  { label: "16 KB (WebUSB)", value: 0x4000 },
+  { label: "64 KB", value: 0x10000 },
+  { label: "128 KB", value: 0x20000 },
+  { label: "256 KB (Desktop)", value: 0x40000 }
+];
+
+// blockSize: Size of each data block sent by ESP (in bytes)
+const blockSizes = [
+  { label: "31 B (Safe)", value: 31 },
+  { label: "62 B", value: 62 },
+  { label: "124 B", value: 124 },
+  { label: "248 B (CDC)", value: 248 },
+  { label: "1024 B", value: 1024 },
+  { label: "4095 B (Desktop)", value: 4095 }
+];
+
+// maxInFlight: Maximum unacknowledged bytes (in bytes)
+const maxInFlights = [
+  { label: "31 B (Safe)", value: 31 },
+  { label: "62 B", value: 62 },
+  { label: "124 B", value: 124 },
+  { label: "248 B (CDC)", value: 248 },
+  { label: "1024 B", value: 1024 },
+  { label: "8190 B (Desktop)", value: 8190 }
+];
+
 const bufferSize = 512;
 const colors = ["#00a7e9", "#f89521", "#be1e2d"];
 const measurementPeriodId = "0001";
@@ -107,6 +139,12 @@ const maxLogLength = 100;
 const log = document.getElementById("log");
 const butConnect = document.getElementById("butConnect");
 const baudRateSelect = document.getElementById("baudRate");
+const advancedMode = document.getElementById("advanced");
+const advancedRow = document.querySelector(".advanced-row");
+const main = document.querySelector(".main");
+const chunkSizeSelect = document.getElementById("chunkSize");
+const blockSizeSelect = document.getElementById("blockSize");
+const maxInFlightSelect = document.getElementById("maxInFlight");
 const butClear = document.getElementById("butClear");
 const butErase = document.getElementById("butErase");
 const butProgram = document.getElementById("butProgram");
@@ -201,6 +239,10 @@ document.addEventListener("DOMContentLoaded", () => {
   
   autoscroll.addEventListener("click", clickAutoscroll);
   baudRateSelect.addEventListener("change", changeBaudRate);
+  advancedMode.addEventListener("click", clickAdvancedMode);
+  chunkSizeSelect.addEventListener("change", changeAdvancedParam);
+  blockSizeSelect.addEventListener("change", changeAdvancedParam);
+  maxInFlightSelect.addEventListener("change", changeAdvancedParam);
   darkMode.addEventListener("click", clickDarkMode);
   debugMode.addEventListener("click", clickDebugMode);
   showLog.addEventListener("click", clickShowLog);
@@ -245,6 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   initBaudRate();
+  initAdvancedParams();
   loadAllSettings();
   updateTheme();
   logMsg("ESP32Tool loaded.");
@@ -257,6 +300,38 @@ function initBaudRate() {
     option.value = rate;
     baudRateSelect.add(option);
   }
+}
+
+function initAdvancedParams() {
+  // Initialize chunkSize dropdown
+  for (let item of chunkSizes) {
+    const option = document.createElement("option");
+    option.text = item.label;
+    option.value = item.value;
+    chunkSizeSelect.add(option);
+  }
+  // Set default: 16 KB for WebUSB, 256 KB for Desktop
+  chunkSizeSelect.value = 0x4000; // 16 KB default
+
+  // Initialize blockSize dropdown
+  for (let item of blockSizes) {
+    const option = document.createElement("option");
+    option.text = item.label;
+    option.value = item.value;
+    blockSizeSelect.add(option);
+  }
+  // Set default: 4095 B for Desktop
+  blockSizeSelect.value = 4095;
+
+  // Initialize maxInFlight dropdown
+  for (let item of maxInFlights) {
+    const option = document.createElement("option");
+    option.text = item.label;
+    option.value = item.value;
+    maxInFlightSelect.add(option);
+  }
+  // Set default: 8190 B for Desktop
+  maxInFlightSelect.value = 8190;
 }
 
 function logMsg(text) {
@@ -650,6 +725,39 @@ function updateLogVisibility() {
     if (logControls) {
       logControls.classList.add("hidden");
     }
+  }
+}
+
+/**
+ * @name clickAdvancedMode
+ * Change handler for the Advanced Mode checkbox.
+ */
+async function clickAdvancedMode() {
+  saveSetting("advanced", advancedMode.checked);
+  updateAdvancedVisibility();
+}
+
+/**
+ * @name changeAdvancedParam
+ * Change handler for advanced parameter dropdowns.
+ */
+async function changeAdvancedParam() {
+  saveSetting("chunkSize", parseInt(chunkSizeSelect.value));
+  saveSetting("blockSize", parseInt(blockSizeSelect.value));
+  saveSetting("maxInFlight", parseInt(maxInFlightSelect.value));
+}
+
+/**
+ * @name updateAdvancedVisibility
+ * Update advanced controls visibility
+ */
+function updateAdvancedVisibility() {
+  if (advancedMode.checked) {
+    advancedRow.style.display = "";
+    main.classList.add("advanced-active");
+  } else {
+    advancedRow.style.display = "none";
+    main.classList.remove("advanced-active");
   }
 }
 
@@ -1059,13 +1167,25 @@ async function clickReadFlash() {
   try {
     const progressBar = readProgress.querySelector("div");
 
+    // Prepare options object if advanced mode is enabled
+    let options = undefined;
+    if (advancedMode.checked) {
+      options = {
+        chunkSize: parseInt(chunkSizeSelect.value),
+        blockSize: parseInt(blockSizeSelect.value),
+        maxInFlight: parseInt(maxInFlightSelect.value)
+      };
+      logMsg(`Advanced mode: chunkSize=0x${options.chunkSize.toString(16)}, blockSize=${options.blockSize}, maxInFlight=${options.maxInFlight}`);
+    }
+
     const data = await espStub.readFlash(
       offset,
       size,
       (packet, progress, totalSize) => {
         progressBar.style.width =
           Math.floor((progress / totalSize) * 100) + "%";
-      }
+      },
+      options
     );
 
     logMsg(`Successfully read ${data.length} bytes from flash`);
@@ -1436,11 +1556,20 @@ function loadAllSettings() {
   autoscroll.checked = loadSetting("autoscroll", true);
   baudRateSelect.value = loadSetting("baudrate", 2000000);
   darkMode.checked = loadSetting("darkmode", false);
-  debugMode.checked = loadSetting("debugmode", true);
+  debugMode.checked = loadSetting("debugmode", false);
   showLog.checked = loadSetting("showlog", false);
+  advancedMode.checked = loadSetting("advanced", false);
+  
+  // Load advanced parameters
+  chunkSizeSelect.value = loadSetting("chunkSize", 0x4000); // 16 KB default
+  blockSizeSelect.value = loadSetting("blockSize", 4095); // 4095 B default
+  maxInFlightSelect.value = loadSetting("maxInFlight", 8190); // 8190 B default
   
   // Apply show log setting
   updateLogVisibility();
+  
+  // Apply advanced mode visibility
+  updateAdvancedVisibility();
 }
 
 function loadSetting(setting, defaultValue) {
