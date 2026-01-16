@@ -79,25 +79,36 @@ export const connect = async (logger: Logger) => {
   }
 
   // Debug: Log port state after requestPort
-  logger.log(`Port state after requestPort: readable=${!!port.readable}, writable=${!!port.writable}`);
+  logger.log(
+    `Port state after requestPort: readable=${!!port.readable}, writable=${!!port.writable}`,
+  );
 
   // Only open if not already open (requestSerialPort may return an opened port)
   if (!port.readable || !port.writable) {
     logger.log("Attempting to open port...");
+    try {
+      await port.open({ baudRate: ESP_ROM_BAUD });
+      logger.log("Port opened successfully");
     } catch (err) {
-      logger.error(`Port open failed: ${err instanceof Error ? err.message : err}`);
+      logger.error(
+        `Port open failed: ${err instanceof Error ? err.message : err}`,
+      );
       // If open failed due to already being in progress, wait for the existing open to complete
       if (err instanceof Error && err.message.includes("already in progress")) {
-        logger.log("ERROR: 'open already in progress' - This means another open() call is running!");
+        logger.log(
+          "ERROR: 'open already in progress' - This means another open() call is running!",
+        );
         logger.log("Waiting for port to become ready...");
         // Wait for port to become ready (max 3 seconds)
         const maxWaitTime = 3000;
         const startTime = Date.now();
         while (!port.readable || !port.writable) {
           if (Date.now() - startTime > maxWaitTime) {
-            throw new Error("Timeout waiting for port to open. Please try again.");
+            throw new Error(
+              "Timeout waiting for port to open. Please try again.",
+            );
           }
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise((resolve) => setTimeout(resolve, 50));
         }
         logger.log("Port is now ready");
       } else {
@@ -106,9 +117,6 @@ export const connect = async (logger: Logger) => {
     }
   } else {
     logger.log("Port already open (readable and writable)");
-  }     throw err;
-      }
-    }
   }
 
   return new ESPLoader(port, logger);
@@ -134,9 +142,11 @@ export const connectWithPort = async (port: SerialPort, logger: Logger) => {
         const startTime = Date.now();
         while (!port.readable || !port.writable) {
           if (Date.now() - startTime > maxWaitTime) {
-            throw new Error("Timeout waiting for port to open. Please try again.");
+            throw new Error(
+              "Timeout waiting for port to open. Please try again.",
+            );
           }
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise((resolve) => setTimeout(resolve, 50));
         }
         logger.log("Port is now ready");
       } else {
