@@ -1185,14 +1185,31 @@ async function clickReadFlash() {
     const progressBar = readProgress.querySelector("div");
 
     // Prepare options object if advanced mode is enabled
+    // Option validation helpers
+    const validateOption = (name, value) => {
+      if (value === undefined) return undefined;
+      if (!Number.isFinite(value) || value <= 0) {
+        throw new Error(`Invalid ${name}: ${value}`);
+      }
+      return value;
+    };
+
     let options = undefined;
+    let chunkSizeOpt, blockSizeOpt, maxInFlightOpt;
     if (advancedMode.checked) {
+      chunkSizeOpt = validateOption("chunkSize", parseInt(chunkSizeSelect.value));
+      blockSizeOpt = validateOption("blockSize", parseInt(blockSizeSelect.value));
+      maxInFlightOpt = validateOption("maxInFlight", parseInt(maxInFlightSelect.value));
+      if ((blockSizeOpt ?? maxInFlightOpt) &&
+          (blockSizeOpt === undefined || maxInFlightOpt === undefined)) {
+        throw new Error("blockSize and maxInFlight must be provided together");
+      }
       options = {
-        chunkSize: parseInt(chunkSizeSelect.value),
-        blockSize: parseInt(blockSizeSelect.value),
-        maxInFlight: parseInt(maxInFlightSelect.value)
+        chunkSize: chunkSizeOpt,
+        blockSize: blockSizeOpt,
+        maxInFlight: maxInFlightOpt
       };
-      logMsg(`Advanced mode: chunkSize=0x${options.chunkSize.toString(16)}, blockSize=${options.blockSize}, maxInFlight=${options.maxInFlight}`);
+      logMsg(`Advanced mode: chunkSize=0x${options.chunkSize?.toString(16)}, blockSize=${options.blockSize}, maxInFlight=${options.maxInFlight}`);
     }
 
     const data = await espStub.readFlash(
