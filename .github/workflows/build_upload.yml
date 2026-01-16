@@ -47,10 +47,43 @@ jobs:
           cp dist/web/*.js js/modules/
           mv js/modules/index.js js/modules/esptool.js
           #ls js/modules/
+      - name: Generate PWA Icons
+        run: |
+          # Check if ImageMagick is available
+          if command -v convert &> /dev/null; then
+            echo "ImageMagick found, generating icons..."
+            chmod +x generate-icons.sh
+            ./generate-icons.sh
+          else
+            echo "ImageMagick not found, installing..."
+            sudo apt-get update
+            sudo apt-get install -y imagemagick
+            chmod +x generate-icons.sh
+            ./generate-icons.sh
+          fi
+      - name: Validate PWA Files
+        run: |
+          echo "Checking PWA files..."
+          if [ ! -f "manifest.json" ]; then
+            echo "Error: manifest.json not found!"
+            exit 1
+          fi
+          if [ ! -f "sw.js" ]; then
+            echo "Error: sw.js not found!"
+            exit 1
+          fi
+          if [ ! -d "icons" ]; then
+            echo "Error: icons directory not found!"
+            exit 1
+          fi
+          echo "PWA files validated successfully!"
+          echo "Icon files:"
+          ls -lh icons/
       - name: Commit Distribution Files
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "Github Action: Updated dist files"
+          commit_message: "Github Action: Updated dist files and PWA assets"
+          file_pattern: "js/modules/*.js icons/*.png screenshots/*.png manifest.json sw.js favicon.ico apple-touch-icon.png"
       - name: Publish to NPM registry (OIDC Trusted Publishing)
         uses: JS-DevTools/npm-publish@v4
         with:
@@ -58,10 +91,30 @@ jobs:
           strategy: all
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      - name: Create deployment directory
+        run: |
+          mkdir -p _site
+          # Copy all necessary files for PWA deployment
+          cp -r css _site/
+          cp -r js _site/
+          cp -r src _site/
+          cp -r icons _site/
+          cp -r screenshots _site/ 2>/dev/null || echo "No screenshots directory"
+          cp -r electron _site/ 2>/dev/null || echo "No electron directory needed for web"
+          cp index.html _site/
+          cp manifest.json _site/
+          cp sw.js _site/
+          cp install-android.html _site/
+          cp favicon.ico _site/ 2>/dev/null || echo "No favicon.ico"
+          cp apple-touch-icon.png _site/ 2>/dev/null || echo "No apple-touch-icon.png"
+          cp .nojekyll _site/
+          cp README.md _site/ 2>/dev/null || echo "No README needed for deployment"
+          echo "Deployment directory contents:"
+          ls -la _site/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: "."
+          path: "_site"
 
   deploy:
     needs: build

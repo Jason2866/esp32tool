@@ -5,6 +5,14 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Flash & Read ESP devices using WebSerial and WebUSB" />
+    <meta name="theme-color" content="#1a1a1a" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ESP32Tool" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <script>
       // Redirect to HTTPS if HTTP is requested.
       if (
@@ -33,92 +41,114 @@
     />
 
     <!-- import the webpage's javascript file -->
-    <script module>
+    <script type="module">
       window.esptoolPackage = import(
-        // In development we import locally.
-        window.location.hostname === "localhost"
-          ? "./js/modules/esptool.js"
-          : "./js/modules/esptool.js"
+        "./js/modules/esptool.js"
       );
     </script>
-    <script src="js/script.js" module defer></script>
+    <script src="js/script.js" type="module" defer></script>
+
+    <script>
+      // Service Worker for PWA functionality
+      // Derive base path from current document URL (more robust than repo-name regex)
+      const basePath = new URL(".", window.location.href).pathname;
+      
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register(basePath + 'sw.js', { scope: basePath })
+            .then((registration) => {
+              console.log('[PWA] Service Worker registered:', registration.scope);
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('[PWA] New version available! Reload to update.');
+                  }
+                });
+              });
+            })
+            .catch((error) => {
+              console.log('[PWA] Service Worker registration failed:', error);
+            });
+        });
+      }
+    </script>
   </head>
   <body>
     <header class="header">
-      <div class="left">
-        <div class="title">ESP32Tool</div>
-      </div>
-      <div class="right">
-        <div class="controls-row">
-          <label for="showlog">Show Log</label>
-          <div class="onoffswitch">
-            <input
-              type="checkbox"
-              name="showlog"
-              class="onoffswitch-checkbox"
-              id="showlog"
-            />
-            <label class="onoffswitch-label" for="showlog">
-              <span class="onoffswitch-inner"></span>
-              <span class="onoffswitch-switch"></span>
-            </label>
-          </div>
-
-          <span class="log-controls">
-            <label for="autoscroll">Autoscroll</label>
-            <div class="onoffswitch">
-              <input
-                type="checkbox"
-                name="autoscroll"
-                class="onoffswitch-checkbox"
-                id="autoscroll"
-              />
-              <label class="onoffswitch-label" for="autoscroll">
-                <span class="onoffswitch-inner"></span>
-                <span class="onoffswitch-switch"></span>
-              </label>
-            </div>
-            <button id="butClear" type="button" class="small-btn">
-              Clear
-            </button>
-          </span>
-
-          <label for="debugmode">Debug</label>
-          <div class="onoffswitch">
-            <input
-              type="checkbox"
-              name="debugmode"
-              class="onoffswitch-checkbox"
-              id="debugmode"
-            />
-            <label class="onoffswitch-label" for="debugmode">
-              <span class="onoffswitch-inner"></span>
-              <span class="onoffswitch-switch"></span>
-            </label>
-          </div>
-
-          <label for="darkmode">Dark</label>
-          <div class="onoffswitch">
-            <input
-              type="checkbox"
-              name="darkmode"
-              class="onoffswitch-checkbox"
-              id="darkmode"
-            />
-            <label class="onoffswitch-label" for="darkmode">
-              <span class="onoffswitch-inner"></span>
-              <span class="onoffswitch-switch"></span>
-            </label>
-          </div>
-        </div>
-        <select id="baudRate"></select>
+      <div class="header-content">
         <button id="butConnect" type="button">Connect</button>
+        <label for="baudRate">Baud</label>
+        <select id="baudRate"></select>
+        
+        <label for="showlog">Show Log</label>
+        <div class="onoffswitch">
+          <input
+            type="checkbox"
+            name="showlog"
+            class="onoffswitch-checkbox"
+            id="showlog"
+          />
+          <label class="onoffswitch-label" for="showlog">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+          </label>
+        </div>
+
+        <span class="log-controls">
+          <label for="autoscroll">Autoscroll</label>
+          <div class="onoffswitch">
+            <input
+              type="checkbox"
+              name="autoscroll"
+              class="onoffswitch-checkbox"
+              id="autoscroll"
+            />
+            <label class="onoffswitch-label" for="autoscroll">
+              <span class="onoffswitch-inner"></span>
+              <span class="onoffswitch-switch"></span>
+            </label>
+          </div>
+          <button id="butClear" type="button" class="small-btn">
+            Clear
+          </button>
+        </span>
+
+        <label for="debugmode">Debug</label>
+        <div class="onoffswitch">
+          <input
+            type="checkbox"
+            name="debugmode"
+            class="onoffswitch-checkbox"
+            id="debugmode"
+          />
+          <label class="onoffswitch-label" for="debugmode">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+          </label>
+        </div>
+
+        <label for="darkmode">Dark</label>
+        <div class="onoffswitch">
+          <input
+            type="checkbox"
+            name="darkmode"
+            class="onoffswitch-checkbox"
+            id="darkmode"
+          />
+          <label class="onoffswitch-label" for="darkmode">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+          </label>
+        </div>
       </div>
     </header>
     <main class="main">
       <div id="notSupported" class="notSupported">
-        Sorry, <b>Web Serial</b> is not supported on this device, make sure
-        you're running Chrome 89 or later.
+        Sorry, <b>Web Serial</b> or <b>WebUSB</b> is not supported on this device. 
+        Make sure you're running Chrome 89 or later (Desktop) or Chrome 61+ (Android with USB OTG).
       </div>
       <div id="app">
         <div id="commands">
