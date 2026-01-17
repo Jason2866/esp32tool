@@ -572,7 +572,7 @@ class WebUSBSerial {
                 return await this._setSignalsCDC(signals);
             }
         }).catch(err => {
-            console.error('[WebUSB] setSignals error:', err);
+            this._log('[WebUSB] setSignals error:', err);
             throw err;
         });
         
@@ -599,7 +599,7 @@ class WebUSBSerial {
             await new Promise(resolve => setTimeout(resolve, 50));
             return result;
         } catch (e) {
-            console.error(`[WebUSB CDC] Failed to set signals: ${e.message}`);
+            this._log(`[WebUSB CDC] Failed to set signals: ${e.message}`);
             throw e;
         }
     }
