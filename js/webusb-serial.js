@@ -102,13 +102,13 @@ class WebUSBSerial {
                 // Wait a bit for device to settle
                 await new Promise(resolve => setTimeout(resolve, 100));
             } catch (e) {
-                console.warn('[WebUSB] Error during close:', e.message);
+                this._log('[WebUSB] Error during close:', e.message);
             }
         }
         
         if (this.device.opened) {
             try { await this.device.close(); } catch (e) { 
-                console.warn('[WebUSB] Error closing device:', e.message);
+                this._log('[WebUSB] Error closing device:', e.message);
             }
         }
 
@@ -117,7 +117,7 @@ class WebUSBSerial {
                 await this.device.reset(); 
             } 
         } catch (e) { 
-            console.warn('[WebUSB] Device reset failed:', e.message);
+            this._log('[WebUSB] Device reset failed:', e.message);
         }
 
         const attemptOpenAndClaim = async () => {
@@ -196,7 +196,7 @@ class WebUSBSerial {
                     return config;
                 } catch (claimErr) {
                     lastErr = claimErr;
-                    console.warn(`[WebUSB] claim failed on iface ${cand.iface.interfaceNumber}: ${claimErr.message}`);
+                    this._log(`[WebUSB] claim failed on iface ${cand.iface.interfaceNumber}: ${claimErr.message}`);
                 }
             }
 
@@ -207,7 +207,7 @@ class WebUSBSerial {
         try {
             config = await attemptOpenAndClaim();
         } catch (err) {
-            console.warn('[WebUSB] open/claim failed, retrying after reset:', err.message);
+            this._log('[WebUSB] open/claim failed, retrying after reset:', err.message);
             try { if (this.device.reset) { await this.device.reset(); } } catch (e) { }
             try { await this.device.close(); } catch (e) { }
             try {
@@ -433,7 +433,7 @@ class WebUSBSerial {
                     index: this.controlInterface || 0
                 }, lineCoding);
             } catch (e) {
-                console.warn('Could not set line coding:', e.message);
+                this._log('Could not set line coding:', e.message);
             }
 
             // Initialize DTR/RTS to idle state (both HIGH/asserted)
@@ -446,7 +446,7 @@ class WebUSBSerial {
                     index: this.controlInterface || 0
                 });
             } catch (e) {
-                console.warn('Could not set control lines:', e.message);
+                this._log('Could not set control lines:', e.message);
             }
         }
         
@@ -490,7 +490,7 @@ class WebUSBSerial {
                 await this.device.close();
             } catch (e) {
                 if (!e.message || !e.message.includes('disconnected')) {
-                    console.warn('Error closing device:', e.message || e);
+                    this._log('Error closing device:', e.message || e);
                 }
             }
             // Keep device reference for potential reconfiguration
