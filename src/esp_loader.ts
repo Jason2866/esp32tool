@@ -1964,7 +1964,7 @@ export class ESPLoader extends EventTarget {
       if (this._abandonCurrentOperation) {
         return false;
       }
-      
+
       try {
         const [, data] = await this.getResponse(ESP_SYNC, SYNC_TIMEOUT);
         if (data.length > 1 && data[0] == 0 && data[1] == 0) {
@@ -1975,7 +1975,7 @@ export class ESPLoader extends EventTarget {
         if (this._abandonCurrentOperation) {
           return false;
         }
-        
+
         if (this.debug) {
           this.logger.debug(`Sync attempt ${i + 1} failed: ${e}`);
         }
