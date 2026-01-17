@@ -42,6 +42,7 @@ import {
   USB_RAM_BLOCK,
   ChipFamily,
   ESP_ERASE_FLASH,
+  ESP_ERASE_REGION,
   ESP_READ_FLASH,
   CHIP_ERASE_TIMEOUT,
   FLASH_READ_TIMEOUT,
@@ -512,6 +513,21 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
+   * Get MAC address from efuses
+   */
+  async getMacAddress(): Promise<string> {
+    if (!this._initializationSucceeded) {
+      throw new Error(
+        "getMacAddress() requires initialize() to have completed successfully",
+      );
+    }
+    const macBytes = this.macAddr(); // chip-family-aware
+    return macBytes
+      .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
+      .join(":");
+  }
+
+  /**
    * @name readLoop
    * Reads data from the input stream and places it in the inputBuffer
    */
@@ -571,6 +587,7 @@ export class ESPLoader extends EventTarget {
   }
 
   state_DTR = false;
+  state_RTS = false;
 
   // ============================================================================
   // Web Serial (Desktop) - DTR/RTS Signal Handling & Reset Strategies
@@ -645,15 +662,11 @@ export class ESPLoader extends EventTarget {
   }
 
   async setDTRWebUSB(state: boolean) {
-    console.log("[ESP_LOADER] setDTRWebUSB called:", state);
     this.state_DTR = state;
     await (this.port as any).setSignals({ dataTerminalReady: state });
   }
 
   async setDTRandRTSWebUSB(dtr: boolean, rts: boolean) {
-    console.log(
-      `[ESP_LOADER] setDTRandRTSWebUSB called: DTR=${dtr}, RTS=${rts}`,
-    );
     this.state_DTR = dtr;
     await (this.port as any).setSignals({
       dataTerminalReady: dtr,
@@ -862,7 +875,7 @@ export class ESPLoader extends EventTarget {
           // Strategy 1: USB-JTAG/Serial (works in CDC mode on Desktop)
           resetStrategies.push({
             name: "USB-JTAG/Serial (WebUSB) - ESP32-S2",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetUSBJTAGSerialWebUSB();
             },
           });
@@ -870,7 +883,7 @@ export class ESPLoader extends EventTarget {
           // Strategy 2: USB-JTAG/Serial Inverted DTR (works in JTAG mode)
           resetStrategies.push({
             name: "USB-JTAG/Serial Inverted DTR (WebUSB) - ESP32-S2",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetUSBJTAGSerialInvertedDTRWebUSB();
             },
           });
@@ -878,7 +891,7 @@ export class ESPLoader extends EventTarget {
           // Strategy 3: UnixTight (CDC fallback)
           resetStrategies.push({
             name: "UnixTight (WebUSB) - ESP32-S2 CDC",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetUnixTightWebUSB();
             },
           });
@@ -886,7 +899,7 @@ export class ESPLoader extends EventTarget {
           // Strategy 4: Classic reset (CDC fallback)
           resetStrategies.push({
             name: "Classic (WebUSB) - ESP32-S2 CDC",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetClassicWebUSB();
             },
           });
@@ -894,19 +907,19 @@ export class ESPLoader extends EventTarget {
           // Other USB-JTAG chips: Try Inverted DTR first - works best for ESP32-H2 and other JTAG chips
           resetStrategies.push({
             name: "USB-JTAG/Serial Inverted DTR (WebUSB)",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetUSBJTAGSerialInvertedDTRWebUSB();
             },
           });
           resetStrategies.push({
             name: "USB-JTAG/Serial (WebUSB)",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetUSBJTAGSerialWebUSB();
             },
           });
           resetStrategies.push({
             name: "Inverted DTR Classic (WebUSB)",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetInvertedDTRWebUSB();
             },
           });
@@ -924,31 +937,31 @@ export class ESPLoader extends EventTarget {
           // CH340/CH343: UnixTight works best (like CP2102)
           resetStrategies.push({
             name: "UnixTight (WebUSB) - CH34x",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetUnixTightWebUSB();
             },
           });
           resetStrategies.push({
             name: "Classic (WebUSB) - CH34x",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetClassicWebUSB();
             },
           });
           resetStrategies.push({
             name: "Inverted Both (WebUSB) - CH34x",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetInvertedWebUSB();
             },
           });
           resetStrategies.push({
             name: "Inverted RTS (WebUSB) - CH34x",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetInvertedRTSWebUSB();
             },
           });
           resetStrategies.push({
             name: "Inverted DTR (WebUSB) - CH34x",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetInvertedDTRWebUSB();
             },
           });
@@ -958,35 +971,35 @@ export class ESPLoader extends EventTarget {
 
           resetStrategies.push({
             name: "UnixTight (WebUSB) - CP2102",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetUnixTightWebUSB();
             },
           });
 
           resetStrategies.push({
             name: "Classic (WebUSB) - CP2102",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetClassicWebUSB();
             },
           });
 
           resetStrategies.push({
             name: "Inverted Both (WebUSB) - CP2102",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetInvertedWebUSB();
             },
           });
 
           resetStrategies.push({
             name: "Inverted RTS (WebUSB) - CP2102",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetInvertedRTSWebUSB();
             },
           });
 
           resetStrategies.push({
             name: "Inverted DTR (WebUSB) - CP2102",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetInvertedDTRWebUSB();
             },
           });
@@ -994,7 +1007,7 @@ export class ESPLoader extends EventTarget {
           // For other USB-Serial chips, try UnixTight first, then multiple strategies
           resetStrategies.push({
             name: "UnixTight (WebUSB)",
-            fn: async function () {
+            fn: async () => {
               return await self.hardResetUnixTightWebUSB();
             },
           });
@@ -1074,7 +1087,6 @@ export class ESPLoader extends EventTarget {
         }
       }
     } else {
-      // Web Serial (Desktop) strategies
       // Strategy: USB-JTAG/Serial reset
       if (isUSBJTAGSerial || isEspressifUSB) {
         resetStrategies.push({
@@ -1316,6 +1328,13 @@ export class ESPLoader extends EventTarget {
           statusLen = 4;
         } else if ([2, 4].includes(data.length)) {
           statusLen = data.length;
+        } else {
+          // Default to 2-byte status if we can't determine
+          // This prevents silent data corruption when statusLen would be 0
+          statusLen = 2;
+          this.logger.debug(
+            `Unknown chip family, defaulting to 2-byte status (opcode: ${toHex(opcode)}, data.length: ${data.length})`,
+          );
         }
       }
 
@@ -1370,105 +1389,6 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * @name readPacketCH340Android
-   * Byte-by-byte SLIP packet reader for Android WebUSB with CH340/CP2102
-   *
-   * This version reads ONE byte at a time with a SHORT timeout per byte,
-   * but tracks the TOTAL timeout for the entire packet.
-   *
-   * @param timeout - Maximum time to wait for complete packet in milliseconds
-   * @returns Array of bytes representing one SLIP packet (without framing bytes)
-   */
-  async readPacketCH340Android(timeout: number): Promise<number[]> {
-    let partialPacket: number[] | null = null;
-    let inEscape = false;
-    const packetStartTime = Date.now();
-    const PER_BYTE_TIMEOUT = 10; // 10ms per byte (enough for USB latency + ESP processing)
-
-    while (true) {
-      // Check TOTAL packet timeout
-      if (Date.now() - packetStartTime > timeout) {
-        const waitingFor = partialPacket === null ? "header" : "content";
-        throw new SlipReadError("Timed out waiting for packet " + waitingFor);
-      }
-
-      // Wait for ONE byte with SHORT timeout
-      const byteStartTime = Date.now();
-      let readBytes: number[] = [];
-
-      while (Date.now() - byteStartTime < PER_BYTE_TIMEOUT) {
-        if (this._inputBuffer.length > 0) {
-          readBytes.push(this._inputBuffer.shift()!);
-          break;
-        } else {
-          await sleep(1);
-        }
-      }
-
-      // Timeout for this byte - check if we should give up or continue
-      if (readBytes.length == 0) {
-        // If we haven't started the packet yet, keep waiting
-        if (partialPacket === null) {
-          continue; // Keep waiting for packet header
-        }
-        // If we're in the middle of a packet, this is an error
-        throw new SlipReadError("Timed out waiting for packet content");
-      }
-
-      // Process the ONE byte we just read
-      const b = readBytes[0];
-
-      if (partialPacket === null) {
-        // waiting for packet header
-        if (b == 0xc0) {
-          partialPacket = [];
-        } else {
-          if (this.debug) {
-            this.logger.debug("Read invalid data: " + toHex(b));
-            this.logger.debug(
-              "Remaining data in serial buffer: " +
-                hexFormatter(this._inputBuffer),
-            );
-          }
-          throw new SlipReadError("Invalid head of packet (" + toHex(b) + ")");
-        }
-      } else if (inEscape) {
-        // part-way through escape sequence
-        inEscape = false;
-        if (b == 0xdc) {
-          partialPacket.push(0xc0);
-        } else if (b == 0xdd) {
-          partialPacket.push(0xdb);
-        } else {
-          if (this.debug) {
-            this.logger.debug("Read invalid data: " + toHex(b));
-            this.logger.debug(
-              "Remaining data in serial buffer: " +
-                hexFormatter(this._inputBuffer),
-            );
-          }
-          throw new SlipReadError(
-            "Invalid SLIP escape (0xdb, " + toHex(b) + ")",
-          );
-        }
-      } else if (b == 0xdb) {
-        // start of escape sequence
-        inEscape = true;
-      } else if (b == 0xc0) {
-        // end of packet
-        if (this.debug)
-          this.logger.debug(
-            "Received full packet: " + hexFormatter(partialPacket),
-          );
-        return partialPacket;
-      } else {
-        // normal byte in packet
-        partialPacket.push(b);
-      }
-    }
-  }
-
-  /**
    * @name readPacket
    * Generator to read SLIP packets from a serial port.
    * Yields one full SLIP packet at a time, raises exception on timeout or invalid data.
@@ -1478,38 +1398,11 @@ export class ESPLoader extends EventTarget {
    * - Byte-by-byte: CH340, CP2102, and other USB-Serial adapters - stable fast processing
    */
   async readPacket(timeout: number): Promise<number[]> {
-    // Special handling for Android WebUSB with CH340/CP2102
-    // Use optimized batch reading for these problematic adapters
-    if (this.isWebUSB() && !this._isCDCDevice) {
-      const portInfo = this.port.getInfo();
-      const isCH343 =
-        portInfo.usbVendorId === 0x1a86 && portInfo.usbProductId === 0x55d3;
-
-      // CH340, CP2102, and other non-CH343 USB-Serial adapters on Android
-      if (!isCH343) {
-        return await this.readPacketCH340Android(timeout);
-      }
-    }
-
-    // Standard readPacket for Desktop and CDC devices
     let partialPacket: number[] | null = null;
     let inEscape = false;
 
-    // Determine which method to use based on device type
-    let useBurstProcessing = false;
-
+    // CDC devices use burst processing, non-CDC use byte-by-byte
     if (this._isCDCDevice) {
-      // CDC devices (Native USB) always use burst processing
-      useBurstProcessing = true;
-    } else {
-      // Only CH343 (CDC/ACM supported) can use burst, others need byte-by-byte
-      const portInfo = this.port.getInfo();
-      const isCH343 =
-        portInfo.usbVendorId === 0x1a86 && portInfo.usbProductId === 0x55d3;
-      useBurstProcessing = isCH343;
-    }
-
-    if (useBurstProcessing) {
       // Burst version: Process all available bytes in one pass for ultra-high-speed transfers
       // Used for: CDC devices (all platforms) and CH343
       const startTime = Date.now();
@@ -1694,7 +1587,7 @@ export class ESPLoader extends EventTarget {
         throw new Error(`Invalid (unsupported) command ${toHex(opcode)}`);
       }
     }
-    throw "Response doesn't match request";
+    throw new Error("Response doesn't match request");
   }
 
   /**
@@ -1784,9 +1677,9 @@ export class ESPLoader extends EventTarget {
           await sleep(100);
           return;
         } else if (isCH343) {
-          this.logger.log(
-            `[WebUSB] CH343 detected - using close/reopen for baudrate change`,
-          );
+          //          this.logger.log(
+          //            `[WebUSB] CH343 detected - using close/reopen for baudrate change`,
+          //          );
         }
       }
 
@@ -2505,13 +2398,21 @@ export class ESPLoader extends EventTarget {
         },
         async () => {
           // Previous write failed, but still attempt this write
+          this.logger.debug(
+            "Previous write failed, attempting recovery for current write",
+          );
           if (!this.port.writable) {
             throw new Error("Port became unavailable during write");
           }
 
           // Writer was likely cleaned up by previous error, create new one
           if (!this._writer) {
-            this._writer = this.port.writable.getWriter();
+            try {
+              this._writer = this.port.writable.getWriter();
+            } catch (err) {
+              this.logger.debug(`Failed to get writer in recovery: ${err}`);
+              throw new Error("Cannot acquire writer lock");
+            }
           }
 
           await this._writer.write(new Uint8Array(data));
@@ -2800,6 +2701,10 @@ export class ESPLoader extends EventTarget {
    * @param addr - Address to read from
    * @param size - Number of bytes to read
    * @param onPacketReceived - Optional callback function called when packet is received
+   * @param options - Optional parameters for advanced control
+   *   - chunkSize: Amount of data to request from ESP in one command (bytes)
+   *   - blockSize: Size of each data block sent by ESP (bytes)
+   *   - maxInFlight: Maximum unacknowledged bytes (bytes)
    * @returns Uint8Array containing the flash data
    */
   async readFlash(
@@ -2810,6 +2715,11 @@ export class ESPLoader extends EventTarget {
       progress: number,
       totalSize: number,
     ) => void,
+    options?: {
+      chunkSize?: number;
+      blockSize?: number;
+      maxInFlight?: number;
+    },
   ): Promise<Uint8Array> {
     if (!this.IS_STUB) {
       throw new Error(
@@ -2846,7 +2756,7 @@ export class ESPLoader extends EventTarget {
       CHUNK_SIZE = 0x4 * 0x1000; // 4KB = 16384 bytes
     } else {
       // Web Serial: Use larger chunks for better performance
-      CHUNK_SIZE = 0x80 * 0x1000;
+      CHUNK_SIZE = 0x40 * 0x1000;
     }
 
     let allData = new Uint8Array(0);
@@ -3014,9 +2924,8 @@ export class ESPLoader extends EventTarget {
 
           chunkSuccess = true;
 
-          // ADAPTIVE SPEED ADJUSTMENT: Gradually increase speed after successful chunks
-          // blockSize maximum: 248 bytes (8 * 31)
-          // maxInFlight: Testing higher values
+          // ADAPTIVE SPEED ADJUSTMENT: Only for CDC devices
+          // Non-CDC devices (CH340, CP2102) stay at fixed blockSize=31, maxInFlight=31
           if (this.isWebUSB() && this._isCDCDevice && retryCount === 0) {
             this._consecutiveSuccessfulChunks++;
 
@@ -3068,7 +2977,8 @@ export class ESPLoader extends EventTarget {
         } catch (err) {
           retryCount++;
 
-          // ADAPTIVE SPEED ADJUSTMENT: Only reduce if we're NOT already at minimum
+          // ADAPTIVE SPEED ADJUSTMENT: Only for CDC devices
+          // Non-CDC devices stay at fixed values
           if (this.isWebUSB() && this._isCDCDevice && retryCount === 1) {
             // Only reduce if we're above minimum
             if (
@@ -3231,10 +3141,61 @@ class EspStubLoader extends ESPLoader {
   }
 
   /**
-   * @name getEraseSize
-   * depending on flash chip model the erase may take this long (maybe longer!)
+   * @name eraseFlash
+   * Erase entire flash chip
    */
   async eraseFlash() {
     await this.checkCommand(ESP_ERASE_FLASH, [], 0, CHIP_ERASE_TIMEOUT);
+  }
+
+  /**
+   * @name eraseRegion
+   * Erase a specific region of flash
+   */
+  async eraseRegion(offset: number, size: number) {
+    // Validate inputs
+    if (offset < 0) {
+      throw new Error(`Invalid offset: ${offset} (must be non-negative)`);
+    }
+    if (size < 0) {
+      throw new Error(`Invalid size: ${size} (must be non-negative)`);
+    }
+
+    // No-op for zero size
+    if (size === 0) {
+      this.logger.log("eraseRegion: size is 0, skipping erase");
+      return;
+    }
+
+    // Check for sector alignment
+    if (offset % FLASH_SECTOR_SIZE !== 0) {
+      throw new Error(
+        `Offset ${offset} (0x${offset.toString(16)}) is not aligned to flash sector size ${FLASH_SECTOR_SIZE} (0x${FLASH_SECTOR_SIZE.toString(16)})`,
+      );
+    }
+    if (size % FLASH_SECTOR_SIZE !== 0) {
+      throw new Error(
+        `Size ${size} (0x${size.toString(16)}) is not aligned to flash sector size ${FLASH_SECTOR_SIZE} (0x${FLASH_SECTOR_SIZE.toString(16)})`,
+      );
+    }
+
+    // Check for reasonable bounds (prevent wrapping in pack)
+    const maxValue = 0xffffffff; // 32-bit unsigned max
+    if (offset > maxValue) {
+      throw new Error(`Offset ${offset} exceeds maximum value ${maxValue}`);
+    }
+    if (size > maxValue) {
+      throw new Error(`Size ${size} exceeds maximum value ${maxValue}`);
+    }
+    // Check for wrap-around
+    if (offset + size > maxValue) {
+      throw new Error(
+        `Region end (offset + size = ${offset + size}) exceeds maximum addressable range ${maxValue}`,
+      );
+    }
+
+    const timeout = timeoutPerMb(ERASE_REGION_TIMEOUT_PER_MB, size);
+    const buffer = pack("<II", offset, size);
+    await this.checkCommand(ESP_ERASE_REGION, buffer, 0, timeout);
   }
 }
