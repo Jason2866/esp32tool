@@ -58,6 +58,16 @@ class WebUSBSerial {
             { vendorId: 0x067B }  // PL2303
         ];
 
+        // Helper to call logger (supports both function and object with log() method)
+        const log = (msg) => {
+            if (!logger) return;
+            if (typeof logger === 'function') {
+                logger(msg);
+            } else if (typeof logger.log === 'function') {
+                logger.log(msg);
+            }
+        };
+
         // For ESP32-S2 reconnection, we need to request a NEW device
         // because the old one was forgotten and a new CDC device appeared
         const device = await navigator.usb.requestDevice({ filters });
