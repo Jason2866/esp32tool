@@ -1247,8 +1247,9 @@ export class ESPLoader extends EventTarget {
 
         await strategy.fn();
 
-        // Try to sync after reset with internally time-bounded sync (3 seconds per strategy)
-        const syncSuccess = await this.syncWithTimeout(3000);
+        // Try to sync after reset with internally time-bounded sync
+        // Use shorter timeout (1.5s) for faster strategy switching on CDC devices
+        const syncSuccess = await this.syncWithTimeout(1500);
 
         if (syncSuccess) {
           // Sync succeeded
@@ -1882,38 +1883,53 @@ export class ESPLoader extends EventTarget {
    */
   async syncWithTimeout(timeoutMs: number): Promise<boolean> {
     const startTime = Date.now();
+    const maxAttempts = Math.max(5, Math.floor(timeoutMs / 300)); // At least 5 attempts, or one every 300ms
 
-    for (let i = 0; i < 5; i++) {
-      // Check if we've exceeded the timeout
-      if (Date.now() - startTime > timeoutMs) {
-        return false;
-      }
+    // Set a hard timeout that will abandon the operation
+    const timeoutHandle = setTimeout(() => {
+      this._abandonCurrentOperation = true;
+    }, timeoutMs);
 
-      // Check abandon flag
-      if (this._abandonCurrentOperation) {
-        return false;
-      }
-
-      this._clearInputBuffer();
-
-      try {
-        const response = await this._sync();
-        if (response) {
-          await sleep(SYNC_TIMEOUT);
-          return true;
+    try {
+      for (let i = 0; i < maxAttempts; i++) {
+        // Check if we've exceeded the timeout
+        if (Date.now() - startTime > timeoutMs) {
+          return false;
         }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
-        // Check abandon flag after error
+
+        // Check abandon flag
         if (this._abandonCurrentOperation) {
           return false;
         }
+
+        this._clearInputBuffer();
+
+        try {
+          const response = await this._sync();
+          if (response) {
+            await sleep(SYNC_TIMEOUT);
+            return true;
+          }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (e) {
+          // Check abandon flag after error
+          if (this._abandonCurrentOperation) {
+            return false;
+          }
+        }
+
+        // Don't wait if we're close to timeout
+        const elapsed = Date.now() - startTime;
+        if (elapsed + SYNC_TIMEOUT < timeoutMs) {
+          await sleep(SYNC_TIMEOUT);
+        }
       }
 
-      await sleep(SYNC_TIMEOUT);
+      return false;
+    } finally {
+      // Always clear the timeout
+      clearTimeout(timeoutHandle);
     }
-
-    return false;
   }
 
   /**
@@ -1944,12 +1960,22 @@ export class ESPLoader extends EventTarget {
     await this.sendCommand(ESP_SYNC, SYNC_PACKET);
 
     for (let i = 0; i < 8; i++) {
+      // Check abandon flag before each attempt
+      if (this._abandonCurrentOperation) {
+        return false;
+      }
+      
       try {
         const [, data] = await this.getResponse(ESP_SYNC, SYNC_TIMEOUT);
         if (data.length > 1 && data[0] == 0 && data[1] == 0) {
           return true;
         }
       } catch (e) {
+        // Check abandon flag after error
+        if (this._abandonCurrentOperation) {
+          return false;
+        }
+        
         if (this.debug) {
           this.logger.debug(`Sync attempt ${i + 1} failed: ${e}`);
         }
