@@ -58,44 +58,9 @@ class WebUSBSerial {
             { vendorId: 0x067B }  // PL2303
         ];
 
-        // Helper to call logger (supports both function and object with log() method)
-        const log = (msg) => {
-            if (!logger) return;
-            if (typeof logger === 'function') {
-                logger(msg);
-            } else if (typeof logger.log === 'function') {
-                logger.log(msg);
-            }
-        };
-
-        let device;
-
-        // If forceNew is false, try to reuse a previously authorized device
-        if (!forceNew && navigator.usb && navigator.usb.getDevices) {
-            try {
-                const devices = await navigator.usb.getDevices();
-                // Find a device that matches our filters
-                device = devices.find(d => 
-                    filters.some(f => f.vendorId === d.vendorId)
-                );
-                
-                if (device) {
-                    log('[WebUSB] Reusing previously authorized device');
-                }
-            } catch (err) {
-                // Can't use this._log in static method, use console as fallback
-                console.warn('[WebUSB] Failed to get previously authorized devices:', err);
-            }
-        }
-
-        // If no device found or forceNew is true, request a new device
-        if (!device) {
-            if (!navigator.usb) {
-                throw new Error('WebUSB not available');
-            }
-            device = await navigator.usb.requestDevice({ filters });
-        }
-
+        // For ESP32-S2 reconnection, we need to request a NEW device
+        // because the old one was forgotten and a new CDC device appeared
+        const device = await navigator.usb.requestDevice({ filters });
         const port = new WebUSBSerial(logger);
         port.device = device;
         return port;
@@ -114,6 +79,7 @@ class WebUSBSerial {
         // If device is already opened, we need to close and reopen it
         // This is critical for ESP32-S2 which changes interfaces when switching modes
         if (this.device.opened) {
+            this._log('[WebUSB] Device already open, closing and reopening to refresh interfaces...');
             
             try {
                 // Release all interfaces
@@ -136,13 +102,13 @@ class WebUSBSerial {
                 // Wait a bit for device to settle
                 await new Promise(resolve => setTimeout(resolve, 100));
             } catch (e) {
-                this._log('[WebUSB] Error during close:', e.message);
+                console.warn('[WebUSB] Error during close:', e.message);
             }
         }
         
         if (this.device.opened) {
             try { await this.device.close(); } catch (e) { 
-                this._log('[WebUSB] Error closing device:', e.message);
+                console.warn('[WebUSB] Error closing device:', e.message);
             }
         }
 
@@ -151,7 +117,7 @@ class WebUSBSerial {
                 await this.device.reset(); 
             } 
         } catch (e) { 
-//            this._log('[WebUSB] Device reset failed:', e.message);
+            console.warn('[WebUSB] Device reset failed:', e.message);
         }
 
         const attemptOpenAndClaim = async () => {
@@ -180,21 +146,17 @@ class WebUSBSerial {
             // Find bulk IN/OUT interface (prefer CDC data class)
             const candidates = [];
             for (const iface of config.interfaces) {
-                // Check all alternates, not just alternates[0]
-                for (let altIndex = 0; altIndex < iface.alternates.length; altIndex++) {
-                    const alt = iface.alternates[altIndex];
-                    let hasIn = false, hasOut = false;
-                    for (const ep of alt.endpoints) {
-                        if (ep.type === 'bulk' && ep.direction === 'in') hasIn = true;
-                        if (ep.type === 'bulk' && ep.direction === 'out') hasOut = true;
-                    }
-                    if (hasIn && hasOut) {
-                        let score = 2;
-                        if (alt.interfaceClass === 0x0a) score = 0; // CDC data first
-                        else if (alt.interfaceClass === 0xff) score = 1; // vendor-specific next
-                        candidates.push({ iface, altIndex, alt, score });
-                        break; // Found suitable alternate for this interface
-                    }
+                const alt = iface.alternates[0];
+                let hasIn = false, hasOut = false;
+                for (const ep of alt.endpoints) {
+                    if (ep.type === 'bulk' && ep.direction === 'in') hasIn = true;
+                    if (ep.type === 'bulk' && ep.direction === 'out') hasOut = true;
+                }
+                if (hasIn && hasOut) {
+                    let score = 2;
+                    if (alt.interfaceClass === 0x0a) score = 0; // CDC data first
+                    else if (alt.interfaceClass === 0xff) score = 1; // vendor-specific next
+                    candidates.push({ iface, score });
                 }
             }
 
@@ -206,17 +168,12 @@ class WebUSBSerial {
             let lastErr = null;
             for (const cand of candidates) {
                 try {
-                    // CORRECT ORDER per WebUSB spec: claimInterface FIRST, then selectAlternateInterface
+                    try { await this.device.selectAlternateInterface(cand.iface.interfaceNumber, 0); } catch (e) { }
                     await this.device.claimInterface(cand.iface.interfaceNumber);
-                    try { 
-                        await this.device.selectAlternateInterface(cand.iface.interfaceNumber, cand.altIndex); 
-                    } catch (e) {
-                        this._log(`[WebUSB] selectAlternateInterface failed: ${e.message}`);
-                    }
                     this.interfaceNumber = cand.iface.interfaceNumber;
 
-                    // Use the alternate that was found to have bulk endpoints
-                    for (const ep of cand.alt.endpoints) {
+                    const alt = cand.iface.alternates[0];
+                    for (const ep of alt.endpoints) {
                         if (ep.type === 'bulk' && ep.direction === 'in') {
                             this.endpointIn = ep.endpointNumber;
                         } else if (ep.type === 'bulk' && ep.direction === 'out') {
@@ -224,27 +181,22 @@ class WebUSBSerial {
                         }
                     }
 
-                    // Validate that both endpoints were found
-                    if (this.endpointIn == null || this.endpointOut == null) {
-                        throw new Error(`Missing bulk endpoints (in=${this.endpointIn}, out=${this.endpointOut})`);
-                    }
-
                     // Use endpoint packet size for transfer length (Android prefers max-packet)
                     try {
-                        const inEp = cand.alt.endpoints.find(ep => ep.type === 'bulk' && ep.direction === 'in');
+                        const inEp = alt.endpoints.find(ep => ep.type === 'bulk' && ep.direction === 'in');
                         if (inEp && inEp.packetSize) {
                             // Don't limit by packetSize - use our optimized value
                         } else {
                             this._log(`[WebUSB] No packetSize found, keeping maxTransferSize=${this.maxTransferSize}`);
                         }
                     } catch (e) {
-                        // Suppress packetSize check error - not critical
+                        this._log(`[WebUSB] Error checking packetSize:`, e);
                     }
 
                     return config;
                 } catch (claimErr) {
                     lastErr = claimErr;
-                    // Suppress claim failed message - this is expected when trying multiple interfaces
+                    console.warn(`[WebUSB] claim failed on iface ${cand.iface.interfaceNumber}: ${claimErr.message}`);
                 }
             }
 
@@ -255,7 +207,7 @@ class WebUSBSerial {
         try {
             config = await attemptOpenAndClaim();
         } catch (err) {
-            this._log('[WebUSB] open/claim failed, retrying after reset:', err.message);
+            console.warn('[WebUSB] open/claim failed, retrying after reset:', err.message);
             try { if (this.device.reset) { await this.device.reset(); } } catch (e) { }
             try { await this.device.close(); } catch (e) { }
             try {
@@ -481,7 +433,7 @@ class WebUSBSerial {
                     index: this.controlInterface || 0
                 }, lineCoding);
             } catch (e) {
-                this._log('Could not set line coding:', e.message);
+                console.warn('Could not set line coding:', e.message);
             }
 
             // Initialize DTR/RTS to idle state (both HIGH/asserted)
@@ -494,7 +446,7 @@ class WebUSBSerial {
                     index: this.controlInterface || 0
                 });
             } catch (e) {
-                this._log('Could not set control lines:', e.message);
+                console.warn('Could not set control lines:', e.message);
             }
         }
         
@@ -514,7 +466,7 @@ class WebUSBSerial {
         if (!this._usbDisconnectHandler) {
             this._usbDisconnectHandler = (event) => {
                 if (event.device === this.device) {
-                    this._fireEvent('disconnect');
+                    this._fireEvent('close');
                     this._cleanup();
                 }
             };
@@ -538,7 +490,7 @@ class WebUSBSerial {
                 await this.device.close();
             } catch (e) {
                 if (!e.message || !e.message.includes('disconnected')) {
-                    this._log('Error closing device:', e.message || e);
+                    console.warn('Error closing device:', e.message || e);
                 }
             }
             // Keep device reference for potential reconfiguration
@@ -610,7 +562,7 @@ class WebUSBSerial {
                 return await this._setSignalsCDC(signals);
             }
         }).catch(err => {
-            this._log('[WebUSB] setSignals error:', err);
+            console.error('[WebUSB] setSignals error:', err);
             throw err;
         });
         
@@ -621,17 +573,9 @@ class WebUSBSerial {
      * Set signals using CDC/ACM standard (for CH343, Native USB)
      */
     async _setSignalsCDC(signals) {
-        // Preserve current state for unspecified signals (Web Serial semantics)
-        const dtr = signals.dataTerminalReady !== undefined ? signals.dataTerminalReady : this._currentDTR;
-        const rts = signals.requestToSend !== undefined ? signals.requestToSend : this._currentRTS;
-        
-        // Update tracked state
-        this._currentDTR = dtr;
-        this._currentRTS = rts;
-        
         let value = 0;
-        value |= dtr ? 1 : 0;
-        value |= rts ? 2 : 0;
+        value |= signals.dataTerminalReady ? 1 : 0;
+        value |= signals.requestToSend ? 2 : 0;
 
         try {
             const result = await this.device.controlTransferOut({
@@ -641,11 +585,11 @@ class WebUSBSerial {
                 value: value,
                 index: this.controlInterface || 0
             });
-
+            
             await new Promise(resolve => setTimeout(resolve, 50));
             return result;
         } catch (e) {
-            this._log(`[WebUSB CDC] Failed to set signals: ${e.message}`);
+            console.error(`[WebUSB CDC] Failed to set signals: ${e.message}`);
             throw e;
         }
     }
