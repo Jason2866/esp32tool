@@ -2,7 +2,10 @@
 import { WebUSBSerial, requestSerialPort } from './webusb-serial.js';
 
 // Make requestSerialPort available globally for esptool.js
-globalThis.requestSerialPort = requestSerialPort;
+// Use defensive assignment to avoid accidental overwrites
+if (!globalThis.requestSerialPort) {
+  globalThis.requestSerialPort = requestSerialPort;
+}
 
 let espStub;
 let esp32s2ReconnectInProgress = false;
@@ -93,6 +96,55 @@ function clearAllCachedData() {
 }
 
 const baudRates = [2000000, 1500000, 921600, 500000, 460800, 230400, 153600, 128000, 115200];
+
+// Advanced read flash parameters
+// chunkSize: Amount of data to request from ESP in one command (in KB)
+const chunkSizes = [
+  { label: "4 KB", value: 0x1000 },
+  { label: "8 KB", value: 0x2000 },
+  { label: "16 KB (WebUSB)", value: 0x4000 },
+  { label: "64 KB", value: 0x10000 },
+  { label: "128 KB", value: 0x20000 },
+  { label: "256 KB (Desktop)", value: 0x40000 }
+];
+
+// blockSize: Size of each data block sent by ESP (in bytes)
+const blockSizes = [
+  { label: "31 B (Android)", value: 31 },
+  { label: "62 B", value: 62 },
+  { label: "124 B", value: 124 },
+  { label: "248 B (CDC)", value: 248 },
+  { label: "256 B", value: 256 },
+  { label: "496 B", value: 496 },
+  { label: "512 B", value: 512 },
+  { label: "992 B", value: 992 },
+  { label: "1024 B", value: 1024 },
+  { label: "1984 B", value: 1984 },
+  { label: "2024 B", value: 2024 },
+  { label: "3968 B (Desktop)", value: 3968 },
+  { label: "4096 B (Maximum)", value: 4096 }
+];
+
+// maxInFlight: Maximum unacknowledged bytes (in bytes)
+const maxInFlights = [
+  { label: "31 B (Android)", value: 31 },
+  { label: "62 B", value: 62 },
+  { label: "124 B", value: 124 },
+  { label: "248 B (Android CDC)", value: 248 },
+  { label: "512 B", value: 512 },
+  { label: "992 B", value: 992 },
+  { label: "1024 B", value: 1024 },
+  { label: "1984 B", value: 1984 },
+  { label: "2024 B", value: 2024 },
+  { label: "3968 B", value: 3968 },
+  { label: "4096 B", value: 4096 },
+  { label: "7936 B", value: 7936 },
+  { label: "8192 B", value: 8192 },
+  { label: "15872 B", value: 15872 },
+  { label: "31744 B", value: 31744 },
+  { label: "63488 B", value: 63488 }
+];
+
 const bufferSize = 512;
 const colors = ["#00a7e9", "#f89521", "#be1e2d"];
 const measurementPeriodId = "0001";
@@ -104,6 +156,12 @@ const maxLogLength = 100;
 const log = document.getElementById("log");
 const butConnect = document.getElementById("butConnect");
 const baudRateSelect = document.getElementById("baudRate");
+const advancedMode = document.getElementById("advanced");
+const advancedRow = document.querySelector(".advanced-row");
+const main = document.querySelector(".main");
+const chunkSizeSelect = document.getElementById("chunkSize");
+const blockSizeSelect = document.getElementById("blockSize");
+const maxInFlightSelect = document.getElementById("maxInFlight");
 const butClear = document.getElementById("butClear");
 const butErase = document.getElementById("butErase");
 const butProgram = document.getElementById("butProgram");
@@ -198,6 +256,10 @@ document.addEventListener("DOMContentLoaded", () => {
   
   autoscroll.addEventListener("click", clickAutoscroll);
   baudRateSelect.addEventListener("change", changeBaudRate);
+  advancedMode.addEventListener("change", clickAdvancedMode);
+  chunkSizeSelect.addEventListener("change", changeAdvancedParam);
+  blockSizeSelect.addEventListener("change", changeAdvancedParam);
+  maxInFlightSelect.addEventListener("change", changeAdvancedParam);
   darkMode.addEventListener("click", clickDarkMode);
   debugMode.addEventListener("click", clickDebugMode);
   showLog.addEventListener("click", clickShowLog);
@@ -242,6 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   initBaudRate();
+  initAdvancedParams();
   loadAllSettings();
   updateTheme();
   logMsg("ESP32Tool loaded.");
@@ -254,6 +317,38 @@ function initBaudRate() {
     option.value = rate;
     baudRateSelect.add(option);
   }
+}
+
+function initAdvancedParams() {
+  // Initialize chunkSize dropdown
+  for (let item of chunkSizes) {
+    const option = document.createElement("option");
+    option.text = item.label;
+    option.value = item.value;
+    chunkSizeSelect.add(option);
+  }
+  // Set default: 16 KB for WebUSB, 256 KB for Desktop
+  chunkSizeSelect.value = 0x4000; // 16 KB default
+
+  // Initialize blockSize dropdown
+  for (let item of blockSizes) {
+    const option = document.createElement("option");
+    option.text = item.label;
+    option.value = item.value;
+    blockSizeSelect.add(option);
+  }
+  // Set default: 4095 B for Desktop
+  blockSizeSelect.value = 4095;
+
+  // Initialize maxInFlight dropdown
+  for (let item of maxInFlights) {
+    const option = document.createElement("option");
+    option.text = item.label;
+    option.value = item.value;
+    maxInFlightSelect.add(option);
+  }
+  // Set default: 8190 B for Desktop
+  maxInFlightSelect.value = 8190;
 }
 
 function logMsg(text) {
@@ -340,6 +435,40 @@ function formatMacAddr(macAddr) {
     .join(":");
 }
 
+function toHex(value) {
+  return "0x" + value.toString(16).padStart(2, "0");
+}
+
+/**
+ * Parse flash size string (e.g., "256KB", "4MB") to bytes
+ * @param {string} sizeStr - Flash size string with unit (KB or MB)
+ * @returns {number} Size in bytes
+ */
+function parseFlashSize(sizeStr) {
+  if (!sizeStr || typeof sizeStr !== 'string') {
+    return 0;
+  }
+  
+  // Extract number and unit
+  const match = sizeStr.match(/^(\d+)(KB|MB)$/i);
+  if (!match) {
+    // If no unit, assume it's already in MB (legacy behavior)
+    const num = parseInt(sizeStr);
+    return isNaN(num) ? 0 : num * 1024 * 1024;
+  }
+  
+  const value = parseInt(match[1]);
+  const unit = match[2].toUpperCase();
+  
+  if (unit === 'KB') {
+    return value * 1024; // KB to bytes
+  } else if (unit === 'MB') {
+    return value * 1024 * 1024; // MB to bytes
+  }
+  
+  return 0;
+}
+
 /**
  * @name clickConnect
  * Click handler for the connect/disconnect button.
@@ -355,7 +484,11 @@ async function clickConnect() {
     }
     
     await espStub.disconnect();
-    await espStub.port.close();
+    try {
+      await espStub.port?.close?.();
+    } catch (e) {
+      // ignore double-close
+    }
     toggleUIConnected(false);
     espStub = undefined;
     
@@ -369,20 +502,14 @@ async function clickConnect() {
   const esploaderMod = await window.esptoolPackage;
 
   // Platform detection: Android always uses WebUSB, Desktop uses Web Serial
-  // Check multiple indicators for Android
   const userAgent = navigator.userAgent || '';
-  const platform = navigator.platform || '';
-  const isAndroid = /Android/i.test(userAgent) || 
-                    /Linux armv/i.test(platform) ||
-                    /Linux aarch64/i.test(platform);
+  const isAndroid = /Android/i.test(userAgent);
   
-  const platformMsg = `Platform: ${isAndroid ? 'Android' : 'Desktop'} (UA: ${userAgent.substring(0, 50)}...)`;
-  console.log(`[Connect] ${platformMsg}`);
-  console.log(`[Connect] navigator.platform: ${platform}`);
-  console.log(`[Connect] isAndroid: ${isAndroid}`);
-  
-  // Also log to UI
-  logMsg(platformMsg);
+  // Only log platform details to UI in debug mode (avoid fingerprinting surface)
+  if (debugMode.checked) {
+    const platformMsg = `Platform: ${isAndroid ? 'Android' : 'Desktop'} (UA: ${userAgent.substring(0, 50)}...)`;
+    logMsg(platformMsg);
+  }
   logMsg(`Using: ${isAndroid ? 'WebUSB' : 'Web Serial'}`);
   
   let esploader;
@@ -428,9 +555,6 @@ async function clickConnect() {
       logMsg("ESP32-S2 Native USB detected!");
       toggleUIConnected(false);
       espStub = undefined;
-      
-      // Store the old device reference
-      const oldDevice = esploader.port.device;
       
       try {
         // Close the port first
@@ -510,44 +634,6 @@ async function clickConnect() {
 
   espStub = await esploader.runStub();
   
-  // FIX for Android WebUSB SLIP errors:
-  // Set smaller block size for WebUSB
-  if (isAndroid && espStub && espStub.transport && espStub.transport.device) {
-    // Read maxTransferSize from WebUSBSerial device (centrally defined there)
-    const maxTransferSize = espStub.transport.device.maxTransferSize || 64;
-    
-    // Formula: blockSize = (maxTransferSize - 2) / 2
-    // -2 for SLIP frame delimiters, /2 for worst-case escape sequences
-    const blockSize = Math.floor((maxTransferSize - 2) / 2);
-    
-    logMsg(`[Android/WebUSB] Setting flash read block size to ${blockSize} bytes (maxTransferSize=${maxTransferSize})`);
-    
-    // Patch all possible block size properties
-    let patchedCount = 0;
-    if (espStub.transport.FLASH_READ_SIZE !== undefined) {
-      espStub.transport.FLASH_READ_SIZE = blockSize;
-      patchedCount++;
-    }
-    if (espStub.flashReadSize !== undefined) {
-      espStub.flashReadSize = blockSize;
-      patchedCount++;
-    }
-    if (espStub.FLASH_READ_SIZE !== undefined) {
-      espStub.FLASH_READ_SIZE = blockSize;
-      patchedCount++;
-    }
-    if (espStub.transport.flashReadSize !== undefined) {
-      espStub.transport.flashReadSize = blockSize;
-      patchedCount++;
-    }
-    
-    if (patchedCount === 0) {
-      logMsg(`[WARNING] Could not find any blockSize property to patch!`);
-    } else {
-      logMsg(`[Android/WebUSB] Successfully patched ${patchedCount} blockSize properties`);
-    }
-  }
-  
   toggleUIConnected(true);
   toggleUIToolbar(true);
   
@@ -571,7 +657,7 @@ async function clickConnect() {
   
   // Set detected flash size in the read size field
   if (espStub.flashSize) {
-    const flashSizeBytes = parseInt(espStub.flashSize) * 1024 * 1024; // Convert MB to bytes
+    const flashSizeBytes = parseFlashSize(espStub.flashSize);
     readSize.value = "0x" + flashSizeBytes.toString(16);
   }
   
@@ -660,6 +746,39 @@ function updateLogVisibility() {
 }
 
 /**
+ * @name clickAdvancedMode
+ * Change handler for the Advanced Mode checkbox.
+ */
+async function clickAdvancedMode() {
+  saveSetting("advanced", advancedMode.checked);
+  updateAdvancedVisibility();
+}
+
+/**
+ * @name changeAdvancedParam
+ * Change handler for advanced parameter dropdowns.
+ */
+async function changeAdvancedParam() {
+  saveSetting("chunkSize", parseInt(chunkSizeSelect.value));
+  saveSetting("blockSize", parseInt(blockSizeSelect.value));
+  saveSetting("maxInFlight", parseInt(maxInFlightSelect.value));
+}
+
+/**
+ * @name updateAdvancedVisibility
+ * Update advanced controls visibility
+ */
+function updateAdvancedVisibility() {
+  if (advancedMode.checked) {
+    advancedRow.style.display = "flex";
+    main.classList.add("advanced-active");
+  } else {
+    advancedRow.style.display = "none";
+    main.classList.remove("advanced-active");
+  }
+}
+
+/**
  * @name clickDetectFS
  * Detect ESP8266 filesystem and open manager directly
  */
@@ -673,8 +792,8 @@ async function clickDetectFS() {
     butDetectFS.disabled = true;
     logMsg('Detecting ESP8266 filesystem...');
     
-    const flashSizeMB = parseInt(espStub.flashSize);
-    const flashSizeBytes = flashSizeMB * 1024 * 1024;
+    const flashSizeBytes = parseFlashSize(espStub.flashSize);
+    const flashSizeMB = flashSizeBytes / (1024 * 1024);
     const esptoolMod = await window.esptoolPackage;
     
     // Scan flash for filesystem signatures - optimized based on flash size
@@ -1065,13 +1184,42 @@ async function clickReadFlash() {
   try {
     const progressBar = readProgress.querySelector("div");
 
+    // Prepare options object if advanced mode is enabled
+    // Option validation helpers
+    const validateOption = (name, value) => {
+      if (value === undefined) return undefined;
+      if (!Number.isFinite(value) || value <= 0) {
+        throw new Error(`Invalid ${name}: ${value}`);
+      }
+      return value;
+    };
+
+    let options = undefined;
+    let chunkSizeOpt, blockSizeOpt, maxInFlightOpt;
+    if (advancedMode.checked) {
+      chunkSizeOpt = validateOption("chunkSize", parseInt(chunkSizeSelect.value));
+      blockSizeOpt = validateOption("blockSize", parseInt(blockSizeSelect.value));
+      maxInFlightOpt = validateOption("maxInFlight", parseInt(maxInFlightSelect.value));
+      if ((blockSizeOpt ?? maxInFlightOpt) &&
+          (blockSizeOpt === undefined || maxInFlightOpt === undefined)) {
+        throw new Error("blockSize and maxInFlight must be provided together");
+      }
+      options = {
+        chunkSize: chunkSizeOpt,
+        blockSize: blockSizeOpt,
+        maxInFlight: maxInFlightOpt
+      };
+      logMsg(`Advanced mode: chunkSize=0x${options.chunkSize?.toString(16)}, blockSize=${options.blockSize}, maxInFlight=${options.maxInFlight}`);
+    }
+
     const data = await espStub.readFlash(
       offset,
       size,
       (packet, progress, totalSize) => {
         progressBar.style.width =
           Math.floor((progress / totalSize) * 100) + "%";
-      }
+      },
+      options
     );
 
     logMsg(`Successfully read ${data.length} bytes from flash`);
@@ -1083,8 +1231,6 @@ async function clickReadFlash() {
     const chipName = currentChipName || '';
     const esptoolMod = await window.esptoolPackage;
     const fsType = esptoolMod.detectFilesystemFromImage(data, chipName);
-    
-    logMsg(`Filesystem detection: ${fsType} (chipName: ${chipName})`);
     
     if (fsType !== 'unknown') {
       logMsg(`Detected ${fsType} filesystem in read data`);
@@ -1444,11 +1590,20 @@ function loadAllSettings() {
   autoscroll.checked = loadSetting("autoscroll", true);
   baudRateSelect.value = loadSetting("baudrate", 2000000);
   darkMode.checked = loadSetting("darkmode", false);
-  debugMode.checked = loadSetting("debugmode", true);
+  debugMode.checked = loadSetting("debugmode", false);
   showLog.checked = loadSetting("showlog", false);
+  advancedMode.checked = loadSetting("advanced", false);
+  
+  // Load advanced parameters
+  chunkSizeSelect.value = loadSetting("chunkSize", 0x4000); // 16 KB default
+  blockSizeSelect.value = loadSetting("blockSize", 4095); // 4095 B default
+  maxInFlightSelect.value = loadSetting("maxInFlight", 8190); // 8190 B default
   
   // Apply show log setting
   updateLogVisibility();
+  
+  // Apply advanced mode visibility
+  updateAdvancedVisibility();
 }
 
 function loadSetting(setting, defaultValue) {
@@ -1608,10 +1763,8 @@ async function detectFilesystemType(offset, size) {
  */
 async function loadLittlefsModule() {
   if (!littlefsModulePromise) {
-    // Use absolute path from root for better compatibility with GitHub Pages
-    const basePath = window.location.pathname.endsWith('/') 
-      ? window.location.pathname 
-      : window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    // Derive base path from current document URL (works for all hosting layouts)
+    const basePath = new URL(".", window.location.href).pathname;
     const modulePath = `${basePath}src/wasm/littlefs/index.js`;
     
     littlefsModulePromise = import(modulePath)
@@ -1693,9 +1846,7 @@ async function openLittleFS(partition) {
     logMsg('Mounting LittleFS filesystem...');
     
     // Import constants from esptool module
-    const basePath = window.location.pathname.endsWith('/') 
-      ? window.location.pathname 
-      : window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const basePath = new URL(".", window.location.href).pathname;
     const esptoolModulePath = `${basePath}js/modules/esptool.js`;
     const { 
       LITTLEFS_BLOCK_SIZE_CANDIDATES,
@@ -1842,9 +1993,7 @@ async function openFatFS(partition) {
     }
     
     // Load FatFS module
-    const basePath = window.location.pathname.endsWith('/') 
-      ? window.location.pathname 
-      : window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const basePath = new URL(".", window.location.href).pathname;
     const modulePath = `${basePath}src/wasm/fatfs/index.js`;
     const module = await import(modulePath);
     const { createFatFSFromImage, createFatFS } = module;
@@ -1966,9 +2115,7 @@ async function openSPIFFS(partition) {
     logMsg(`Partition size: ${formatSize(partition.size)} (${partition.size} bytes)`);
     
     // Import SPIFFS module
-    const basePath = window.location.pathname.endsWith('/') 
-      ? window.location.pathname 
-      : window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const basePath = new URL(".", window.location.href).pathname;
     const modulePath = `${basePath}js/modules/esptool.js`;
 
     const { 
@@ -2185,7 +2332,6 @@ async function openSPIFFS(partition) {
     refreshLittleFS();
     
     logMsg('SPIFFS filesystem opened successfully');
-    logMsg('Note: SPIFFS is a flat filesystem - directories are not supported.');
   } catch (e) {
     errorMsg(`Failed to open SPIFFS: ${e.message || e}`);
     console.error('SPIFFS open error:', e);
