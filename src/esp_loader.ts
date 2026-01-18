@@ -1249,10 +1249,10 @@ export class ESPLoader extends EventTarget {
 
         await strategy.fn();
 
-        // Try to sync after reset with timeout (1.5 seconds per strategy)
+        // Try to sync after reset with timeout (1 second per strategy)
         const syncPromise = this.sync();
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Sync timeout")), 1500),
+          setTimeout(() => reject(new Error("Sync timeout")), 1000),
         );
 
         await Promise.race([syncPromise, timeoutPromise]);
