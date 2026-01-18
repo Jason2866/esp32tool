@@ -1256,13 +1256,13 @@ export class ESPLoader extends EventTarget {
 
         if (isUSBSerialChip) {
           // USB-Serial chips: Use timeout strategy (1 second)
-          this.logger.log(`USB-Serial chip detected, using sync with timeout.`);
+          //          this.logger.log(`USB-Serial chip detected, using sync with timeout.`);
           const syncSuccess = await this.syncWithTimeout(1000);
 
           if (syncSuccess) {
             // Sync succeeded
             this.logger.log(
-              `Connected successfully with ${strategy.name} reset.`,
+              `Connected USB Serial successfully with ${strategy.name} reset.`,
             );
             return;
           } else {
@@ -1270,7 +1270,7 @@ export class ESPLoader extends EventTarget {
           }
         } else {
           // Native USB chips
-          this.logger.log(`Native USB chip detected, using CDC/JTAG sync.`);
+          //          this.logger.log(`Native USB chip detected, using CDC/JTAG sync.`);
           const syncPromise = this.sync();
           const timeoutPromise = new Promise<void>((_, reject) =>
             setTimeout(() => reject(new Error("Sync timeout")), 1000),
@@ -1280,7 +1280,7 @@ export class ESPLoader extends EventTarget {
             await Promise.race([syncPromise, timeoutPromise]);
             // Sync succeeded
             this.logger.log(
-              `Connected successfully with ${strategy.name} reset.`,
+              `Connected CDC/JTAG successfully with ${strategy.name} reset.`,
             );
             return;
           } catch (error) {
