@@ -766,27 +766,25 @@ export class ESPLoader extends EventTarget {
   // ============================================================================
 
   async setRTSWebUSB(state: boolean) {
-    this.state_RTS = state;
-    // Always specify both signals to avoid flipping the other line
-    // The WebUSB setSignals() now preserves unspecified signals, but being explicit is safer
+    await (this.port as WebUSBSerialPort).setSignals({ requestToSend: state });
+    // Work-around for adapters on Windows/Android using the usbser.sys driver:
+    // generate a dummy change to DTR so that the set-control-line-state
+    // request is sent with the updated RTS state and the same DTR state
+    // This is critical for CP2102 and other USB-Serial adapters
     await (this.port as WebUSBSerialPort).setSignals({
-      requestToSend: state,
       dataTerminalReady: this.state_DTR,
     });
   }
 
   async setDTRWebUSB(state: boolean) {
     this.state_DTR = state;
-    // Always specify both signals to avoid flipping the other line
     await (this.port as WebUSBSerialPort).setSignals({
       dataTerminalReady: state,
-      requestToSend: this.state_RTS, // Explicitly preserve current RTS state
     });
   }
 
   async setDTRandRTSWebUSB(dtr: boolean, rts: boolean) {
     this.state_DTR = dtr;
-    this.state_RTS = rts;
     await (this.port as WebUSBSerialPort).setSignals({
       dataTerminalReady: dtr,
       requestToSend: rts,
@@ -1249,29 +1247,23 @@ export class ESPLoader extends EventTarget {
 
         await strategy.fn();
 
-        // Try to sync after reset with internally time-bounded sync (3 seconds per strategy)
-        const syncSuccess = await this.syncWithTimeout(3000);
+        // Try to sync after reset with timeout (3 seconds per strategy)
+        const syncPromise = this.sync();
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Sync timeout")), 3000),
+        );
 
-        if (syncSuccess) {
-          // Sync succeeded
-          this.logger.log(
-            `Connected successfully with ${strategy.name} reset.`,
-          );
-          return;
-        } else {
-          throw new Error("Sync timeout or abandoned");
-        }
+        await Promise.race([syncPromise, timeoutPromise]);
+
+        // If we get here, sync succeeded
+        this.logger.log(`Connected successfully with ${strategy.name} reset.`);
+
+        return;
       } catch (error) {
         lastError = error as Error;
         this.logger.log(
           `${strategy.name} reset failed: ${(error as Error).message}`,
         );
-
-        // Set abandon flag to stop any in-flight operations
-        this._abandonCurrentOperation = true;
-
-        // Wait a bit for in-flight operations to abort
-        await sleep(100);
 
         // If port got disconnected, we can't try more strategies
         if (!this.connected || !this.port.writable) {
@@ -1280,7 +1272,7 @@ export class ESPLoader extends EventTarget {
         }
 
         // Clear buffers before trying next strategy
-        this._clearInputBuffer();
+        this._inputBuffer.length = 0;
         await this.drainInputBuffer(200);
         await this.flushSerialBuffers();
       }
@@ -1878,54 +1870,13 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * @name syncWithTimeout
-   * Sync with timeout that can be abandoned (for reset strategy loop)
-   * This is internally time-bounded and checks the abandon flag
-   */
-  async syncWithTimeout(timeoutMs: number): Promise<boolean> {
-    const startTime = Date.now();
-
-    for (let i = 0; i < 5; i++) {
-      // Check if we've exceeded the timeout
-      if (Date.now() - startTime > timeoutMs) {
-        return false;
-      }
-
-      // Check abandon flag
-      if (this._abandonCurrentOperation) {
-        return false;
-      }
-
-      this._clearInputBuffer();
-
-      try {
-        const response = await this._sync();
-        if (response) {
-          await sleep(SYNC_TIMEOUT);
-          return true;
-        }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
-        // Check abandon flag after error
-        if (this._abandonCurrentOperation) {
-          return false;
-        }
-      }
-
-      await sleep(SYNC_TIMEOUT);
-    }
-
-    return false;
-  }
-
-  /**
    * @name sync
    * Put into ROM bootload mode & attempt to synchronize with the
    * ESP ROM bootloader, we will retry a few times
    */
   async sync() {
     for (let i = 0; i < 5; i++) {
-      this._clearInputBuffer();
+      this._inputBuffer.length = 0;
       const response = await this._sync();
       if (response) {
         await sleep(SYNC_TIMEOUT);
@@ -1951,11 +1902,7 @@ export class ESPLoader extends EventTarget {
         if (data.length > 1 && data[0] == 0 && data[1] == 0) {
           return true;
         }
-      } catch (e) {
-        if (this.debug) {
-          this.logger.debug(`Sync attempt ${i + 1} failed: ${e}`);
-        }
-      }
+      } catch (e) {}
     }
     return false;
   }
