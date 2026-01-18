@@ -1249,10 +1249,10 @@ export class ESPLoader extends EventTarget {
 
         await strategy.fn();
 
-        // Try to sync after reset with timeout (3 seconds per strategy)
+        // Try to sync after reset with timeout (1.5 seconds per strategy)
         const syncPromise = this.sync();
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Sync timeout")), 3000),
+          setTimeout(() => reject(new Error("Sync timeout")), 1500),
         );
 
         await Promise.race([syncPromise, timeoutPromise]);
@@ -1267,6 +1267,12 @@ export class ESPLoader extends EventTarget {
           `${strategy.name} reset failed: ${(error as Error).message}`,
         );
 
+        // Set abandon flag to stop any in-flight operations
+        this._abandonCurrentOperation = true;
+
+        // Wait a bit for in-flight operations to abort
+        await sleep(100);
+
         // If port got disconnected, we can't try more strategies
         if (!this.connected || !this.port.writable) {
           this.logger.log(`Port disconnected during reset attempt`);
@@ -1274,7 +1280,7 @@ export class ESPLoader extends EventTarget {
         }
 
         // Clear buffers before trying next strategy
-        this._inputBuffer.length = 0;
+        this._clearInputBuffer();
         await this.drainInputBuffer(200);
         await this.flushSerialBuffers();
       }
@@ -1878,7 +1884,7 @@ export class ESPLoader extends EventTarget {
    */
   async sync() {
     for (let i = 0; i < 5; i++) {
-      this._inputBuffer.length = 0;
+      this._clearInputBuffer();
       const response = await this._sync();
       if (response) {
         await sleep(SYNC_TIMEOUT);
@@ -1904,7 +1910,11 @@ export class ESPLoader extends EventTarget {
         if (data.length > 1 && data[0] == 0 && data[1] == 0) {
           return true;
         }
-      } catch (e) {}
+      } catch (e) {
+        if (this.debug) {
+          this.logger.debug(`Sync attempt ${i + 1} failed: ${e}`);
+        }
+      }
     }
     return false;
   }
