@@ -1253,24 +1253,39 @@ export class ESPLoader extends EventTarget {
 
         // Try to sync after reset
         // USB-Serial chips needs different sync approach
-        let syncSuccess = false;
 
         if (isUSBSerialChip) {
           // USB-Serial chips: Use timeout (2 seconds) as they need more time
-          syncSuccess = await this.syncWithTimeout(2000);
+          this.logger.log(`USB-Serial chip detected, using sync with timeout.`);
+          const syncSuccess = await this.syncWithTimeout(2000);
+          
+          if (syncSuccess) {
+            // Sync succeeded
+            this.logger.log(
+              `Connected successfully with ${strategy.name} reset.`,
+            );
+            return;
+          } else {
+            throw new Error("Sync timeout or abandoned");
+          }
         } else {
           // Native USB chips
-          syncSuccess = await this.sync();
-        }
-
-        if (syncSuccess) {
-          // Sync succeeded
-          this.logger.log(
-            `Connected successfully with ${strategy.name} reset.`,
+          this.logger.log(`Native USB chip detected, using standard sync.`);
+          const syncPromise = this.sync();
+          const timeoutPromise = new Promise<void>((_, reject) =>
+            setTimeout(() => reject(new Error("Sync timeout")), 1000),
           );
-          return;
-        } else {
-          throw new Error("Sync timeout or abandoned");
+
+          try {
+            await Promise.race([syncPromise, timeoutPromise]);
+            // Sync succeeded
+            this.logger.log(
+              `Connected successfully with ${strategy.name} reset.`,
+            );
+            return;
+          } catch (error) {
+            throw new Error("Sync timeout or abandoned");
+          }
         }
       } catch (error) {
         lastError = error as Error;
