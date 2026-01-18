@@ -1252,10 +1252,10 @@ export class ESPLoader extends EventTarget {
         await strategy.fn();
 
         // Try to sync after reset
-        // USB-Serial chips needs different sync approach
+        // USB-Serial / native USB chips needs different sync approaches
 
         if (isUSBSerialChip) {
-          // USB-Serial chips: Use timeout (2 seconds) as they need more time
+          // USB-Serial chips: Use timeout strategy (1 second)
           this.logger.log(`USB-Serial chip detected, using sync with timeout.`);
           const syncSuccess = await this.syncWithTimeout(1000);
 
@@ -1270,7 +1270,7 @@ export class ESPLoader extends EventTarget {
           }
         } else {
           // Native USB chips
-          this.logger.log(`Native USB chip detected, using standard sync.`);
+          this.logger.log(`Native USB chip detected, using CDC/JTAG sync.`);
           const syncPromise = this.sync();
           const timeoutPromise = new Promise<void>((_, reject) =>
             setTimeout(() => reject(new Error("Sync timeout")), 1000),
