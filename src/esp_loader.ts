@@ -977,7 +977,7 @@ export class ESPLoader extends EventTarget {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
-    // Detect if this is a USB-Serial chip (needs syncWithTimeout for WebUSB)
+    // Detect if this is a USB-Serial chip (needs different sync approach)
     const isUSBSerialChip = !isUSBJTAGSerial && !isEspressifUSB;
 
     // WebUSB (Android) uses different reset methods than Web Serial (Desktop)
@@ -1252,20 +1252,15 @@ export class ESPLoader extends EventTarget {
         await strategy.fn();
 
         // Try to sync after reset
-        // USB-Serial chips (CP2102, CH340, etc.) need syncWithTimeout for proper timing
-        // Native USB chips (ESP32-S2, ESP32-C3, etc.) work better with direct sync()
-        let syncSuccess: boolean;
+        // USB-Serial chips needs different sync approach
+        let syncSuccess = false;
+
         if (isUSBSerialChip) {
-          // USB-Serial chips need time-bounded sync with timeout (both WebUSB and WebSerial)
-          syncSuccess = await this.syncWithTimeout(3000);
+          // USB-Serial chips: Use timeout (2 seconds) as they need more time
+          syncSuccess = await this.syncWithTimeout(2000);
         } else {
-          // Native USB chips can use direct sync
-          try {
-            await this.sync();
-            syncSuccess = true;
-          } catch (e) {
-            syncSuccess = false;
-          }
+          // Native USB chips
+          syncSuccess = await this.sync();
         }
 
         if (syncSuccess) {
