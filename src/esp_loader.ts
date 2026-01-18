@@ -1869,7 +1869,6 @@ export class ESPLoader extends EventTarget {
     }
   }
 
-
   /**
    * @name sync
    * Put into ROM bootload mode & attempt to synchronize with the
