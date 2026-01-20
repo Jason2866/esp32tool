@@ -51,7 +51,7 @@
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/node": "^25.0.6",
     "@types/pako": "^2.0.4",
-    "@types/serialport": "^8.0.5",
+    "@types/serialport": "^10.2.0",
     "@types/w3c-web-serial": "^1.0.7",
     "archiver": "^7.0.1",
     "electron": "^39.2.5",
