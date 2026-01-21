@@ -60,6 +60,22 @@ import {
   CHIP_ID_TO_INFO,
   ESP32P4_EFUSE_BLOCK1_ADDR,
   SlipReadError,
+  ESP32S2_RTC_CNTL_WDTWPROTECT_REG,
+  ESP32S2_RTC_CNTL_WDTCONFIG0_REG,
+  ESP32S2_RTC_CNTL_WDTCONFIG1_REG,
+  ESP32S2_RTC_CNTL_WDT_WKEY,
+  ESP32S2_GPIO_STRAP_REG,
+  ESP32S2_GPIO_STRAP_SPI_BOOT_MASK,
+  ESP32S2_RTC_CNTL_OPTION1_REG,
+  ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+  ESP32S3_RTC_CNTL_WDTWPROTECT_REG,
+  ESP32S3_RTC_CNTL_WDTCONFIG0_REG,
+  ESP32S3_RTC_CNTL_WDTCONFIG1_REG,
+  ESP32S3_RTC_CNTL_WDT_WKEY,
+  ESP32S3_GPIO_STRAP_REG,
+  ESP32S3_GPIO_STRAP_SPI_BOOT_MASK,
+  ESP32S3_RTC_CNTL_OPTION1_REG,
+  ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
 } from "./const";
 import { getStubCode } from "./stubs";
 import { hexFormatter, sleep, slipEncode, toHex } from "./util";
@@ -1349,6 +1365,53 @@ export class ESPLoader extends EventTarget {
     );
   }
 
+  /**
+   * @name watchdogReset
+   * Watchdog reset for ESP32-S2/S3 with USB-OTG
+   * Uses RTC watchdog timer to reset the chip - works when DTR/RTS signals are not available
+   */
+  async watchdogReset() {
+    this.logger.log("Hard resetting with watchdog timer...");
+
+    // Select correct register addresses based on chip family
+    let WDTWPROTECT_REG: number;
+    let WDTCONFIG0_REG: number;
+    let WDTCONFIG1_REG: number;
+    let WDT_WKEY: number;
+
+    if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+      WDTWPROTECT_REG = ESP32S2_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32S2_RTC_CNTL_WDTCONFIG0_REG;
+      WDTCONFIG1_REG = ESP32S2_RTC_CNTL_WDTCONFIG1_REG;
+      WDT_WKEY = ESP32S2_RTC_CNTL_WDT_WKEY;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+      WDTWPROTECT_REG = ESP32S3_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32S3_RTC_CNTL_WDTCONFIG0_REG;
+      WDTCONFIG1_REG = ESP32S3_RTC_CNTL_WDTCONFIG1_REG;
+      WDT_WKEY = ESP32S3_RTC_CNTL_WDT_WKEY;
+    } else {
+      throw new Error(
+        `watchdogReset() is only supported for ESP32-S2 and ESP32-S3, not ${this.chipFamily}`,
+      );
+    }
+
+    // Unlock watchdog registers
+    await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
+
+    // Set WDT timeout to 2000ms
+    await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);
+
+    // Enable WDT: bit 31 = enable, bits 28-30 = stage, bit 8 = sys reset, bits 0-2 = prescaler
+    const wdtConfig = (1 << 31) | (5 << 28) | (1 << 8) | 2;
+    await this.writeRegister(WDTCONFIG0_REG, wdtConfig, undefined, 0);
+
+    // Lock watchdog registers
+    await this.writeRegister(WDTWPROTECT_REG, 0, undefined, 0);
+
+    // Wait for reset to take effect
+    await this.sleep(500);
+  }
+
   async hardReset(bootloader = false) {
     if (bootloader) {
       // enter flash mode
@@ -1367,7 +1430,89 @@ export class ESPLoader extends EventTarget {
       }
     } else {
       // just reset (no bootloader mode)
-      if (this.isWebUSB()) {
+      // For ESP32-S2/S3 with USB-OTG, check if watchdog reset is needed
+        this.port.getInfo().usbProductId === USB_JTAG_SERIAL_PID &&
+        (this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+          this.chipFamily === CHIP_FAMILY_ESP32S3)
+      ) {
+        // ESP32-S2/S3: Clear force download boot mode first
+        try {
+          // Clear force download boot mode to avoid chip being stuck in download mode
+          // after reset. Workaround for issue:
+          // https://github.com/espressif/arduino-esp32/issues/6762
+          const RTC_CNTL_OPTION1_REG =
+            this.chipFamily === CHIP_FAMILY_ESP32S2
+              ? ESP32S2_RTC_CNTL_OPTION1_REG
+              : ESP32S3_RTC_CNTL_OPTION1_REG;
+          const RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK =
+            this.chipFamily === CHIP_FAMILY_ESP32S2
+              ? ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK
+              : ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+
+          await this.writeRegister(
+            RTC_CNTL_OPTION1_REG,
+            0,
+            RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+            0,
+          );
+        } catch (e) {
+          // Skip invalid response and continue reset (can happen when monitoring during reset)
+          this.logger.log(
+            "Warning: Could not clear force download boot mode:",
+            e,
+          );
+        }
+
+        // Check the strapping register to see if we can perform a watchdog reset
+        // Only use watchdog reset if GPIO0 is low AND force download boot mode is not set
+        let useWatchdogReset = false;
+        try {
+          const GPIO_STRAP_REG =
+            this.chipFamily === CHIP_FAMILY_ESP32S2
+              ? ESP32S2_GPIO_STRAP_REG
+              : ESP32S3_GPIO_STRAP_REG;
+          const GPIO_STRAP_SPI_BOOT_MASK =
+            this.chipFamily === CHIP_FAMILY_ESP32S2
+              ? ESP32S2_GPIO_STRAP_SPI_BOOT_MASK
+              : ESP32S3_GPIO_STRAP_SPI_BOOT_MASK;
+          const RTC_CNTL_OPTION1_REG =
+            this.chipFamily === CHIP_FAMILY_ESP32S2
+              ? ESP32S2_RTC_CNTL_OPTION1_REG
+              : ESP32S3_RTC_CNTL_OPTION1_REG;
+          const RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK =
+            this.chipFamily === CHIP_FAMILY_ESP32S2
+              ? ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK
+              : ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+
+          const strapReg = await this.readRegister(GPIO_STRAP_REG);
+          const forceDlReg = await this.readRegister(RTC_CNTL_OPTION1_REG);
+
+          // GPIO0 low (download mode) AND force download boot not set
+          if (
+            (strapReg & GPIO_STRAP_SPI_BOOT_MASK) === 0 &&
+            (forceDlReg & RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK) === 0
+          ) {
+            useWatchdogReset = true;
+          }
+        } catch (e) {
+          // If we can't read the registers, use watchdog reset as fallback
+          this.logger.log(
+            "Warning: Could not read strap/option registers, using watchdog reset:",
+            e,
+          );
+          useWatchdogReset = true;
+        }
+
+        if (useWatchdogReset) {
+          await this.watchdogReset();
+          this.logger.log("Watchdog reset (USB-OTG).");
+        } else {
+          // Not in download mode, can use DTR/RTS reset
+          // But USB-OTG doesn't have DTR/RTS, so fall back to watchdog
+          await this.watchdogReset();
+          this.logger.log("Watchdog reset (USB-OTG, normal boot).");
+        }
+      } else if (this.isWebUSB()) {
         // WebUSB: Use longer delays for better compatibility
         await this.setRTSWebUSB(true); // EN->LOW
         await this.sleep(200);
@@ -1810,10 +1955,6 @@ export class ESPLoader extends EventTarget {
   }
 
   async setBaudrate(baud: number) {
-    if (this.chipFamily == CHIP_FAMILY_ESP8266) {
-      throw new Error("Changing baud rate is not supported on the ESP8266");
-    }
-
     try {
       // Send ESP_ROM_BAUD(115200) as the old one if running STUB otherwise 0
       const buffer = pack("<II", baud, this.IS_STUB ? ESP_ROM_BAUD : 0);
@@ -2193,7 +2334,7 @@ export class ESPLoader extends EventTarget {
       await this.checkCommand(ESP_SPI_ATTACH, new Array(8).fill(0));
     }
     const numBlocks = Math.floor((size + flashWriteSize - 1) / flashWriteSize);
-    if (this.chipFamily == CHIP_FAMILY_ESP8266) {
+    if (this.chipFamily == CHIP_FAMILY_ESP8266 && !this.IS_STUB) {
       eraseSize = this.getEraseSize(offset, size);
     } else {
       eraseSize = size;
@@ -2593,6 +2734,20 @@ export class ESPLoader extends EventTarget {
   __writer?: WritableStreamDefaultWriter<Uint8Array>;
   __writeChain: Promise<void> = Promise.resolve();
 
+  private get _reader(): ReadableStreamDefaultReader<Uint8Array> | undefined {
+    return this._parent ? this._parent._reader : this.__reader;
+  }
+
+  private set _reader(
+    value: ReadableStreamDefaultReader<Uint8Array> | undefined,
+  ) {
+    if (this._parent) {
+      this._parent._reader = value;
+    } else {
+      this.__reader = value;
+    }
+  }
+
   private get _writer(): WritableStreamDefaultWriter<Uint8Array> | undefined {
     return this._parent ? this._parent._writer : this.__writer;
   }
@@ -2616,6 +2771,20 @@ export class ESPLoader extends EventTarget {
       this._parent._writeChain = value;
     } else {
       this.__writeChain = value;
+    }
+  }
+
+  private get _currentBaudRate(): number {
+    return this._parent
+      ? this._parent._currentBaudRate
+      : this.__currentBaudRate;
+  }
+
+  private set _currentBaudRate(value: number) {
+    if (this._parent) {
+      this._parent._currentBaudRate = value;
+    } else {
+      this.__currentBaudRate = value;
     }
   }
 
@@ -2885,11 +3054,7 @@ export class ESPLoader extends EventTarget {
       this.logger.debug("Stub loaded");
 
       // Restore baudrate if it was changed
-      // Skip for ESP8266 as it only supports 115200 baud in stub mode
-      if (
-        this._currentBaudRate !== ESP_ROM_BAUD &&
-        this.chipFamily !== CHIP_FAMILY_ESP8266
-      ) {
+      if (this._currentBaudRate !== ESP_ROM_BAUD) {
         await stubLoader.setBaudrate(this._currentBaudRate);
 
         // Verify port is still ready after baudrate change
