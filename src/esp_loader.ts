@@ -1431,6 +1431,7 @@ export class ESPLoader extends EventTarget {
     } else {
       // just reset (no bootloader mode)
       // For ESP32-S2/S3 with USB-OTG, check if watchdog reset is needed
+      if (
         this.port.getInfo().usbProductId === USB_JTAG_SERIAL_PID &&
         (this.chipFamily === CHIP_FAMILY_ESP32S2 ||
           this.chipFamily === CHIP_FAMILY_ESP32S3)
@@ -2734,20 +2735,6 @@ export class ESPLoader extends EventTarget {
   __writer?: WritableStreamDefaultWriter<Uint8Array>;
   __writeChain: Promise<void> = Promise.resolve();
 
-  private get _reader(): ReadableStreamDefaultReader<Uint8Array> | undefined {
-    return this._parent ? this._parent._reader : this.__reader;
-  }
-
-  private set _reader(
-    value: ReadableStreamDefaultReader<Uint8Array> | undefined,
-  ) {
-    if (this._parent) {
-      this._parent._reader = value;
-    } else {
-      this.__reader = value;
-    }
-  }
-
   private get _writer(): WritableStreamDefaultWriter<Uint8Array> | undefined {
     return this._parent ? this._parent._writer : this.__writer;
   }
@@ -2771,20 +2758,6 @@ export class ESPLoader extends EventTarget {
       this._parent._writeChain = value;
     } else {
       this.__writeChain = value;
-    }
-  }
-
-  private get _currentBaudRate(): number {
-    return this._parent
-      ? this._parent._currentBaudRate
-      : this.__currentBaudRate;
-  }
-
-  private set _currentBaudRate(value: number) {
-    if (this._parent) {
-      this._parent._currentBaudRate = value;
-    } else {
-      this.__currentBaudRate = value;
     }
   }
 
