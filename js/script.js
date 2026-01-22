@@ -895,6 +895,17 @@ async function closeConsole() {
       chipFamilyBeforeConsole = null;
     } catch (err) {
       errorMsg("Failed to restore state after console: " + err.message);
+      // Attempt to disconnect cleanly to allow reconnection
+      try {
+        if (espLoaderBeforeConsole?.port) {
+          await espLoaderBeforeConsole.port.close();
+        }
+      } catch (closeErr) {
+        console.error("Failed to close port:", closeErr);
+      }
+      // Reset connection state to allow fresh connect
+      espStub = undefined;
+      toggleUIConnected(false);
       espLoaderBeforeConsole = null;
       baudRateBeforeConsole = null;
       chipFamilyBeforeConsole = null;
