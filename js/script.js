@@ -856,36 +856,19 @@ async function closeConsole() {
       logMsg("Restoring device to bootloader and load stub for flash operations...");
       
       // Release locks from console
-      await releaseReaderWriter();
-      await sleep(200);
+      //await releaseReaderWriter();
+      //await sleep(200);
       
-      // Reset device to bootloader mode
-      logMsg("Resetting to bootloader...");
-      await espStub.hardReset(true); // true = bootloader mode
-      await sleep(200);
-      
-      // CRITICAL: Reset stub state like esp-web-tools does
-      // After console, firmware was running, not stub
-      espStub.IS_STUB = false;
-      // Keep chipFamily - we need it for runStub()
-      
-      // Reinitialize connection to bootloader (uses correct reset strategy)
+      // Use reconnectToBootloader() - it handles everything:
+      // - Releases locks
+      // - Resets to bootloader
+      // - Reopens port at 115200
+      // - Syncs with bootloader using correct reset strategy
       logMsg("Reconnecting to bootloader...");
-      try {
-        await espStub.initialize();
-        logMsg("Connected to bootloader");
-      } catch (initErr) {
-        logMsg("Initialize failed: " + initErr.message);
-        // Try sync as fallback
-        try {
-          await espStub.sync();
-          logMsg("Synced with bootloader");
-        } catch (syncErr) {
-          throw new Error("Could not reconnect to bootloader: " + syncErr.message);
-        }
-      }
+      await espStub.reconnectToBootloader();
+      logMsg("Connected to bootloader");
       
-      // Reload stub using the bootloader (not the old stub!)
+      // Reload stub
       logMsg("Loading stub...");
       const newStub = await espStub.runStub();
       espStub = newStub;
