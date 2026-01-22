@@ -228,17 +228,20 @@ export class ESP32ToolConsole {
       return;
     }
     const encoder = new TextEncoder();
-    const writer = this.port.writable!.getWriter();
+    let writer: WritableStreamDefaultWriter<Uint8Array> | undefined;
     try {
+      writer = this.port.writable!.getWriter();
       await writer.write(encoder.encode(command + "\r\n"));
       this.console!.addLine(`> ${command}`);
     } catch (err) {
       this.console!.addLine(`Write failed: ${err}`);
     } finally {
-      try {
-        writer.releaseLock();
-      } catch (err) {
-        console.error("Ignoring release lock error", err);
+      if (writer) {
+        try {
+          writer.releaseLock();
+        } catch (err) {
+          console.error("Ignoring release lock error", err);
+        }
       }
     }
     input.value = "";
