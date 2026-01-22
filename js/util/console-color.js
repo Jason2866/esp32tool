@@ -165,6 +165,8 @@ export class ColoredConsole {
             this.state.backgroundColor = "white";
             break;
           case 40:
+            this.state.backgroundColor = "black";
+            break;
           case 49:
             this.state.backgroundColor = null;
             break;
