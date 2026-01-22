@@ -647,6 +647,12 @@ async function clickConnect() {
   toggleUIConnected(true);
   toggleUIToolbar(true);
   
+  // Auto-initialize console if it was enabled before
+  if (consoleSwitch.checked) {
+    logMsg("Auto-initializing console from saved settings...");
+    await clickConsole();
+  }
+  
   // Check if ESP8266 and show filesystem button
   const isESP8266 = currentChipName && currentChipName.toUpperCase().includes("ESP8266");
   if (isESP8266) {
@@ -1808,12 +1814,8 @@ function loadAllSettings() {
   // Apply show log setting
   updateLogVisibility();
   
-  // Apply console visibility
-  if (consoleSwitch.checked) {
-    consoleContainer.classList.remove("hidden");
-  } else {
-    consoleContainer.classList.add("hidden");
-  }
+  // Don't show console container here - it will be initialized after connect
+  // if consoleSwitch.checked is true
   
   // Apply advanced mode visibility
   updateAdvancedVisibility();
