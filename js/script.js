@@ -1770,6 +1770,7 @@ function toggleUIConnected(connected) {
     // Hide console container and uncheck switch
     consoleContainer.classList.add("hidden");
     consoleSwitch.checked = false;
+    saveSetting("console", false);
     
     // Show header when disconnected
     header.classList.remove("header-hidden");
