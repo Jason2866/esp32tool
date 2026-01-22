@@ -853,7 +853,7 @@ async function closeConsole() {
   // Restore original state (bootloader + stub + baudrate)
   if (espLoaderBeforeConsole && baudRateBeforeConsole !== null) {
     try {
-      logMsg("Restoring device to bootloader with stub...");
+      logMsg("Restoring device to bootloader and load stub for flash operations...");
       
       // Release locks from console
       await releaseReaderWriter();
@@ -868,16 +868,21 @@ async function closeConsole() {
       // After console, firmware was running, not stub
       espStub.IS_STUB = false;
       // Keep chipFamily - we need it for runStub()
-      // chipFamily is preserved from the saved value
       
-      // Restore the original ESPLoader instance
-      // Sync with bootloader at 115200
-      logMsg("Syncing with bootloader...");
+      // Reinitialize connection to bootloader (uses correct reset strategy)
+      logMsg("Reconnecting to bootloader...");
       try {
-        await espStub.sync();
-        logMsg("Synced with bootloader");
-      } catch (syncErr) {
-        logMsg("Sync failed: " + syncErr.message);
+        await espStub.initialize();
+        logMsg("Connected to bootloader");
+      } catch (initErr) {
+        logMsg("Initialize failed: " + initErr.message);
+        // Try sync as fallback
+        try {
+          await espStub.sync();
+          logMsg("Synced with bootloader");
+        } catch (syncErr) {
+          throw new Error("Could not reconnect to bootloader: " + syncErr.message);
+        }
       }
       
       // Reload stub using the bootloader (not the old stub!)
