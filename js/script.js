@@ -1,5 +1,6 @@
 // Import WebUSB serial support for Android compatibility
 import { WebUSBSerial, requestSerialPort } from './webusb-serial.js';
+import { ESP32ToolConsole } from './console.js';
 
 // Make requestSerialPort available globally for esptool.js
 // Use defensive assignment to avoid accidental overwrites
@@ -18,6 +19,12 @@ let littlefsModulePromise = null; // Cache for LittleFS WASM module
 let lastReadFlashData = null; // Store last read flash data for ESP8266
 let currentChipName = null; // Store chip name globally
 let isConnected = false; // Track connection state
+let consoleInstance = null; // ESP32ToolConsole instance
+let baudRateBeforeConsole = null; // Store baudrate before opening console
+let espLoaderBeforeConsole = null; // Store original ESPLoader before console
+let chipFamilyBeforeConsole = null; // Store chipFamily before opening console
+let consoleResetHandler = null;
+let consoleCloseHandler = null;
 
 /**
  * Get display name for current filesystem type
@@ -190,6 +197,8 @@ const littlefsFileInput = document.getElementById("littlefsFileInput");
 const butLittlefsUpload = document.getElementById("butLittlefsUpload");
 const butLittlefsMkdir = document.getElementById("butLittlefsMkdir");
 const autoscroll = document.getElementById("autoscroll");
+const consoleSwitch = document.getElementById("console");
+const consoleContainer = document.getElementById("console-container");
 const lightSS = document.getElementById("light");
 const darkSS = document.getElementById("dark");
 const darkMode = document.getElementById("darkmode");
@@ -255,6 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateUploadRowsVisibility();
   
   autoscroll.addEventListener("click", clickAutoscroll);
+  consoleSwitch.addEventListener("click", clickConsole);
   baudRateSelect.addEventListener("change", changeBaudRate);
   advancedMode.addEventListener("change", clickAdvancedMode);
   chunkSizeSelect.addEventListener("change", changeAdvancedParam);
@@ -637,6 +647,12 @@ async function clickConnect() {
   toggleUIConnected(true);
   toggleUIToolbar(true);
   
+  // Auto-initialize console if it was enabled before
+  if (consoleSwitch.checked) {
+    logMsg("Auto-initializing console from saved settings...");
+    await clickConsole();
+  }
+  
   // Check if ESP8266 and show filesystem button
   const isESP8266 = currentChipName && currentChipName.toUpperCase().includes("ESP8266");
   if (isESP8266) {
@@ -728,6 +744,179 @@ async function clickDebugMode() {
 async function clickShowLog() {
   saveSetting("showlog", showLog.checked);
   updateLogVisibility();
+}
+
+/**
+ * @name clickConsole
+ * Change handler for the Console checkbox.
+ */
+async function clickConsole() {
+  const shouldEnable = consoleSwitch.checked;
+  if (shouldEnable) {
+    // Initialize console if connected and not already created
+    if (isConnected && espStub && espStub.port && !consoleInstance) {
+      try {
+        // CRITICAL: Save current state BEFORE changing anything
+        // If espStub has a parent, we need to get the baudrate from the parent!
+        // The stub child can not be used for restoring the stub. the parent must be used!
+        const loaderToSave = espStub._parent || espStub;
+        const currentBaudrate = loaderToSave.currentBaudRate;
+        const currentChipFamily = espStub.chipFamily;
+        const currentIsStub = espStub.IS_STUB;
+
+        // CRITICAL: Save the PARENT loader (not the stub child!)
+        espLoaderBeforeConsole = loaderToSave;
+        baudRateBeforeConsole = currentBaudrate;
+        chipFamilyBeforeConsole = currentChipFamily;
+
+        // Console ALWAYS runs at 115200 baud (firmware default)
+        // Always set baudrate to 115200 before opening console
+
+        try {
+          await espStub.setBaudrate(115200);
+          logMsg("Baudrate set to 115200 for console");
+        } catch (baudErr) {
+          logMsg(`Failed to set baudrate to 115200: ${baudErr.message}`);
+        }
+        
+        // Release reader/writer locks
+        try {
+          await espStub.releaseReaderWriter();
+          await sleep(100);
+        } catch (err) {
+          logMsg(`Failed to release locks: ${err.message}`);
+        }
+
+        // Hardware reset needed to switch to FIRMWARE mode
+        try {
+          await espStub.hardReset();
+          logMsg("Device reset to firmware mode");
+        } catch (err) {
+          logMsg(`Could not reset device: ${err}`);
+        }
+        
+        // Wait for:
+        // - Firmware to start after reset
+        // - Port to be ready for new reader
+        await sleep(200);
+        
+        // Show console container
+        consoleContainer.classList.remove("hidden");
+        
+        // Initialize console
+        consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
+        await consoleInstance.init();
+        
+        // Listen for console reset events
+        if (consoleResetHandler) {
+          consoleContainer.removeEventListener('console-reset', consoleResetHandler);
+        }
+        consoleResetHandler = async () => {
+          if (espStub && typeof espStub.hardReset === 'function') {
+            try {
+              logMsg("Resetting device from console...");
+              await espStub.hardReset();
+              logMsg("Device reset successful");
+            } catch (err) {
+              errorMsg("Failed to reset device: " + err.message);
+            }
+          }
+        };
+        consoleContainer.addEventListener('console-reset', consoleResetHandler);
+        
+        // Listen for console close events
+        if (consoleCloseHandler) {
+          consoleContainer.removeEventListener('console-close', consoleCloseHandler);
+        }
+        consoleCloseHandler = async () => {
+          if (!consoleSwitch.checked) return; // Already closing
+          logMsg("Closing console...");
+          consoleSwitch.checked = false;
+          saveSetting("console", false);
+          // Directly call close logic without triggering clickConsole
+          await closeConsole();
+        };
+        consoleContainer.addEventListener('console-close', consoleCloseHandler);
+        
+        saveSetting("console", true);
+        logMsg("Console initialized");
+      } catch (err) {
+        errorMsg("Failed to initialize console: " + err.message);
+        consoleSwitch.checked = false;
+        saveSetting("console", false);
+        await closeConsole();
+      }
+    } else if (!isConnected) {
+      // Not connected - just show message
+      consoleSwitch.checked = false;
+      saveSetting("console", false);
+      errorMsg("Please connect to device first");
+    }
+  } else {
+    await closeConsole();
+    saveSetting("console", false);
+  }
+}
+
+/**
+ * @name closeConsole
+ * Close console and restore device to bootloader state
+ */
+async function closeConsole() {
+  // Hide and cleanup console
+  consoleContainer.classList.add("hidden");
+  
+  if (consoleInstance) {
+    try {
+      await consoleInstance.disconnect();
+    } catch (err) {
+      console.error("Error disconnecting console:", err);
+    }
+    consoleInstance = null;
+  }
+  
+  // Restore original state (bootloader + stub + baudrate)
+  if (espLoaderBeforeConsole && Number.isFinite(baudRateBeforeConsole)) {
+    try {
+      // Use reconnectToBootloader() - it handles everything:
+      // - Releases locks
+      // - Resets to bootloader
+      // - Reopens port at 115200
+      // - Syncs with bootloader using correct reset strategy
+      // NOTE: Call on original loader (before console), not on stub
+      await espLoaderBeforeConsole.reconnectToBootloader();
+      
+      // Now espLoaderBeforeConsole is in bootloader state (IS_STUB = false)
+      // Reload stub using the reconnected bootloader
+      const newStub = await espLoaderBeforeConsole.runStub();
+      espStub = newStub;
+
+      // Restore original baudrate
+      if (baudRateBeforeConsole !== 115200) {
+        await espStub.setBaudrate(baudRateBeforeConsole);
+      }
+
+      espLoaderBeforeConsole = null;
+      baudRateBeforeConsole = null;
+      chipFamilyBeforeConsole = null;
+    } catch (err) {
+      errorMsg("Failed to restore state after console: " + err.message);
+      // Attempt to disconnect cleanly to allow reconnection
+      try {
+        if (espLoaderBeforeConsole?.port) {
+          await espLoaderBeforeConsole.port.close();
+        }
+      } catch (closeErr) {
+        console.error("Failed to close port:", closeErr);
+      }
+      // Reset connection state to allow fresh connect
+      espStub = undefined;
+      toggleUIConnected(false);
+      espLoaderBeforeConsole = null;
+      baudRateBeforeConsole = null;
+      chipFamilyBeforeConsole = null;
+    }
+  }
 }
 
 /**
@@ -1576,13 +1765,30 @@ function toggleUIConnected(connected) {
   
   if (connected) {
     lbl = "Disconnect";
+    isConnected = true;
+    
     // Auto-hide header after connection
     setTimeout(() => {
       header.classList.add("header-hidden");
       main.classList.add("no-header-padding");
     }, 2000); // Hide after 2 seconds
   } else {
+    isConnected = false;
     toggleUIToolbar(false);
+    
+    // Cleanup console if it was running
+    if (consoleInstance) {
+      consoleInstance.disconnect().catch(err => {
+        console.error("Error disconnecting console:", err);
+      });
+      consoleInstance = null;
+    }
+    
+    // Hide console container and uncheck switch
+    consoleContainer.classList.add("hidden");
+    consoleSwitch.checked = false;
+    saveSetting("console", false);
+    
     // Show header when disconnected
     header.classList.remove("header-hidden");
     main.classList.remove("no-header-padding");
@@ -1597,6 +1803,7 @@ function loadAllSettings() {
   darkMode.checked = loadSetting("darkmode", false);
   debugMode.checked = loadSetting("debugmode", false);
   showLog.checked = loadSetting("showlog", false);
+  consoleSwitch.checked = loadSetting("console", false);
   advancedMode.checked = loadSetting("advanced", false);
   
   // Load advanced parameters
@@ -1606,6 +1813,9 @@ function loadAllSettings() {
   
   // Apply show log setting
   updateLogVisibility();
+  
+  // Don't show console container here - it will be initialized after connect
+  // if consoleSwitch.checked is true
   
   // Apply advanced mode visibility
   updateAdvancedVisibility();

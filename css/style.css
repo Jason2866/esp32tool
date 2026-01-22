@@ -144,6 +144,18 @@ div.clear {
   display: none;
 }
 
+/* Console Container */
+.console-container {
+  height: 500px;
+  overflow: hidden;
+  transition: height 0.3s ease-in-out;
+}
+
+.console-container.hidden {
+  height: 0;
+  display: none;
+}
+
 .notSupported {
   padding: 1em;
   margin-top: 1em;
