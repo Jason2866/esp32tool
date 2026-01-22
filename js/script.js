@@ -21,6 +21,8 @@ let currentChipName = null; // Store chip name globally
 let isConnected = false; // Track connection state
 let consoleInstance = null; // ESP32ToolConsole instance
 let baudRateBeforeConsole = null; // Store baudrate before opening console
+let espLoaderBeforeConsole = null; // Store original ESPLoader before console
+let chipFamilyBeforeConsole = null; // Store chipFamily before opening console
 
 /**
  * Get display name for current filesystem type
@@ -748,9 +750,11 @@ async function clickConsole() {
     // Initialize console if connected and not already created
     if (isConnected && espStub && espStub.port && !consoleInstance) {
       try {
-        // Save current baudrate before switching to console
+        // Save current state before switching to console
         baudRateBeforeConsole = espStub.currentBaudRate;
-        logMsg(`Saving current baudrate: ${baudRateBeforeConsole}`);
+        chipFamilyBeforeConsole = espStub.chipFamily;
+        espLoaderBeforeConsole = espStub; // Save the ESPLoader instance (with stub)
+        logMsg(`Saving current state: baudrate ${baudRateBeforeConsole}, chipFamily ${chipFamilyBeforeConsole}, IS_STUB=${espStub.IS_STUB}`);
         
         // CRITICAL: Console ALWAYS runs at 115200 baud (firmware default)
         // Always set baudrate to 115200 before opening console
@@ -846,26 +850,37 @@ async function closeConsole() {
     consoleInstance = null;
   }
   
-  // Restore original baudrate and reset to bootloader
-  if (espStub && baudRateBeforeConsole !== null) {
+  // Restore original state (bootloader + stub + baudrate)
+  if (espLoaderBeforeConsole && baudRateBeforeConsole !== null) {
     try {
-      logMsg("Preparing device for operations...");
+      logMsg("Restoring device to bootloader with stub...");
       
-      // Release locks
+      // Release locks from console
       await releaseReaderWriter();
+      await sleep(200);
       
-      // Close and reopen port to reset everything
-      await espStub.port.close();
-      await sleep(100);
+      // Reset device to bootloader mode
+      logMsg("Resetting to bootloader...");
+      await espStub.hardReset(true); // true = bootloader mode
+      await sleep(200);
       
-      await espStub.port.open({ baudRate: 115200 });
-      await sleep(100);
+      // CRITICAL: Reset stub state like esp-web-tools does
+      // After console, firmware was running, not stub
+      espStub.IS_STUB = false;
+      // Keep chipFamily - we need it for runStub()
+      // chipFamily is preserved from the saved value
       
-      // Reinitialize connection to bootloader
-      logMsg("Connecting to bootloader...");
-      await espStub.initialize();
+      // Restore the original ESPLoader instance
+      // Sync with bootloader at 115200
+      logMsg("Syncing with bootloader...");
+      try {
+        await espStub.sync();
+        logMsg("Synced with bootloader");
+      } catch (syncErr) {
+        logMsg("Sync failed: " + syncErr.message);
+      }
       
-      // Load stub
+      // Reload stub using the bootloader (not the old stub!)
       logMsg("Loading stub...");
       const newStub = await espStub.runStub();
       espStub = newStub;
@@ -878,10 +893,15 @@ async function closeConsole() {
         logMsg(`Baudrate restored to ${baudRateBeforeConsole}`);
       }
       
+      espLoaderBeforeConsole = null;
       baudRateBeforeConsole = null;
+      chipFamilyBeforeConsole = null;
       logMsg("Device ready for operations");
     } catch (err) {
       errorMsg("Failed to restore state after console: " + err.message);
+      espLoaderBeforeConsole = null;
+      baudRateBeforeConsole = null;
+      chipFamilyBeforeConsole = null;
     }
   }
 }
