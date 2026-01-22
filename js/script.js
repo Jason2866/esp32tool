@@ -23,6 +23,8 @@ let consoleInstance = null; // ESP32ToolConsole instance
 let baudRateBeforeConsole = null; // Store baudrate before opening console
 let espLoaderBeforeConsole = null; // Store original ESPLoader before console
 let chipFamilyBeforeConsole = null; // Store chipFamily before opening console
+let consoleResetHandler = null;
+let consoleCloseHandler = null;
 
 /**
  * Get display name for current filesystem type
@@ -743,9 +745,8 @@ async function clickShowLog() {
  * Change handler for the Console checkbox.
  */
 async function clickConsole() {
-  saveSetting("console", consoleSwitch.checked);
-  
-  if (consoleSwitch.checked) {
+  const shouldEnable = consoleSwitch.checked;
+  if (shouldEnable) {
     // Initialize console if connected and not already created
     if (isConnected && espStub && espStub.port && !consoleInstance) {
       try {
@@ -801,7 +802,10 @@ async function clickConsole() {
         await consoleInstance.init();
         
         // Listen for console reset events
-        consoleContainer.addEventListener('console-reset', async (e) => {
+        if (consoleResetHandler) {
+          consoleContainer.removeEventListener('console-reset', consoleResetHandler);
+        }
+        consoleResetHandler = async () => {
           if (espStub && typeof espStub.hardReset === 'function') {
             try {
               logMsg("Resetting device from console...");
@@ -811,32 +815,40 @@ async function clickConsole() {
               errorMsg("Failed to reset device: " + err.message);
             }
           }
-        });
+        };
+        consoleContainer.addEventListener('console-reset', consoleResetHandler);
         
         // Listen for console close events
-        consoleContainer.addEventListener('console-close', async (e) => {
+        if (consoleCloseHandler) {
+          consoleContainer.removeEventListener('console-close', consoleCloseHandler);
+        }
+        consoleCloseHandler = async () => {
           if (!consoleSwitch.checked) return; // Already closing
           logMsg("Closing console...");
           consoleSwitch.checked = false;
           saveSetting("console", false);
-          
           // Directly call close logic without triggering clickConsole
           await closeConsole();
-        });
+        };
+        consoleContainer.addEventListener('console-close', consoleCloseHandler);
         
+        saveSetting("console", true);
         logMsg("Console initialized");
       } catch (err) {
         errorMsg("Failed to initialize console: " + err.message);
         consoleSwitch.checked = false;
-        consoleContainer.classList.add("hidden");
+        saveSetting("console", false);
+        await closeConsole();
       }
     } else if (!isConnected) {
       // Not connected - just show message
       consoleSwitch.checked = false;
+      saveSetting("console", false);
       errorMsg("Please connect to device first");
     }
   } else {
     await closeConsole();
+    saveSetting("console", false);
   }
 }
 

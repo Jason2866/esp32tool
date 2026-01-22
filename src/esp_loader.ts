@@ -3015,6 +3015,7 @@ export class ESPLoader extends EventTarget {
       try {
         await this.port.open({ baudRate: ESP_ROM_BAUD });
         this.connected = true;
+        this.currentBaudRate = ESP_ROM_BAUD;
       } catch (err) {
         throw new Error(`Failed to open port: ${err}`);
       }

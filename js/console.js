@@ -98,7 +98,6 @@ export class ESP32ToolConsole {
         ${
           this.allowInput
             ? `<form class="esp32tool-console-form">
-                  >
                   <input class="esp32tool-console-input" autofocus placeholder="Type command and press Enter...">
                 </form>`
             : ""
@@ -215,17 +214,26 @@ export class ESP32ToolConsole {
   async _sendCommand() {
     const input = this.containerElement.querySelector(".esp32tool-console-input");
     const command = input.value;
+    if (!this.port.writable) {
+      this.console.addLine("Terminal disconnected: port not writable");
+      return;
+    }
     const encoder = new TextEncoder();
     const writer = this.port.writable.getWriter();
-    await writer.write(encoder.encode(command + "\r\n"));
-    this.console.addLine(`> ${command}\r\n`);
+    try {
+      await writer.write(encoder.encode(command + "\r\n"));
+      this.console.addLine(`> ${command}`);
+    } catch (err) {
+      this.console.addLine(`Write failed: ${err}`);
+    } finally {
+      try {
+        writer.releaseLock();
+      } catch (err) {
+        console.error("Ignoring release lock error", err);
+      }
+    }
     input.value = "";
     input.focus();
-    try {
-      writer.releaseLock();
-    } catch (err) {
-      console.error("Ignoring release lock error", err);
-    }
   }
 
   clear() {

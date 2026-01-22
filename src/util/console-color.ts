@@ -34,7 +34,9 @@ export class ColoredConsole {
     if (this.state.carriageReturn) {
       if (line !== "\n") {
         // don't remove if \r\n
-        this.targetElement.removeChild(this.targetElement.lastChild!);
+        if (this.targetElement.lastChild) {
+          this.targetElement.removeChild(this.targetElement.lastChild);
+        }
       }
       this.state.carriageReturn = false;
     }
