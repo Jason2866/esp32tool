@@ -804,9 +804,13 @@ async function clickConsole() {
         
         // Listen for console close events
         consoleContainer.addEventListener('console-close', async (e) => {
+          if (!consoleSwitch.checked) return; // Already closing
           logMsg("Closing console...");
           consoleSwitch.checked = false;
-          await clickConsole(); // Trigger the close logic
+          saveSetting("console", false);
+          
+          // Directly call close logic without triggering clickConsole
+          await closeConsole();
         });
         
         logMsg("Console initialized");
@@ -821,48 +825,63 @@ async function clickConsole() {
       errorMsg("Please connect to device first");
     }
   } else {
-    // Hide and cleanup console
-    consoleContainer.classList.add("hidden");
-    
-    if (consoleInstance) {
-      try {
-        await consoleInstance.disconnect();
-      } catch (err) {
-        console.error("Error disconnecting console:", err);
-      }
-      consoleInstance = null;
+    await closeConsole();
+  }
+}
+
+/**
+ * @name closeConsole
+ * Close console and restore device to bootloader state
+ */
+async function closeConsole() {
+  // Hide and cleanup console
+  consoleContainer.classList.add("hidden");
+  
+  if (consoleInstance) {
+    try {
+      await consoleInstance.disconnect();
+    } catch (err) {
+      console.error("Error disconnecting console:", err);
     }
-    
-    // Restore original baudrate and reset to bootloader
-    if (espStub && baudRateBeforeConsole !== null) {
-      try {
-        logMsg("Resetting device to bootloader...");
-        
-        // Release locks
-        await releaseReaderWriter();
-        
-        // Reset to bootloader mode
-        await espStub.hardReset(true); // true = bootloader mode
-        await sleep(200);
-        
-        // Reload stub (required after reset)
-        logMsg("Loading stub...");
-        const newStub = await espStub.runStub();
-        espStub = newStub;
-        logMsg("Stub loaded");
-        
-        // Restore original baudrate
-        if (baudRateBeforeConsole !== 115200) {
-          logMsg(`Restoring baudrate to ${baudRateBeforeConsole}...`);
-          await espStub.setBaudrate(baudRateBeforeConsole);
-          logMsg(`Baudrate restored to ${baudRateBeforeConsole}`);
-        }
-        
-        baudRateBeforeConsole = null;
-        logMsg("Device ready for operations");
-      } catch (err) {
-        errorMsg("Failed to restore state after console: " + err.message);
+    consoleInstance = null;
+  }
+  
+  // Restore original baudrate and reset to bootloader
+  if (espStub && baudRateBeforeConsole !== null) {
+    try {
+      logMsg("Preparing device for operations...");
+      
+      // Release locks
+      await releaseReaderWriter();
+      
+      // Close and reopen port to reset everything
+      await espStub.port.close();
+      await sleep(100);
+      
+      await espStub.port.open({ baudRate: 115200 });
+      await sleep(100);
+      
+      // Reinitialize connection to bootloader
+      logMsg("Connecting to bootloader...");
+      await espStub.initialize();
+      
+      // Load stub
+      logMsg("Loading stub...");
+      const newStub = await espStub.runStub();
+      espStub = newStub;
+      logMsg("Stub loaded");
+      
+      // Restore original baudrate
+      if (baudRateBeforeConsole !== 115200) {
+        logMsg(`Restoring baudrate to ${baudRateBeforeConsole}...`);
+        await espStub.setBaudrate(baudRateBeforeConsole);
+        logMsg(`Baudrate restored to ${baudRateBeforeConsole}`);
       }
+      
+      baudRateBeforeConsole = null;
+      logMsg("Device ready for operations");
+    } catch (err) {
+      errorMsg("Failed to restore state after console: " + err.message);
     }
   }
 }
