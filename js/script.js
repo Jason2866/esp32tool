@@ -749,6 +749,30 @@ async function clickConsole() {
     // Initialize console if connected and not already created
     if (isConnected && espStub && espStub.port && !consoleInstance) {
       try {
+        // CRITICAL: Switch to 115200 baud for console
+        // Firmware console always runs at 115200, not at higher flash baudrates
+        if (espStub._currentBaudRate && espStub._currentBaudRate !== 115200) {
+          logMsg(`Switching baudrate from ${espStub._currentBaudRate} to 115200 for console...`);
+          try {
+            await espStub.setBaudrate(115200);
+            logMsg("Baudrate set to 115200 for console");
+          } catch (baudErr) {
+            logMsg(`Failed to set baudrate: ${baudErr.message}, continuing anyway`);
+          }
+        }
+        
+        // Release reader/writer locks before console takes over
+        await releaseReaderWriter();
+        
+        // Reset device to firmware mode for console
+        try {
+          await espStub.hardReset(false); // false = boot to firmware mode
+          logMsg("Device reset to firmware mode for console");
+          await sleep(200); // Wait for firmware to start
+        } catch (resetErr) {
+          logMsg(`Reset failed: ${resetErr.message}, continuing anyway`);
+        }
+        
         consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
         await consoleInstance.init();
         
@@ -757,7 +781,7 @@ async function clickConsole() {
           if (espStub && typeof espStub.hardReset === 'function') {
             try {
               logMsg("Resetting device from console...");
-              await espStub.hardReset();
+              await espStub.hardReset(false); // Reset to firmware mode
               logMsg("Device reset successful");
             } catch (err) {
               errorMsg("Failed to reset device: " + err.message);
@@ -1639,6 +1663,29 @@ function toggleUIConnected(connected) {
     if (consoleSwitch.checked && espStub && espStub.port && !consoleInstance) {
       setTimeout(async () => {
         try {
+          // CRITICAL: Switch to 115200 baud for console
+          if (espStub._currentBaudRate && espStub._currentBaudRate !== 115200) {
+            logMsg(`Switching baudrate from ${espStub._currentBaudRate} to 115200 for console...`);
+            try {
+              await espStub.setBaudrate(115200);
+              logMsg("Baudrate set to 115200 for console");
+            } catch (baudErr) {
+              logMsg(`Failed to set baudrate: ${baudErr.message}, continuing anyway`);
+            }
+          }
+          
+          // Release reader/writer locks before console takes over
+          await releaseReaderWriter();
+          
+          // Reset device to firmware mode for console
+          try {
+            await espStub.hardReset(false); // false = boot to firmware mode
+            logMsg("Device reset to firmware mode for console");
+            await sleep(200); // Wait for firmware to start
+          } catch (resetErr) {
+            logMsg(`Reset failed: ${resetErr.message}, continuing anyway`);
+          }
+          
           consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
           await consoleInstance.init();
           
@@ -1647,7 +1694,7 @@ function toggleUIConnected(connected) {
             if (espStub && typeof espStub.hardReset === 'function') {
               try {
                 logMsg("Resetting device from console...");
-                await espStub.hardReset();
+                await espStub.hardReset(false); // Reset to firmware mode
                 logMsg("Device reset successful");
               } catch (err) {
                 errorMsg("Failed to reset device: " + err.message);
@@ -1739,6 +1786,43 @@ function ucWords(text) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Release reader/writer locks on the serial port
+ * Based on esp-web-tools _releaseReaderWriter pattern
+ */
+async function releaseReaderWriter() {
+  if (!espStub) return;
+  
+  if (espStub._reader) {
+    const reader = espStub._reader;
+    try {
+      await reader.cancel();
+    } catch (err) {
+      debugMsg("Reader cancel failed:", err);
+    } finally {
+      try {
+        reader.releaseLock();
+        debugMsg("Reader released");
+      } catch (err) {
+        debugMsg("Reader releaseLock failed:", err);
+      }
+      espStub._reader = undefined;
+    }
+  }
+  
+  if (espStub._writer) {
+    const writer = espStub._writer;
+    try {
+      writer.releaseLock();
+      debugMsg("Writer released");
+    } catch (err) {
+      debugMsg("Writer releaseLock failed:", err);
+    } finally {
+      espStub._writer = undefined;
+    }
+  }
 }
 
 /**
