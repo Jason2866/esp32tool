@@ -1,5 +1,6 @@
 // Import WebUSB serial support for Android compatibility
 import { WebUSBSerial, requestSerialPort } from './webusb-serial.js';
+import { ESP32ToolConsole } from './console.js';
 
 // Make requestSerialPort available globally for esptool.js
 // Use defensive assignment to avoid accidental overwrites
@@ -18,6 +19,7 @@ let littlefsModulePromise = null; // Cache for LittleFS WASM module
 let lastReadFlashData = null; // Store last read flash data for ESP8266
 let currentChipName = null; // Store chip name globally
 let isConnected = false; // Track connection state
+let consoleInstance = null; // ESP32ToolConsole instance
 
 /**
  * Get display name for current filesystem type
@@ -190,6 +192,8 @@ const littlefsFileInput = document.getElementById("littlefsFileInput");
 const butLittlefsUpload = document.getElementById("butLittlefsUpload");
 const butLittlefsMkdir = document.getElementById("butLittlefsMkdir");
 const autoscroll = document.getElementById("autoscroll");
+const consoleSwitch = document.getElementById("console");
+const consoleContainer = document.getElementById("console-container");
 const lightSS = document.getElementById("light");
 const darkSS = document.getElementById("dark");
 const darkMode = document.getElementById("darkmode");
@@ -255,6 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateUploadRowsVisibility();
   
   autoscroll.addEventListener("click", clickAutoscroll);
+  consoleSwitch.addEventListener("click", clickConsole);
   baudRateSelect.addEventListener("change", changeBaudRate);
   advancedMode.addEventListener("change", clickAdvancedMode);
   chunkSizeSelect.addEventListener("change", changeAdvancedParam);
@@ -728,6 +733,58 @@ async function clickDebugMode() {
 async function clickShowLog() {
   saveSetting("showlog", showLog.checked);
   updateLogVisibility();
+}
+
+/**
+ * @name clickConsole
+ * Change handler for the Console checkbox.
+ */
+async function clickConsole() {
+  saveSetting("console", consoleSwitch.checked);
+  
+  if (consoleSwitch.checked) {
+    // Show console
+    consoleContainer.classList.remove("hidden");
+    
+    // Initialize console if connected and not already created
+    if (isConnected && espStub && espStub.port && !consoleInstance) {
+      try {
+        consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
+        await consoleInstance.init();
+        
+        // Listen for console reset events
+        consoleContainer.addEventListener('console-reset', async (e) => {
+          if (espStub && typeof espStub.hardReset === 'function') {
+            try {
+              logMsg("Resetting device from console...");
+              await espStub.hardReset();
+              logMsg("Device reset successful");
+            } catch (err) {
+              errorMsg("Failed to reset device: " + err.message);
+            }
+          }
+        });
+        
+        logMsg("Console initialized");
+      } catch (err) {
+        errorMsg("Failed to initialize console: " + err.message);
+        consoleSwitch.checked = false;
+        consoleContainer.classList.add("hidden");
+      }
+    }
+  } else {
+    // Hide and cleanup console
+    consoleContainer.classList.add("hidden");
+    
+    if (consoleInstance) {
+      try {
+        await consoleInstance.disconnect();
+      } catch (err) {
+        console.error("Error disconnecting console:", err);
+      }
+      consoleInstance = null;
+    }
+  }
 }
 
 /**
@@ -1576,13 +1633,54 @@ function toggleUIConnected(connected) {
   
   if (connected) {
     lbl = "Disconnect";
+    isConnected = true;
+    
+    // Initialize console if switch is checked
+    if (consoleSwitch.checked && espStub && espStub.port && !consoleInstance) {
+      setTimeout(async () => {
+        try {
+          consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
+          await consoleInstance.init();
+          
+          // Listen for console reset events
+          consoleContainer.addEventListener('console-reset', async (e) => {
+            if (espStub && typeof espStub.hardReset === 'function') {
+              try {
+                logMsg("Resetting device from console...");
+                await espStub.hardReset();
+                logMsg("Device reset successful");
+              } catch (err) {
+                errorMsg("Failed to reset device: " + err.message);
+              }
+            }
+          });
+          
+          logMsg("Console initialized");
+        } catch (err) {
+          errorMsg("Failed to initialize console: " + err.message);
+          consoleSwitch.checked = false;
+          consoleContainer.classList.add("hidden");
+        }
+      }, 100);
+    }
+    
     // Auto-hide header after connection
     setTimeout(() => {
       header.classList.add("header-hidden");
       main.classList.add("no-header-padding");
     }, 2000); // Hide after 2 seconds
   } else {
+    isConnected = false;
     toggleUIToolbar(false);
+    
+    // Cleanup console
+    if (consoleInstance) {
+      consoleInstance.disconnect().catch(err => {
+        console.error("Error disconnecting console:", err);
+      });
+      consoleInstance = null;
+    }
+    
     // Show header when disconnected
     header.classList.remove("header-hidden");
     main.classList.remove("no-header-padding");
@@ -1597,6 +1695,7 @@ function loadAllSettings() {
   darkMode.checked = loadSetting("darkmode", false);
   debugMode.checked = loadSetting("debugmode", false);
   showLog.checked = loadSetting("showlog", false);
+  consoleSwitch.checked = loadSetting("console", false);
   advancedMode.checked = loadSetting("advanced", false);
   
   // Load advanced parameters
@@ -1606,6 +1705,13 @@ function loadAllSettings() {
   
   // Apply show log setting
   updateLogVisibility();
+  
+  // Apply console visibility
+  if (consoleSwitch.checked) {
+    consoleContainer.classList.remove("hidden");
+  } else {
+    consoleContainer.classList.add("hidden");
+  }
   
   // Apply advanced mode visibility
   updateAdvancedVisibility();
