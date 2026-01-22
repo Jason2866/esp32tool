@@ -738,41 +738,51 @@ async function clickShowLog() {
 /**
  * @name clickConsole
  * Change handler for the Console checkbox.
+ * EXACT sequence from esp-web-tools install-dialog.ts "Logs & Console" button
  */
 async function clickConsole() {
   saveSetting("console", consoleSwitch.checked);
   
   if (consoleSwitch.checked) {
-    // Show console
-    consoleContainer.classList.remove("hidden");
-    
     // Initialize console if connected and not already created
     if (isConnected && espStub && espStub.port && !consoleInstance) {
       try {
-        // CRITICAL: Switch to 115200 baud for console
-        // Firmware console always runs at 115200, not at higher flash baudrates
+        // EXACT sequence from esp-web-tools lines 627-630:
+        // 1. Reset baudrate to 115200 for console
         if (espStub._currentBaudRate && espStub._currentBaudRate !== 115200) {
-          logMsg(`Switching baudrate from ${espStub._currentBaudRate} to 115200 for console...`);
+          logMsg(`Resetting baudrate from ${espStub._currentBaudRate} to 115200 for console...`);
           try {
             await espStub.setBaudrate(115200);
             logMsg("Baudrate set to 115200 for console");
           } catch (baudErr) {
-            logMsg(`Failed to set baudrate: ${baudErr.message}, continuing anyway`);
+            logMsg(`Failed to set baudrate to 115200: ${baudErr.message}`);
           }
         }
         
-        // Release reader/writer locks before console takes over
+        // 2. Release reader/writer locks
         await releaseReaderWriter();
         
-        // Reset device to firmware mode for console
+        // 3. Reset device and release locks
+        await releaseReaderWriter();
+        
+        // Hardware reset to FIRMWARE mode
         try {
-          await espStub.hardReset(false); // false = boot to firmware mode
-          logMsg("Device reset to firmware mode for console");
-          await sleep(200); // Wait for firmware to start
-        } catch (resetErr) {
-          logMsg(`Reset failed: ${resetErr.message}, continuing anyway`);
+          await espStub.hardReset();
+          logMsg("Device reset to firmware mode");
+        } catch (err) {
+          logMsg(`Could not reset device: ${err}`);
         }
         
+        // CRITICAL: Wait longer for:
+        // - Firmware to start after reset
+        // - Stream locks to be fully released
+        // - Port to be ready for new reader
+        await sleep(250);
+        
+        // Show console container
+        consoleContainer.classList.remove("hidden");
+        
+        // Initialize console
         consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
         await consoleInstance.init();
         
@@ -781,7 +791,7 @@ async function clickConsole() {
           if (espStub && typeof espStub.hardReset === 'function') {
             try {
               logMsg("Resetting device from console...");
-              await espStub.hardReset(false); // Reset to firmware mode
+              await espStub.hardReset();
               logMsg("Device reset successful");
             } catch (err) {
               errorMsg("Failed to reset device: " + err.message);
@@ -795,6 +805,10 @@ async function clickConsole() {
         consoleSwitch.checked = false;
         consoleContainer.classList.add("hidden");
       }
+    } else if (!isConnected) {
+      // Not connected - just show message
+      consoleSwitch.checked = false;
+      errorMsg("Please connect to device first");
     }
   } else {
     // Hide and cleanup console
@@ -1659,57 +1673,8 @@ function toggleUIConnected(connected) {
     lbl = "Disconnect";
     isConnected = true;
     
-    // Initialize console if switch is checked
-    if (consoleSwitch.checked && espStub && espStub.port && !consoleInstance) {
-      setTimeout(async () => {
-        try {
-          // CRITICAL: Switch to 115200 baud for console
-          if (espStub._currentBaudRate && espStub._currentBaudRate !== 115200) {
-            logMsg(`Switching baudrate from ${espStub._currentBaudRate} to 115200 for console...`);
-            try {
-              await espStub.setBaudrate(115200);
-              logMsg("Baudrate set to 115200 for console");
-            } catch (baudErr) {
-              logMsg(`Failed to set baudrate: ${baudErr.message}, continuing anyway`);
-            }
-          }
-          
-          // Release reader/writer locks before console takes over
-          await releaseReaderWriter();
-          
-          // Reset device to firmware mode for console
-          try {
-            await espStub.hardReset(false); // false = boot to firmware mode
-            logMsg("Device reset to firmware mode for console");
-            await sleep(200); // Wait for firmware to start
-          } catch (resetErr) {
-            logMsg(`Reset failed: ${resetErr.message}, continuing anyway`);
-          }
-          
-          consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
-          await consoleInstance.init();
-          
-          // Listen for console reset events
-          consoleContainer.addEventListener('console-reset', async (e) => {
-            if (espStub && typeof espStub.hardReset === 'function') {
-              try {
-                logMsg("Resetting device from console...");
-                await espStub.hardReset(false); // Reset to firmware mode
-                logMsg("Device reset successful");
-              } catch (err) {
-                errorMsg("Failed to reset device: " + err.message);
-              }
-            }
-          });
-          
-          logMsg("Console initialized");
-        } catch (err) {
-          errorMsg("Failed to initialize console: " + err.message);
-          consoleSwitch.checked = false;
-          consoleContainer.classList.add("hidden");
-        }
-      }, 100);
-    }
+    // DON'T auto-initialize console - user must manually enable it
+    // This matches esp-web-tools behavior where console is only opened on button click
     
     // Auto-hide header after connection
     setTimeout(() => {
@@ -1720,13 +1685,17 @@ function toggleUIConnected(connected) {
     isConnected = false;
     toggleUIToolbar(false);
     
-    // Cleanup console
+    // Cleanup console if it was running
     if (consoleInstance) {
       consoleInstance.disconnect().catch(err => {
         console.error("Error disconnecting console:", err);
       });
       consoleInstance = null;
     }
+    
+    // Hide console container and uncheck switch
+    consoleContainer.classList.add("hidden");
+    consoleSwitch.checked = false;
     
     // Show header when disconnected
     header.classList.remove("header-hidden");
@@ -1790,39 +1759,19 @@ function sleep(ms) {
 
 /**
  * Release reader/writer locks on the serial port
- * Based on esp-web-tools _releaseReaderWriter pattern
+ * Uses ESPLoader's native releaseReaderWriter() method
  */
 async function releaseReaderWriter() {
   if (!espStub) return;
   
-  if (espStub._reader) {
-    const reader = espStub._reader;
-    try {
-      await reader.cancel();
-    } catch (err) {
-      debugMsg("Reader cancel failed:", err);
-    } finally {
-      try {
-        reader.releaseLock();
-        debugMsg("Reader released");
-      } catch (err) {
-        debugMsg("Reader releaseLock failed:", err);
-      }
-      espStub._reader = undefined;
-    }
+  try {
+    await espStub.releaseReaderWriter();
+  } catch (err) {
+    debugMsg("releaseReaderWriter failed:", err);
   }
   
-  if (espStub._writer) {
-    const writer = espStub._writer;
-    try {
-      writer.releaseLock();
-      debugMsg("Writer released");
-    } catch (err) {
-      debugMsg("Writer releaseLock failed:", err);
-    } finally {
-      espStub._writer = undefined;
-    }
-  }
+  // Wait for locks to be fully released
+  await sleep(100);
 }
 
 /**

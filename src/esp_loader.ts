@@ -2915,6 +2915,47 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
+   * @name releaseReaderWriter
+   * Release reader and writer locks without closing the port
+   * Used when switching to console mode
+   */
+  async releaseReaderWriter() {
+    if (this._parent) {
+      await this._parent.releaseReaderWriter();
+      return;
+    }
+
+    // Wait for pending writes to complete
+    try {
+      await this._writeChain;
+    } catch (err) {
+      this.logger.debug(`Pending write error during release: ${err}`);
+    }
+
+    // Release writer
+    if (this._writer) {
+      try {
+        this._writer.releaseLock();
+        this.logger.log("Writer released");
+      } catch (err) {
+        this.logger.debug(`Writer release error: ${err}`);
+      }
+      this._writer = undefined;
+    }
+
+    // Cancel and release reader
+    if (this._reader) {
+      try {
+        await this._reader.cancel();
+        this.logger.log("Reader cancelled");
+      } catch (err) {
+        this.logger.debug(`Reader cancel error: ${err}`);
+      }
+      this._reader = undefined;
+    }
+  }
+
+  /**
    * @name reconnectAndResume
    * Reconnect the serial port to flush browser buffers and reload stub
    */

@@ -226,8 +226,7 @@ export class ESP32ToolConsole {
 
   async reset() {
     console.log("Reset device requested from console");
-    this.console.addLine("");
-    this.console.addLine("Resetting device...");
+    // Don't use addLine here as stream might already be closed
     // This will be called from script.js with proper reset logic
     const event = new CustomEvent("console-reset");
     this.containerElement.dispatchEvent(event);
