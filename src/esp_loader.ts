@@ -2948,10 +2948,15 @@ export class ESPLoader extends EventTarget {
       const reader = this._reader;
       try {
         await reader.cancel();
-        reader.releaseLock();
         this.logger.log("Reader cancelled");
       } catch (err) {
         this.logger.debug(`Reader cancel error: ${err}`);
+      } finally {
+        try {
+          reader.releaseLock();
+        } catch (err) {
+          this.logger.debug(`Reader release error: ${err}`);
+        }
       }
       if (this._reader === reader) {
         this._reader = undefined;
