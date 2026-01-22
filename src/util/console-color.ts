@@ -67,13 +67,13 @@ export class ColoredConsole {
         redacted.appendChild(document.createTextNode("[redacted]"));
         lineSpan.appendChild(redacted);
       }
-        if (this.state.secret) {
-          const redacted = document.createElement("span");
-          redacted.classList.add("log-secret-redacted");
-          redacted.appendChild(document.createTextNode("[redacted]"));
-          lineSpan.appendChild(redacted);
-          return;
-        }
+      if (this.state.secret) {
+        const redacted = document.createElement("span");
+        redacted.classList.add("log-secret-redacted");
+        redacted.appendChild(document.createTextNode("[redacted]"));
+        lineSpan.appendChild(redacted);
+        return;
+      }
     };
 
     while (true) {
@@ -177,6 +177,8 @@ export class ColoredConsole {
             this.state.backgroundColor = "white";
             break;
           case 40:
+            this.state.backgroundColor = "black";
+            break;
           case 49:
             this.state.backgroundColor = null;
             break;
