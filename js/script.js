@@ -741,7 +741,6 @@ async function clickShowLog() {
 /**
  * @name clickConsole
  * Change handler for the Console checkbox.
- * EXACT sequence from esp-web-tools install-dialog.ts "Logs & Console" button
  */
 async function clickConsole() {
   saveSetting("console", consoleSwitch.checked);
@@ -752,36 +751,31 @@ async function clickConsole() {
       try {
         // CRITICAL: Save current state BEFORE changing anything
         // If espStub has a parent, we need to get the baudrate from the parent!
-        // The stub child might have its own currentBaudRate property
+        // The stub child can not be used for restoring the stub. the parent must be used!
         const loaderToSave = espStub._parent || espStub;
         const currentBaudrate = loaderToSave.currentBaudRate;
         const currentChipFamily = espStub.chipFamily;
         const currentIsStub = espStub.IS_STUB;
-        
-        // Save the PARENT loader (not the stub child!)
+
+        // CRITICAL: Save the PARENT loader (not the stub child!)
         espLoaderBeforeConsole = loaderToSave;
         baudRateBeforeConsole = currentBaudrate;
         chipFamilyBeforeConsole = currentChipFamily;
-        
-        logMsg(`Saving current state: baudrate ${baudRateBeforeConsole}, chipFamily ${chipFamilyBeforeConsole}, IS_STUB=${currentIsStub}, has_parent=${!!espStub._parent}`);
-        
-        // CRITICAL: Console ALWAYS runs at 115200 baud (firmware default)
+
+        // Console ALWAYS runs at 115200 baud (firmware default)
         // Always set baudrate to 115200 before opening console
-        logMsg("Setting baudrate to 115200 for console...");
+
         try {
           await espStub.setBaudrate(115200);
-          logMsg("Baudrate set to 115200");
+          logMsg("Baudrate set to 115200 for console");
         } catch (baudErr) {
           logMsg(`Failed to set baudrate to 115200: ${baudErr.message}`);
         }
         
         // Release reader/writer locks
         await releaseReaderWriter();
-        
-        // Reset device and release locks again
-        await releaseReaderWriter();
-        
-        // Hardware reset to FIRMWARE mode
+
+        // Hardware reset needed to switch to FIRMWARE mode
         try {
           await espStub.hardReset();
           logMsg("Device reset to firmware mode");
@@ -789,11 +783,10 @@ async function clickConsole() {
           logMsg(`Could not reset device: ${err}`);
         }
         
-        // CRITICAL: Wait longer for:
+        // Wait for:
         // - Firmware to start after reset
-        // - Stream locks to be fully released
         // - Port to be ready for new reader
-        await sleep(250);
+        await sleep(200);
         
         // Show console container
         consoleContainer.classList.remove("hidden");
@@ -862,42 +855,27 @@ async function closeConsole() {
   // Restore original state (bootloader + stub + baudrate)
   if (espLoaderBeforeConsole && baudRateBeforeConsole !== null) {
     try {
-      logMsg("Restoring device to bootloader and load stub for flash operations...");
-      
-      // Release locks from console
-      //await releaseReaderWriter();
-      //await sleep(200);
-      
       // Use reconnectToBootloader() - it handles everything:
       // - Releases locks
       // - Resets to bootloader
       // - Reopens port at 115200
       // - Syncs with bootloader using correct reset strategy
       // NOTE: Call on original loader (before console), not on stub
-      logMsg("Reconnecting to bootloader...");
-      logMsg(`DEBUG: espLoaderBeforeConsole IS_STUB=${espLoaderBeforeConsole.IS_STUB}, has _parent=${!!espLoaderBeforeConsole._parent}`);
       await espLoaderBeforeConsole.reconnectToBootloader();
-      logMsg("Connected to bootloader");
-      logMsg(`DEBUG: After reconnect IS_STUB=${espLoaderBeforeConsole.IS_STUB}`);
       
       // Now espLoaderBeforeConsole is in bootloader state (IS_STUB = false)
       // Reload stub using the reconnected bootloader
-      logMsg("Loading stub...");
       const newStub = await espLoaderBeforeConsole.runStub();
       espStub = newStub;
-      logMsg("Stub loaded");
-      
+
       // Restore original baudrate
       if (baudRateBeforeConsole !== 115200) {
-        logMsg(`Restoring baudrate to ${baudRateBeforeConsole}...`);
         await espStub.setBaudrate(baudRateBeforeConsole);
-        logMsg(`Baudrate restored to ${baudRateBeforeConsole}`);
       }
-      
+
       espLoaderBeforeConsole = null;
       baudRateBeforeConsole = null;
       chipFamilyBeforeConsole = null;
-      logMsg("Device ready for operations");
     } catch (err) {
       errorMsg("Failed to restore state after console: " + err.message);
       espLoaderBeforeConsole = null;
