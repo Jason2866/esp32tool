@@ -747,22 +747,20 @@ async function clickConsole() {
     // Initialize console if connected and not already created
     if (isConnected && espStub && espStub.port && !consoleInstance) {
       try {
-        // EXACT sequence from esp-web-tools lines 627-630:
-        // 1. Reset baudrate to 115200 for console
-        if (espStub._currentBaudRate && espStub._currentBaudRate !== 115200) {
-          logMsg(`Resetting baudrate from ${espStub._currentBaudRate} to 115200 for console...`);
-          try {
-            await espStub.setBaudrate(115200);
-            logMsg("Baudrate set to 115200 for console");
-          } catch (baudErr) {
-            logMsg(`Failed to set baudrate to 115200: ${baudErr.message}`);
-          }
+        // CRITICAL: Console ALWAYS runs at 115200 baud (firmware default)
+        // Always set baudrate to 115200 before opening console
+        logMsg("Setting baudrate to 115200 for console...");
+        try {
+          await espStub.setBaudrate(115200);
+          logMsg("Baudrate set to 115200");
+        } catch (baudErr) {
+          logMsg(`Failed to set baudrate to 115200: ${baudErr.message}`);
         }
         
-        // 2. Release reader/writer locks
+        // Release reader/writer locks
         await releaseReaderWriter();
         
-        // 3. Reset device and release locks
+        // Reset device and release locks again
         await releaseReaderWriter();
         
         // Hardware reset to FIRMWARE mode
