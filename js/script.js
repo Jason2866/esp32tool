@@ -750,11 +750,20 @@ async function clickConsole() {
     // Initialize console if connected and not already created
     if (isConnected && espStub && espStub.port && !consoleInstance) {
       try {
-        // Save current state before switching to console
-        baudRateBeforeConsole = espStub.currentBaudRate;
-        chipFamilyBeforeConsole = espStub.chipFamily;
-        espLoaderBeforeConsole = espStub; // Save the ESPLoader instance (with stub)
-        logMsg(`Saving current state: baudrate ${baudRateBeforeConsole}, chipFamily ${chipFamilyBeforeConsole}, IS_STUB=${espStub.IS_STUB}`);
+        // CRITICAL: Save current state BEFORE changing anything
+        // If espStub has a parent, we need to get the baudrate from the parent!
+        // The stub child might have its own currentBaudRate property
+        const loaderToSave = espStub._parent || espStub;
+        const currentBaudrate = loaderToSave.currentBaudRate;
+        const currentChipFamily = espStub.chipFamily;
+        const currentIsStub = espStub.IS_STUB;
+        
+        // Save the PARENT loader (not the stub child!)
+        espLoaderBeforeConsole = loaderToSave;
+        baudRateBeforeConsole = currentBaudrate;
+        chipFamilyBeforeConsole = currentChipFamily;
+        
+        logMsg(`Saving current state: baudrate ${baudRateBeforeConsole}, chipFamily ${chipFamilyBeforeConsole}, IS_STUB=${currentIsStub}, has_parent=${!!espStub._parent}`);
         
         // CRITICAL: Console ALWAYS runs at 115200 baud (firmware default)
         // Always set baudrate to 115200 before opening console
@@ -864,13 +873,17 @@ async function closeConsole() {
       // - Resets to bootloader
       // - Reopens port at 115200
       // - Syncs with bootloader using correct reset strategy
+      // NOTE: Call on original loader (before console), not on stub
       logMsg("Reconnecting to bootloader...");
-      await espStub.reconnectToBootloader();
+      logMsg(`DEBUG: espLoaderBeforeConsole IS_STUB=${espLoaderBeforeConsole.IS_STUB}, has _parent=${!!espLoaderBeforeConsole._parent}`);
+      await espLoaderBeforeConsole.reconnectToBootloader();
       logMsg("Connected to bootloader");
+      logMsg(`DEBUG: After reconnect IS_STUB=${espLoaderBeforeConsole.IS_STUB}`);
       
-      // Reload stub
+      // Now espLoaderBeforeConsole is in bootloader state (IS_STUB = false)
+      // Reload stub using the reconnected bootloader
       logMsg("Loading stub...");
-      const newStub = await espStub.runStub();
+      const newStub = await espLoaderBeforeConsole.runStub();
       espStub = newStub;
       logMsg("Stub loaded");
       
