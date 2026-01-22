@@ -870,7 +870,7 @@ async function closeConsole() {
   }
   
   // Restore original state (bootloader + stub + baudrate)
-  if (espLoaderBeforeConsole && baudRateBeforeConsole !== null) {
+  if (espLoaderBeforeConsole && Number.isFinite(baudRateBeforeConsole)) {
     try {
       // Use reconnectToBootloader() - it handles everything:
       // - Releases locks
