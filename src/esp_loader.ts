@@ -108,7 +108,7 @@ export class ESPLoader extends EventTarget {
   __inputBuffer?: number[];
   __inputBufferReadIndex?: number;
   __totalBytesRead?: number;
-  private _currentBaudRate: number = ESP_ROM_BAUD;
+  public currentBaudRate: number = ESP_ROM_BAUD;
   private _maxUSBSerialBaudrate?: number;
   private _reader?: ReadableStreamDefaultReader<Uint8Array>;
   private _isESP32S2NativeUSB: boolean = false;
@@ -1978,9 +1978,9 @@ export class ESPLoader extends EventTarget {
 
     // Track current baudrate for reconnect
     if (this._parent) {
-      this._parent._currentBaudRate = baud;
+      this._parent.currentBaudRate = baud;
     } else {
-      this._currentBaudRate = baud;
+      this.currentBaudRate = baud;
     }
 
     // Warn if baudrate exceeds USB-Serial chip capability
@@ -3068,8 +3068,8 @@ export class ESPLoader extends EventTarget {
       this.logger.debug("Stub loaded");
 
       // Restore baudrate if it was changed
-      if (this._currentBaudRate !== ESP_ROM_BAUD) {
-        await stubLoader.setBaudrate(this._currentBaudRate);
+      if (this.currentBaudRate !== ESP_ROM_BAUD) {
+        await stubLoader.setBaudrate(this.currentBaudRate);
 
         // Verify port is still ready after baudrate change
         if (!this.port.writable || !this.port.readable) {

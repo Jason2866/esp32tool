@@ -20,6 +20,7 @@ let lastReadFlashData = null; // Store last read flash data for ESP8266
 let currentChipName = null; // Store chip name globally
 let isConnected = false; // Track connection state
 let consoleInstance = null; // ESP32ToolConsole instance
+let baudRateBeforeConsole = null; // Store baudrate before opening console
 
 /**
  * Get display name for current filesystem type
@@ -747,6 +748,10 @@ async function clickConsole() {
     // Initialize console if connected and not already created
     if (isConnected && espStub && espStub.port && !consoleInstance) {
       try {
+        // Save current baudrate before switching to console
+        baudRateBeforeConsole = espStub.currentBaudRate;
+        logMsg(`Saving current baudrate: ${baudRateBeforeConsole}`);
+        
         // CRITICAL: Console ALWAYS runs at 115200 baud (firmware default)
         // Always set baudrate to 115200 before opening console
         logMsg("Setting baudrate to 115200 for console...");
@@ -826,6 +831,38 @@ async function clickConsole() {
         console.error("Error disconnecting console:", err);
       }
       consoleInstance = null;
+    }
+    
+    // Restore original baudrate and reset to bootloader
+    if (espStub && baudRateBeforeConsole !== null) {
+      try {
+        logMsg("Resetting device to bootloader...");
+        
+        // Release locks
+        await releaseReaderWriter();
+        
+        // Reset to bootloader mode
+        await espStub.hardReset(true); // true = bootloader mode
+        await sleep(200);
+        
+        // Reload stub (required after reset)
+        logMsg("Loading stub...");
+        const newStub = await espStub.runStub();
+        espStub = newStub;
+        logMsg("Stub loaded");
+        
+        // Restore original baudrate
+        if (baudRateBeforeConsole !== 115200) {
+          logMsg(`Restoring baudrate to ${baudRateBeforeConsole}...`);
+          await espStub.setBaudrate(baudRateBeforeConsole);
+          logMsg(`Baudrate restored to ${baudRateBeforeConsole}`);
+        }
+        
+        baudRateBeforeConsole = null;
+        logMsg("Device ready for operations");
+      } catch (err) {
+        errorMsg("Failed to restore state after console: " + err.message);
+      }
     }
   }
 }
