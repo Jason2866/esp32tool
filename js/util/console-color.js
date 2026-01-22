@@ -171,9 +171,12 @@ export class ColoredConsole {
         }
       }
     }
+    
+    // Use percentage-based threshold (5% of viewport height) for better UX across screen sizes
+    const scrollThreshold = this.targetElement.offsetHeight * 0.05;
     const atBottom =
       this.targetElement.scrollTop >
-      this.targetElement.scrollHeight - this.targetElement.offsetHeight - 50;
+      this.targetElement.scrollHeight - this.targetElement.offsetHeight - scrollThreshold;
 
     addSpan(line.substring(i));
 
