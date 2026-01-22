@@ -91,6 +91,7 @@ export class ESP32ToolConsole {
           <div class="esp32tool-console-controls">
             <button id="console-clear-btn">Clear</button>
             <button id="console-reset-btn">Reset Device</button>
+            <button id="console-close-btn">Close Console</button>
           </div>
         </div>
         <div class="log"></div>
@@ -118,6 +119,16 @@ export class ESP32ToolConsole {
     const resetBtn = this.containerElement.querySelector("#console-reset-btn");
     if (resetBtn) {
       resetBtn.addEventListener("click", () => this.reset());
+    }
+
+    const closeBtn = this.containerElement.querySelector("#console-close-btn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        // Dispatch close event to parent
+        this.containerElement.dispatchEvent(
+          new CustomEvent("console-close", { bubbles: true })
+        );
+      });
     }
 
     if (this.allowInput) {

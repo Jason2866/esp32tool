@@ -797,6 +797,13 @@ async function clickConsole() {
           }
         });
         
+        // Listen for console close events
+        consoleContainer.addEventListener('console-close', async (e) => {
+          logMsg("Closing console...");
+          consoleSwitch.checked = false;
+          await clickConsole(); // Trigger the close logic
+        });
+        
         logMsg("Console initialized");
       } catch (err) {
         errorMsg("Failed to initialize console: " + err.message);
