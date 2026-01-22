@@ -94,13 +94,9 @@ export class ESP32ToolConsole {
         }
       </style>
       <div class="esp32tool-console-wrapper">
-        <div class="esp32tool-console-header">
-          <h3>ESP Console</h3>
-          <div class="esp32tool-console-controls">
-            <button id="console-clear-btn">Clear</button>
-            <button id="console-reset-btn">Reset Device</button>
-          </div>
-        </div>
+           <button id="console-close-btn">Close Console</button>
+           </div>
+         </div>
         <div class="log"></div>
         ${
           this.allowInput
@@ -125,6 +121,15 @@ export class ESP32ToolConsole {
     const resetBtn = this.containerElement.querySelector("#console-reset-btn");
     if (resetBtn) {
       resetBtn.addEventListener("click", () => this.reset());
+    }
+
+    const closeBtn = this.containerElement.querySelector("#console-close-btn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        this.containerElement.dispatchEvent(
+          new CustomEvent("console-close", { bubbles: true }),
+        );
+      });
     }
 
     if (this.allowInput) {
@@ -249,8 +254,7 @@ export class ESP32ToolConsole {
 
   public async reset() {
     console.log("Reset device requested from console");
-    this.console!.addLine("");
-    this.console!.addLine("Resetting device...");
+    // Don't use addLine here as stream might already be closed
     // This will be called from script.js with proper reset logic
     const event = new CustomEvent("console-reset");
     this.containerElement.dispatchEvent(event);
