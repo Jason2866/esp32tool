@@ -773,7 +773,12 @@ async function clickConsole() {
         }
         
         // Release reader/writer locks
-        await releaseReaderWriter();
+        try {
+          await espStub.releaseReaderWriter();
+          await sleep(100);
+        } catch (err) {
+          logMsg(`Failed to release locks: ${err.message}`);
+        }
 
         // Hardware reset needed to switch to FIRMWARE mode
         try {
@@ -1733,9 +1738,6 @@ function toggleUIConnected(connected) {
     lbl = "Disconnect";
     isConnected = true;
     
-    // DON'T auto-initialize console - user must manually enable it
-    // This matches esp-web-tools behavior where console is only opened on button click
-    
     // Auto-hide header after connection
     setTimeout(() => {
       header.classList.add("header-hidden");
@@ -1815,23 +1817,6 @@ function ucWords(text) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Release reader/writer locks on the serial port
- * Uses ESPLoader's native releaseReaderWriter() method
- */
-async function releaseReaderWriter() {
-  if (!espStub) return;
-  
-  try {
-    await espStub.releaseReaderWriter();
-  } catch (err) {
-    debugMsg("releaseReaderWriter failed:", err);
-  }
-  
-  // Wait for locks to be fully released
-  await sleep(100);
 }
 
 /**
