@@ -86,8 +86,16 @@ export class ESP32ToolConsole {
         }
       </style>
       <div class="esp32tool-console-wrapper">
+      <div class="esp32tool-console-wrapper">
         <div class="esp32tool-console-header">
           <h3>ESP Console</h3>
+          <div class="esp32tool-console-controls">
+            <button id="console-clear-btn">Clear</button>
+            <button id="console-reset-btn">Reset Device</button>
+            <button id="console-close-btn">Close Console</button>
+          </div>
+        </div>
+        <div class="log"></div>
           <div class="esp32tool-console-controls">
             <button id="console-clear-btn">Clear</button>
             <button id="console-reset-btn">Reset Device</button>
@@ -192,7 +200,8 @@ export class ESP32ToolConsole {
         .pipeTo(
           new WritableStream({
             write: (chunk) => {
-              this.console.addLine(chunk.replace("\r", ""));
+              const cleaned = chunk.replace(/\r\n$/, "\n");
+              this.console.addLine(cleaned);
             },
           })
         );

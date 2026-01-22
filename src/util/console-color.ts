@@ -54,7 +54,6 @@ export class ColoredConsole {
       if (this.state.italic) span.classList.add("log-italic");
       if (this.state.underline) span.classList.add("log-underline");
       if (this.state.strikethrough) span.classList.add("log-strikethrough");
-      if (this.state.secret) span.classList.add("log-secret");
       if (this.state.foregroundColor !== null)
         span.classList.add(`log-fg-${this.state.foregroundColor}`);
       if (this.state.backgroundColor !== null)
@@ -68,6 +67,13 @@ export class ColoredConsole {
         redacted.appendChild(document.createTextNode("[redacted]"));
         lineSpan.appendChild(redacted);
       }
+        if (this.state.secret) {
+          const redacted = document.createElement("span");
+          redacted.classList.add("log-secret-redacted");
+          redacted.appendChild(document.createTextNode("[redacted]"));
+          lineSpan.appendChild(redacted);
+          return;
+        }
     };
 
     while (true) {

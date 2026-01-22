@@ -199,7 +199,8 @@ export class ESP32ToolConsole {
         .pipeTo(
           new WritableStream({
             write: (chunk) => {
-              this.console!.addLine(chunk.replace("\r", ""));
+              const cleaned = chunk.replace(/\r\n$/, "\n");
+              this.console!.addLine(cleaned);
             },
           }),
         );
