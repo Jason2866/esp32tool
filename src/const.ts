@@ -117,8 +117,11 @@ export const ESP32S2_RTC_CNTL_WDT_WKEY = 0x50d83aa1;
 // ESP32-S2 GPIO strap register and boot mode control
 export const ESP32S2_GPIO_STRAP_REG = 0x3f404038;
 export const ESP32S2_GPIO_STRAP_SPI_BOOT_MASK = 1 << 3; // Not download mode
+export const ESP32S2_GPIO_STRAP_VDDSPI_MASK = 1 << 4; // SPI voltage (1.8V vs 3.3V)
 export const ESP32S2_RTC_CNTL_OPTION1_REG = 0x3f408128;
 export const ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK = 0x1; // Is download mode forced over USB?
+export const ESP32S2_UARTDEV_BUF_NO = 0x3ffffd14; // Variable in ROM .bss which indicates the port in use
+export const ESP32S2_UARTDEV_BUF_NO_USB_OTG = 2; // Value of the above indicating that USB-OTG is in use
 
 export const ESP32S3_SPI_REG_BASE = 0x60002000;
 export const ESP32S3_BASEFUSEADDR = 0x60007000;
@@ -143,8 +146,12 @@ export const ESP32S3_RTC_CNTL_WDT_WKEY = 0x50d83aa1;
 // ESP32-S3 GPIO strap register and boot mode control
 export const ESP32S3_GPIO_STRAP_REG = 0x60004038;
 export const ESP32S3_GPIO_STRAP_SPI_BOOT_MASK = 1 << 3; // Not download mode
+export const ESP32S3_GPIO_STRAP_VDDSPI_MASK = 1 << 4;
 export const ESP32S3_RTC_CNTL_OPTION1_REG = 0x6000812c;
 export const ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK = 0x1; // Is download mode forced over USB?
+export const ESP32S3_UARTDEV_BUF_NO = 0x3fcef14c; // Variable in ROM .bss which indicates the port in use
+export const ESP32S3_UARTDEV_BUF_NO_USB_OTG = 3; // The above var when USB-OTG is used
+export const ESP32S3_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 4; // The above var when USB-JTAG/Serial is used
 
 export const ESP32C2_SPI_REG_BASE = 0x60002000;
 export const ESP32C2_BASEFUSEADDR = 0x60008800;
@@ -193,6 +200,11 @@ export const ESP32C3_RTC_CNTL_SWD_CONF_REG =
 export const ESP32C3_RTC_CNTL_SWD_AUTO_FEED_EN = 1 << 31;
 export const ESP32C3_RTC_CNTL_SWD_WPROTECT_REG =
   ESP32C3_RTC_RTCCNTL_BASE_REG + 0x00b0;
+export const ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
+export const ESP32C3_BSS_UART_DEV_ADDR = 0x3fcdf060; // Default for revision >= 101 todo: < 101 0x3FCDF064 !!
+export const ESP32C3_BUF_UART_NO_OFFSET = 24;
+export const ESP32C3_UARTDEV_BUF_NO =
+  ESP32C3_BSS_UART_DEV_ADDR + ESP32C3_BUF_UART_NO_OFFSET;
 
 export const ESP32C5_SPI_REG_BASE = 0x60003000;
 export const ESP32C5_BASEFUSEADDR = 0x600b4800;
