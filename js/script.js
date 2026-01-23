@@ -897,7 +897,34 @@ async function closeConsole() {
   
   // Restore original state (bootloader + stub + baudrate)
   if (espLoaderBeforeConsole && Number.isFinite(baudRateBeforeConsole)) {
+    // Check if this is a USB-JTAG/OTG device
+    const isUsbJtag = espLoaderBeforeConsole._isUsbJtagOrOtg === true;
+    
     try {
+      if (isUsbJtag) {
+        // USB-JTAG/OTG devices: Port was lost, need to request new port
+        logMsg("Please select the serial port again to reconnect...");
+        
+        try {
+          // Request port selection from user
+          const newPort = await navigator.serial.requestPort();
+          
+          // Update the loader to use the new port
+          espLoaderBeforeConsole.port = newPort;
+          
+          logMsg("Port selected, reconnecting to bootloader...");
+        } catch (portErr) {
+          errorMsg(`Failed to select port: ${portErr.message}`);
+          // Reset connection state to allow fresh connect
+          espStub = undefined;
+          toggleUIConnected(false);
+          espLoaderBeforeConsole = null;
+          baudRateBeforeConsole = null;
+          chipFamilyBeforeConsole = null;
+          return;
+        }
+      }
+      
       // Use reconnectToBootloader() - it handles everything:
       // - Releases locks
       // - Resets to bootloader
