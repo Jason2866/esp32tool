@@ -1387,47 +1387,47 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * Check if ESP32-S2 is using USB-OTG
+   * Check if current chip is using USB-OTG
+   * Supports ESP32-S2 and ESP32-S3
    */
-  public async usingUsbOtgS2(): Promise<boolean> {
-    if (this.chipFamily !== CHIP_FAMILY_ESP32S2) {
+  public async usingUsbOtg(): Promise<boolean> {
+    let uartDevBufNo: number;
+    let usbOtgValue: number;
+
+    if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+      uartDevBufNo = ESP32S2_UARTDEV_BUF_NO;
+      usbOtgValue = ESP32S2_UARTDEV_BUF_NO_USB_OTG;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+      uartDevBufNo = ESP32S3_UARTDEV_BUF_NO;
+      usbOtgValue = ESP32S3_UARTDEV_BUF_NO_USB_OTG;
+    } else {
       return false;
     }
-    const uartNo = (await this.readRegister(ESP32S2_UARTDEV_BUF_NO)) & 0xff;
-    return uartNo === ESP32S2_UARTDEV_BUF_NO_USB_OTG;
+
+    const uartNo = (await this.readRegister(uartDevBufNo)) & 0xff;
+    return uartNo === usbOtgValue;
   }
 
   /**
-   * Check if ESP32-S3 is using USB-OTG
+   * Check if current chip is using USB-JTAG/Serial
+   * Supports ESP32-S3 and ESP32-C3
    */
-  public async usingUsbOtgS3(): Promise<boolean> {
-    if (this.chipFamily !== CHIP_FAMILY_ESP32S3) {
-      return false;
-    }
-    const uartNo = (await this.readRegister(ESP32S3_UARTDEV_BUF_NO)) & 0xff;
-    return uartNo === ESP32S3_UARTDEV_BUF_NO_USB_OTG;
-  }
+  public async usingUsbJtagSerial(): Promise<boolean> {
+    let uartDevBufNo: number;
+    let usbJtagSerialValue: number;
 
-  /**
-   * Check if ESP32-S3 is using USB-JTAG/Serial
-   */
-  public async usingUsbJtagSerialS3(): Promise<boolean> {
-    if (this.chipFamily !== CHIP_FAMILY_ESP32S3) {
+    if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+      uartDevBufNo = ESP32S3_UARTDEV_BUF_NO;
+      usbJtagSerialValue = ESP32S3_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+      uartDevBufNo = ESP32C3_UARTDEV_BUF_NO;
+      usbJtagSerialValue = ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+    } else {
       return false;
     }
-    const uartNo = (await this.readRegister(ESP32S3_UARTDEV_BUF_NO)) & 0xff;
-    return uartNo === ESP32S3_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
-  }
 
-  /**
-   * Check if ESP32-C3 is using USB-JTAG/Serial
-   */
-  public async usingUsbJtagSerialC3(): Promise<boolean> {
-    if (this.chipFamily !== CHIP_FAMILY_ESP32C3) {
-      return false;
-    }
-    const uartNo = (await this.readRegister(ESP32C3_UARTDEV_BUF_NO)) & 0xff;
-    return uartNo === ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+    const uartNo = (await this.readRegister(uartDevBufNo)) & 0xff;
+    return uartNo === usbJtagSerialValue;
   }
 
   /**
@@ -1485,7 +1485,7 @@ export class ESPLoader extends EventTarget {
    * Checks if using USB-JTAG/Serial and uses watchdog reset if necessary
    */
   public async hardResetS2(): Promise<void> {
-    const isUsingUsbOtg = await this.usingUsbOtgS2();
+    const isUsingUsbOtg = await this.usingUsbOtg();
     if (isUsingUsbOtg) {
       await this.rtcWdtResetChipSpecific();
       this.logger.log("ESP32-S2: RTC WDT reset (USB-OTG detected)");
@@ -1501,7 +1501,7 @@ export class ESPLoader extends EventTarget {
    * Checks if using USB-JTAG/Serial and uses watchdog reset if necessary
    */
   public async hardResetS3(): Promise<void> {
-    const isUsingUsbJtagSerial = await this.usingUsbJtagSerialS3();
+    const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
     if (isUsingUsbJtagSerial) {
       await this.rtcWdtResetChipSpecific();
       this.logger.log("ESP32-S3: RTC WDT reset (USB-JTAG/Serial detected)");
@@ -1517,7 +1517,7 @@ export class ESPLoader extends EventTarget {
    * Checks if using USB-JTAG/Serial and uses watchdog reset if necessary
    */
   public async hardResetC3(): Promise<void> {
-    const isUsingUsbJtagSerial = await this.usingUsbJtagSerialC3();
+    const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
     if (isUsingUsbJtagSerial) {
       await this.rtcWdtResetChipSpecific();
       this.logger.log("ESP32-C3: RTC WDT reset (USB-JTAG/Serial detected)");
@@ -1546,90 +1546,63 @@ export class ESPLoader extends EventTarget {
       }
     } else {
       // just reset (no bootloader mode)
-      // For ESP32-S2/S3 with USB-OTG, check if watchdog reset is needed
-      if (
-        this.port.getInfo().usbProductId === USB_JTAG_SERIAL_PID &&
-        (this.chipFamily === CHIP_FAMILY_ESP32S2 ||
-          this.chipFamily === CHIP_FAMILY_ESP32S3)
-      ) {
-        // ESP32-S2/S3: Clear force download boot mode first
-        try {
-          // Clear force download boot mode to avoid chip being stuck in download mode
-          // after reset. Workaround for issue:
-          // https://github.com/espressif/arduino-esp32/issues/6762
-          const RTC_CNTL_OPTION1_REG =
-            this.chipFamily === CHIP_FAMILY_ESP32S2
-              ? ESP32S2_RTC_CNTL_OPTION1_REG
-              : ESP32S3_RTC_CNTL_OPTION1_REG;
-          const RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK =
-            this.chipFamily === CHIP_FAMILY_ESP32S2
-              ? ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK
-              : ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+      // For ESP32-S2/S3 with USB-OTG or USB-JTAG/Serial, check if watchdog reset is needed
+      if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+        const isUsingUsbOtg = await this.usingUsbOtg();
+        const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
 
-          await this.writeRegister(
-            RTC_CNTL_OPTION1_REG,
-            0,
-            RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-            0,
-          );
-        } catch (e) {
-          // Skip invalid response and continue reset (can happen when monitoring during reset)
-          this.logger.log(
-            "Warning: Could not clear force download boot mode:",
-            e,
-          );
-        }
-
-        // Check the strapping register to see if we can perform a watchdog reset
-        // Only use watchdog reset if GPIO0 is low AND force download boot mode is not set
-        let useWatchdogReset = false;
-        try {
-          const GPIO_STRAP_REG =
-            this.chipFamily === CHIP_FAMILY_ESP32S2
-              ? ESP32S2_GPIO_STRAP_REG
-              : ESP32S3_GPIO_STRAP_REG;
-          const GPIO_STRAP_SPI_BOOT_MASK =
-            this.chipFamily === CHIP_FAMILY_ESP32S2
-              ? ESP32S2_GPIO_STRAP_SPI_BOOT_MASK
-              : ESP32S3_GPIO_STRAP_SPI_BOOT_MASK;
-          const RTC_CNTL_OPTION1_REG =
-            this.chipFamily === CHIP_FAMILY_ESP32S2
-              ? ESP32S2_RTC_CNTL_OPTION1_REG
-              : ESP32S3_RTC_CNTL_OPTION1_REG;
+        if (isUsingUsbOtg || isUsingUsbJtagSerial) {
+          const GPIO_STRAP_REG = ESP32S2_GPIO_STRAP_REG;
+          const GPIO_STRAP_SPI_BOOT_MASK = ESP32S2_GPIO_STRAP_SPI_BOOT_MASK;
+          const RTC_CNTL_OPTION1_REG = ESP32S2_RTC_CNTL_OPTION1_REG;
           const RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK =
-            this.chipFamily === CHIP_FAMILY_ESP32S2
-              ? ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK
-              : ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+            ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
 
           const strapReg = await this.readRegister(GPIO_STRAP_REG);
           const forceDlReg = await this.readRegister(RTC_CNTL_OPTION1_REG);
 
-          // GPIO0 low (download mode) AND force download boot not set
+          // Only use watchdog reset if GPIO0 is low AND force download boot mode is not set
           if (
             (strapReg & GPIO_STRAP_SPI_BOOT_MASK) === 0 &&
             (forceDlReg & RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK) === 0
           ) {
-            useWatchdogReset = true;
+            await this.rtcWdtResetChipSpecific();
+            this.logger.log(
+              "ESP32-S2: RTC WDT reset (USB detected, GPIO0 low)",
+            );
+            return;
           }
-        } catch (e) {
-          // If we can't read the registers, use watchdog reset as fallback
-          this.logger.log(
-            "Warning: Could not read strap/option registers, using watchdog reset:",
-            e,
-          );
-          useWatchdogReset = true;
         }
+      } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+        const isUsingUsbOtg = await this.usingUsbOtg();
+        const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
 
-        if (useWatchdogReset) {
-          await this.rtcWdtResetChipSpecific();
-          this.logger.log("Watchdog reset (USB-OTG).");
-        } else {
-          // Not in download mode, can use DTR/RTS reset
-          // But USB-OTG doesn't have DTR/RTS, so fall back to watchdog
-          await this.rtcWdtResetChipSpecific();
-          this.logger.log("Watchdog reset (USB-OTG, normal boot).");
+        if (isUsingUsbOtg || isUsingUsbJtagSerial) {
+          const GPIO_STRAP_REG = ESP32S3_GPIO_STRAP_REG;
+          const GPIO_STRAP_SPI_BOOT_MASK = ESP32S3_GPIO_STRAP_SPI_BOOT_MASK;
+          const RTC_CNTL_OPTION1_REG = ESP32S3_RTC_CNTL_OPTION1_REG;
+          const RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK =
+            ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+
+          const strapReg = await this.readRegister(GPIO_STRAP_REG);
+          const forceDlReg = await this.readRegister(RTC_CNTL_OPTION1_REG);
+
+          // Only use watchdog reset if GPIO0 is low AND force download boot mode is not set
+          if (
+            (strapReg & GPIO_STRAP_SPI_BOOT_MASK) === 0 &&
+            (forceDlReg & RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK) === 0
+          ) {
+            await this.rtcWdtResetChipSpecific();
+            this.logger.log(
+              "ESP32-S3: RTC WDT reset (USB detected, GPIO0 low)",
+            );
+            return;
+          }
         }
-      } else if (this.isWebUSB()) {
+      }
+
+      // Standard reset for all other cases
+      if (this.isWebUSB()) {
         // WebUSB: Use longer delays for better compatibility
         await this.setRTSWebUSB(true); // EN->LOW
         await this.sleep(200);
