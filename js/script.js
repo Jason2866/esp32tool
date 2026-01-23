@@ -810,31 +810,42 @@ async function clickConsole() {
             // USB-JTAG/OTG device: Port was closed after WDT reset
             logMsg("Device reset to firmware mode (port closed)");
             
-            // For S2/S3, the port changes after WDT reset
-            // Create a button for port selection
-            const selectPortBtn = document.createElement('button');
-            selectPortBtn.textContent = 'Select Port for Console';
-            selectPortBtn.className = 'button';
-            selectPortBtn.id = 'selectConsolePort';
-            selectPortBtn.style.display = 'block';
-            selectPortBtn.style.margin = '10px auto';
+            // Wait a bit for device to boot
+            await sleep(500);
             
-            selectPortBtn.onclick = async () => {
+            // Forget the old port so browser doesn't return it again
+            if (espStub.port && espStub.port.forget) {
               try {
-                // First, forget the OLD port so browser doesn't return it again
-                if (espStub.port && espStub.port.forget) {
-                  try {
-                    await espStub.port.forget();
-                    logMsg("Forgot old port");
-                  } catch (forgetErr) {
-                    logMsg(`Port forget error (ignored): ${forgetErr.message}`);
-                  }
-                }
-                
-                // Wait a bit for browser to process
-                await sleep(100);
-                
-                // Now request a NEW port (browser won't return the old one)
+                await espStub.port.forget();
+                logMsg("Forgot old port");
+              } catch (forgetErr) {
+                logMsg(`Port forget error (ignored): ${forgetErr.message}`);
+              }
+            }
+            
+            // Wait a bit for browser to process
+            await sleep(100);
+            
+            // Show modal for port selection (requires user gesture)
+            const modal = document.getElementById("esp32s2Modal");
+            const reconnectBtn = document.getElementById("butReconnectS2");
+            
+            // Update modal text for console mode
+            const modalTitle = modal.querySelector("h2");
+            const modalText = modal.querySelector("p");
+            if (modalTitle) modalTitle.textContent = "Device has been reset to firmware mode";
+            if (modalText) modalText.textContent = "Please click the button below to select the serial port for console.";
+            
+            modal.classList.remove("hidden");
+            
+            // Handle reconnect button click
+            const handleReconnect = async () => {
+              modal.classList.add("hidden");
+              reconnectBtn.removeEventListener("click", handleReconnect);
+              
+              try {
+                // Request the NEW port (user gesture from button click)
+                logMsg("Please select the serial port for console mode...");
                 const newPort = await navigator.serial.requestPort();
                 
                 // Open the NEW port at 115200 for console
@@ -843,11 +854,8 @@ async function clickConsole() {
                 espStub.connected = true;
                 logMsg("Port opened for console at 115200 baud");
                 
-                // Remove the button
-                selectPortBtn.remove();
-                
                 // Device is already in firmware mode, port is open at 115200
-                // Just initialize console directly without calling clickConsole again
+                // Initialize console directly
                 consoleSwitch.checked = true;
                 saveSetting("console", true);
                 
@@ -893,19 +901,13 @@ async function clickConsole() {
                 
                 logMsg("Console initialized");
               } catch (err) {
-                errorMsg(`Failed to open port: ${err.message}`);
+                errorMsg(`Failed to open port for console: ${err.message}`);
+                consoleSwitch.checked = false;
+                saveSetting("console", false);
               }
             };
             
-            // Insert button after connect button
-            const connectButton = document.getElementById('butConnect');
-            if (connectButton && connectButton.parentNode) {
-              connectButton.parentNode.insertBefore(selectPortBtn, connectButton.nextSibling);
-            }
-            
-            // Disable console switch
-            consoleSwitch.checked = false;
-            saveSetting("console", false);
+            reconnectBtn.addEventListener("click", handleReconnect);
             
             return;
           } else {
