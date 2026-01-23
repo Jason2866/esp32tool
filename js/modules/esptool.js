@@ -4799,6 +4799,8 @@ class ESPLoader extends EventTarget {
         this.__isReconfiguring = false;
         this.__abandonCurrentOperation = false;
         this._suppressDisconnect = false;
+        this.__consoleMode = false;
+        this._isUsbJtagOrOtg = undefined;
         // Adaptive speed adjustment for flash read operations
         this.__adaptiveBlockMultiplier = 1;
         this.__adaptiveMaxInFlightMultiplier = 1;
@@ -4853,6 +4855,18 @@ class ESPLoader extends EventTarget {
         }
         else {
             this.__chipVariant = value;
+        }
+    }
+    // Console mode with parent delegation
+    get _consoleMode() {
+        return this._parent ? this._parent._consoleMode : this.__consoleMode;
+    }
+    set _consoleMode(value) {
+        if (this._parent) {
+            this._parent._consoleMode = value;
+        }
+        else {
+            this.__consoleMode = value;
         }
     }
     get _inputBuffer() {
@@ -5936,8 +5950,8 @@ class ESPLoader extends EventTarget {
         }
         // Unlock watchdog registers
         await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
-        // Set WDT timeout to 5000ms
-        await this.writeRegister(WDTCONFIG1_REG, 5000, undefined, 0);
+        // Set WDT timeout to 2000ms (matches Python esptool)
+        await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);
         // Enable WDT: bit 31 = enable, bits 28-30 = stage, bit 8 = sys reset, bits 0-2 = prescaler
         const wdtConfig = (1 << 31) | (5 << 28) | (1 << 8) | 2;
         await this.writeRegister(WDTCONFIG0_REG, wdtConfig, undefined, 0);
@@ -5995,6 +6009,11 @@ class ESPLoader extends EventTarget {
         }
     }
     async hardReset(bootloader = false) {
+        // Skip reset if in console mode
+        if (this._consoleMode) {
+            this.logger.log("Skipping reset - device is in console mode");
+            return;
+        }
         if (bootloader) {
             // enter flash mode
             if (this.port.getInfo().usbProductId === USB_JTAG_SERIAL_PID) {
@@ -6016,7 +6035,7 @@ class ESPLoader extends EventTarget {
         else {
             // just reset (no bootloader mode)
             // For ESP32-S2/S3 with USB-OTG or USB-JTAG/Serial, check if watchdog reset is needed
-            if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+            if (this.chipFamily === CHIP_FAMILY_ESP32S2 && !this._consoleMode) {
                 const isUsingUsbOtg = await this.usingUsbOtg();
                 const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
                 if (isUsingUsbOtg || isUsingUsbJtagSerial) {
@@ -6035,7 +6054,8 @@ class ESPLoader extends EventTarget {
                     }
                 }
             }
-            else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+            else if (this.chipFamily === CHIP_FAMILY_ESP32S3 &&
+                !this._consoleMode) {
                 const isUsingUsbOtg = await this.usingUsbOtg();
                 const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
                 if (isUsingUsbOtg || isUsingUsbJtagSerial) {
@@ -7219,6 +7239,12 @@ class ESPLoader extends EventTarget {
             await this._parent.releaseReaderWriter();
             return;
         }
+        // Check if device is in JTAG mode and needs reset to boot into firmware
+        const didReconnect = await this._resetToFirmwareIfNeeded();
+        // If we reconnected for console, the reader/writer are already released and restarted
+        if (didReconnect) {
+            return;
+        }
         // Wait for pending writes to complete
         try {
             await this._writeChain;
@@ -7263,6 +7289,227 @@ class ESPLoader extends EventTarget {
                 this._reader = undefined;
             }
         }
+    }
+    /**
+     * @name resetToFirmware
+     * Public method to reset device from bootloader to firmware for console mode
+     * Automatically detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
+     * @returns true if reset was performed, false if not needed
+     */
+    async resetToFirmware() {
+        return await this._resetToFirmwareIfNeeded();
+    }
+    /**
+     * @name _resetToFirmwareIfNeeded
+     * Reset device from bootloader to firmware when switching to console mode
+     * Detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
+     * @returns true if reconnect was performed, false otherwise
+     */
+    async _resetToFirmwareIfNeeded() {
+        try {
+            // Check if device is using USB-JTAG/Serial or USB-OTG
+            let needsReset = false;
+            let resetMethod = "";
+            // Use cached value if available (stub doesn't allow register reads)
+            if (this._isUsbJtagOrOtg !== undefined) {
+                needsReset = this._isUsbJtagOrOtg;
+                resetMethod = "USB (cached)";
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+                this.chipFamily === CHIP_FAMILY_ESP32S3) {
+                const isUsingUsbOtg = await this.usingUsbOtg();
+                const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
+                if (isUsingUsbOtg || isUsingUsbJtagSerial) {
+                    needsReset = true;
+                    resetMethod = isUsingUsbJtagSerial ? "USB-JTAG/Serial" : "USB-OTG";
+                    // Cache the result for subsequent calls
+                    this._isUsbJtagOrOtg = true;
+                }
+                else {
+                    this._isUsbJtagOrOtg = false;
+                }
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+                const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
+                if (isUsingUsbJtagSerial) {
+                    needsReset = true;
+                    resetMethod = "USB-JTAG/Serial";
+                    this._isUsbJtagOrOtg = true;
+                }
+                else {
+                    this._isUsbJtagOrOtg = false;
+                }
+            }
+            if (needsReset) {
+                this.logger.log(`Resetting ${this.chipFamily} (${resetMethod}) to boot into firmware...`);
+                // Set console mode flag before reset to prevent subsequent hardReset calls
+                this._consoleMode = true;
+                // For S2/S3: Clear force download boot mask and check strapping before reset
+                // (matches Python hard_reset implementation)
+                if (this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+                    this.chipFamily === CHIP_FAMILY_ESP32S3) {
+                    const OPTION1_REG = this.chipFamily === CHIP_FAMILY_ESP32S2
+                        ? ESP32S2_RTC_CNTL_OPTION1_REG
+                        : ESP32S3_RTC_CNTL_OPTION1_REG;
+                    const FORCE_DOWNLOAD_BOOT_MASK = this.chipFamily === CHIP_FAMILY_ESP32S2
+                        ? ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK
+                        : ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+                    const GPIO_STRAP_REG = this.chipFamily === CHIP_FAMILY_ESP32S2
+                        ? ESP32S2_GPIO_STRAP_REG
+                        : ESP32S3_GPIO_STRAP_REG;
+                    const GPIO_STRAP_SPI_BOOT_MASK = this.chipFamily === CHIP_FAMILY_ESP32S2
+                        ? ESP32S2_GPIO_STRAP_SPI_BOOT_MASK
+                        : ESP32S3_GPIO_STRAP_SPI_BOOT_MASK;
+                    try {
+                        // Clear force download boot mode to avoid chip being stuck in download mode
+                        // (Workaround for https://github.com/espressif/arduino-esp32/issues/6762)
+                        await this.writeRegister(OPTION1_REG, 0, FORCE_DOWNLOAD_BOOT_MASK, 0);
+                        this.logger.debug("Cleared force download boot mask");
+                    }
+                    catch (err) {
+                        // Skip invalid response and continue reset (can happen when monitoring during reset)
+                        // This error is normal and expected - Python esptool also ignores it
+                        this.logger.debug(`Expected error clearing force download boot mask: ${err}`);
+                    }
+                    // Check the strapping register to see if we can perform a watchdog reset
+                    try {
+                        const strapReg = await this.readRegister(GPIO_STRAP_REG);
+                        const forceDlReg = await this.readRegister(OPTION1_REG);
+                        const gpio0Low = (strapReg & GPIO_STRAP_SPI_BOOT_MASK) === 0;
+                        const forceDownloadNotSet = (forceDlReg & FORCE_DOWNLOAD_BOOT_MASK) === 0;
+                        this.logger.debug(`Strapping check: GPIO0=${gpio0Low ? "LOW" : "HIGH"}, ForceDownload=${forceDownloadNotSet ? "NOT SET" : "SET"}`);
+                        if (!gpio0Low || !forceDownloadNotSet) {
+                            this.logger.log("Skipping watchdog reset: conditions not met (GPIO0 must be LOW and force download must be clear)");
+                            // Don't perform watchdog reset, just reconnect
+                            await this._reconnectForConsole();
+                            return true;
+                        }
+                    }
+                    catch (err) {
+                        this.logger.debug(`Could not read strapping registers: ${err}, proceeding with reset anyway`);
+                    }
+                }
+                // Perform watchdog reset to reboot into firmware
+                try {
+                    await this.rtcWdtResetChipSpecific();
+                    this.logger.log("Watchdog reset triggered successfully");
+                }
+                catch (err) {
+                    // Error is expected - device resets before responding
+                    this.logger.log(`Watchdog reset initiated (connection lost as expected: ${err})`);
+                }
+                // Wait longer for device to fully boot into firmware
+                this.logger.log("Waiting for device to boot into firmware...");
+                await this.sleep(2000);
+                // Reconnect without entering bootloader mode
+                await this._reconnectForConsole();
+                this.logger.log("Device reset to firmware mode, connection re-established");
+                return true;
+            }
+        }
+        catch (err) {
+            this.logger.debug(`Could not reset device to firmware mode: ${err}`);
+            // Continue anyway - console mode might still work
+        }
+        return false;
+    }
+    /**
+     * @name _reconnectForConsole
+     * Reconnect after reset for console mode (without entering bootloader)
+     */
+    async _reconnectForConsole() {
+        this.logger.log("Reconnecting for console mode...");
+        this.connected = false;
+        this.__inputBuffer = [];
+        this.__inputBufferReadIndex = 0;
+        // Wait for pending writes to complete
+        try {
+            await this._writeChain;
+        }
+        catch (err) {
+            this.logger.debug(`Pending write error during reconnect: ${err}`);
+        }
+        // Release writer first
+        if (this._writer) {
+            try {
+                this._writer.releaseLock();
+                this.logger.debug("Writer released");
+            }
+            catch (err) {
+                this.logger.debug(`Writer release error: ${err}`);
+            }
+            this._writer = undefined;
+        }
+        // Cancel and release reader
+        if (this._reader) {
+            try {
+                this._suppressDisconnect = true;
+                await this._reader.cancel();
+                this.logger.debug("Reader cancelled");
+            }
+            catch (err) {
+                this.logger.debug(`Reader cancel error: ${err}`);
+            }
+            finally {
+                try {
+                    this._reader.releaseLock();
+                    this.logger.debug("Reader released");
+                }
+                catch (err) {
+                    this.logger.debug(`Reader release error: ${err}`);
+                }
+                this._suppressDisconnect = false;
+            }
+            this._reader = undefined;
+        }
+        // Close port
+        try {
+            await this.port.close();
+            this.logger.log("Port closed");
+        }
+        catch (err) {
+            this.logger.debug(`Port close error: ${err}`);
+        }
+        // Wait longer for device to re-enumerate on USB bus after watchdog reset
+        // USB-JTAG/Serial devices need more time to come back online
+        this.logger.log("Waiting for USB device to re-enumerate...");
+        await this.sleep(2500);
+        // Open the port with firmware baudrate (115200) - retry if needed
+        this.logger.log("Opening port...");
+        let retries = 3;
+        let lastError = null;
+        while (retries > 0) {
+            try {
+                await this.port.open({ baudRate: 115200 });
+                this.connected = true;
+                this.currentBaudRate = 115200;
+                this.logger.log("Port opened successfully");
+                break;
+            }
+            catch (err) {
+                lastError = err;
+                retries--;
+                if (retries > 0) {
+                    this.logger.debug(`Failed to open port (${retries} retries left): ${err}`);
+                    await this.sleep(1000);
+                }
+            }
+        }
+        if (!this.connected) {
+            throw new Error(`Failed to open port after multiple retries: ${lastError}`);
+        }
+        // Verify port streams are available
+        if (!this.port.readable || !this.port.writable) {
+            throw new Error(`Port streams not available after open (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`);
+        }
+        // Do NOT start readLoop here - the console component will manage the stream
+        // Reset input buffer for console mode
+        if (!this._parent) {
+            this.__inputBuffer = [];
+            this.__inputBufferReadIndex = 0;
+            this.__totalBytesRead = 0;
+        }
+        this.logger.log("Reconnection for console mode complete");
     }
     /**
      * @name reconnectAndResume
@@ -7394,6 +7641,8 @@ class ESPLoader extends EventTarget {
         }
         try {
             this.logger.log("Reconnecting to bootloader mode...");
+            // Clear console mode flag when reconnecting to bootloader
+            this._consoleMode = false;
             this.connected = false;
             this.__inputBuffer = [];
             this.__inputBufferReadIndex = 0;

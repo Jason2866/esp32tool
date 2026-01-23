@@ -779,18 +779,15 @@ async function clickConsole() {
           logMsg(`Failed to set baudrate to 115200: ${baudErr.message}`);
         }
         
-        // Release reader/writer locks
+        // Reset device to firmware mode (automatic USB detection)
+        // resetToFirmware() handles reader/writer release internally
         try {
-          await espStub.releaseReaderWriter();
-          await sleep(100);
-        } catch (err) {
-          logMsg(`Failed to release locks: ${err.message}`);
-        }
-
-        // Hardware reset needed to switch to FIRMWARE mode
-        try {
-          await espStub.hardReset();
-          logMsg("Device reset to firmware mode");
+          const wasReset = await espStub.resetToFirmware();
+          if (wasReset) {
+            logMsg("Device reset to firmware mode");
+          } else {
+            logMsg("Device already in firmware mode (no reset needed)");
+          }
         } catch (err) {
           logMsg(`Could not reset device: ${err}`);
         }

@@ -1485,8 +1485,8 @@ export class ESPLoader extends EventTarget {
     // Unlock watchdog registers
     await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
 
-    // Set WDT timeout to 5000ms
-    await this.writeRegister(WDTCONFIG1_REG, 5000, undefined, 0);
+    // Set WDT timeout to 2000ms (matches Python esptool)
+    await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);
 
     // Enable WDT: bit 31 = enable, bits 28-30 = stage, bit 8 = sys reset, bits 0-2 = prescaler
     const wdtConfig = (1 << 31) | (5 << 28) | (1 << 8) | 2;
@@ -3094,6 +3094,16 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
+   * @name resetToFirmware
+   * Public method to reset device from bootloader to firmware for console mode
+   * Automatically detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
+   * @returns true if reset was performed, false if not needed
+   */
+  public async resetToFirmware(): Promise<boolean> {
+    return await this._resetToFirmwareIfNeeded();
+  }
+
+  /**
    * @name _resetToFirmwareIfNeeded
    * Reset device from bootloader to firmware when switching to console mode
    * Detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
@@ -3143,13 +3153,89 @@ export class ESPLoader extends EventTarget {
         // Set console mode flag before reset to prevent subsequent hardReset calls
         this._consoleMode = true;
 
+        // For S2/S3: Clear force download boot mask and check strapping before reset
+        // (matches Python hard_reset implementation)
+        if (
+          this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+          this.chipFamily === CHIP_FAMILY_ESP32S3
+        ) {
+          const OPTION1_REG =
+            this.chipFamily === CHIP_FAMILY_ESP32S2
+              ? ESP32S2_RTC_CNTL_OPTION1_REG
+              : ESP32S3_RTC_CNTL_OPTION1_REG;
+          const FORCE_DOWNLOAD_BOOT_MASK =
+            this.chipFamily === CHIP_FAMILY_ESP32S2
+              ? ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK
+              : ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+          const GPIO_STRAP_REG =
+            this.chipFamily === CHIP_FAMILY_ESP32S2
+              ? ESP32S2_GPIO_STRAP_REG
+              : ESP32S3_GPIO_STRAP_REG;
+          const GPIO_STRAP_SPI_BOOT_MASK =
+            this.chipFamily === CHIP_FAMILY_ESP32S2
+              ? ESP32S2_GPIO_STRAP_SPI_BOOT_MASK
+              : ESP32S3_GPIO_STRAP_SPI_BOOT_MASK;
+
+          try {
+            // Clear force download boot mode to avoid chip being stuck in download mode
+            // (Workaround for https://github.com/espressif/arduino-esp32/issues/6762)
+            await this.writeRegister(
+              OPTION1_REG,
+              0,
+              FORCE_DOWNLOAD_BOOT_MASK,
+              0,
+            );
+            this.logger.debug("Cleared force download boot mask");
+          } catch (err) {
+            // Skip invalid response and continue reset (can happen when monitoring during reset)
+            // This error is normal and expected - Python esptool also ignores it
+            this.logger.debug(
+              `Expected error clearing force download boot mask: ${err}`,
+            );
+          }
+
+          // Check the strapping register to see if we can perform a watchdog reset
+          try {
+            const strapReg = await this.readRegister(GPIO_STRAP_REG);
+            const forceDlReg = await this.readRegister(OPTION1_REG);
+
+            const gpio0Low = (strapReg & GPIO_STRAP_SPI_BOOT_MASK) === 0;
+            const forceDownloadNotSet =
+              (forceDlReg & FORCE_DOWNLOAD_BOOT_MASK) === 0;
+
+            this.logger.debug(
+              `Strapping check: GPIO0=${gpio0Low ? "LOW" : "HIGH"}, ForceDownload=${forceDownloadNotSet ? "NOT SET" : "SET"}`,
+            );
+
+            if (!gpio0Low || !forceDownloadNotSet) {
+              this.logger.log(
+                "Skipping watchdog reset: conditions not met (GPIO0 must be LOW and force download must be clear)",
+              );
+              // Don't perform watchdog reset, just reconnect
+              await this._reconnectForConsole();
+              return true;
+            }
+          } catch (err) {
+            this.logger.debug(
+              `Could not read strapping registers: ${err}, proceeding with reset anyway`,
+            );
+          }
+        }
+
         // Perform watchdog reset to reboot into firmware
         try {
           await this.rtcWdtResetChipSpecific();
-          this.logger.log("Watchdog reset completed");
+          this.logger.log("Watchdog reset triggered successfully");
         } catch (err) {
-          this.logger.debug(`Watchdog reset error: ${err}`);
+          // Error is expected - device resets before responding
+          this.logger.log(
+            `Watchdog reset initiated (connection lost as expected: ${err})`,
+          );
         }
+
+        // Wait longer for device to fully boot into firmware
+        this.logger.log("Waiting for device to boot into firmware...");
+        await this.sleep(2000);
 
         // Reconnect without entering bootloader mode
         await this._reconnectForConsole();
@@ -3222,17 +3308,39 @@ export class ESPLoader extends EventTarget {
       this.logger.debug(`Port close error: ${err}`);
     }
 
-    // Wait for device to stabilize after reset
-    await this.sleep(1000);
+    // Wait longer for device to re-enumerate on USB bus after watchdog reset
+    // USB-JTAG/Serial devices need more time to come back online
+    this.logger.log("Waiting for USB device to re-enumerate...");
+    await this.sleep(2500);
 
-    // Open the port with firmware baudrate (115200)
-    this.logger.debug("Opening port...");
-    try {
-      await this.port.open({ baudRate: 115200 });
-      this.connected = true;
-      this.currentBaudRate = 115200;
-    } catch (err) {
-      throw new Error(`Failed to open port: ${err}`);
+    // Open the port with firmware baudrate (115200) - retry if needed
+    this.logger.log("Opening port...");
+    let retries = 3;
+    let lastError: Error | null = null;
+
+    while (retries > 0) {
+      try {
+        await this.port.open({ baudRate: 115200 });
+        this.connected = true;
+        this.currentBaudRate = 115200;
+        this.logger.log("Port opened successfully");
+        break;
+      } catch (err) {
+        lastError = err as Error;
+        retries--;
+        if (retries > 0) {
+          this.logger.debug(
+            `Failed to open port (${retries} retries left): ${err}`,
+          );
+          await this.sleep(1000);
+        }
+      }
+    }
+
+    if (!this.connected) {
+      throw new Error(
+        `Failed to open port after multiple retries: ${lastError}`,
+      );
     }
 
     // Verify port streams are available
