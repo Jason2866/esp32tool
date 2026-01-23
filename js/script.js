@@ -813,42 +813,113 @@ async function clickConsole() {
             // Wait a bit for device to boot
             await sleep(500);
             
-            // Forget the old port so browser doesn't return it again
-            if (espStub.port && espStub.port.forget) {
-              try {
-                await espStub.port.forget();
-                logMsg("Forgot old port");
-              } catch (forgetErr) {
-                logMsg(`Port forget error (ignored): ${forgetErr.message}`);
+            // Check if this is ESP32-S2 (needs port forget and modal) or ESP32-S3 (direct requestPort)
+            const isS2 = chipFamilyBeforeConsole === 2; // CHIP_FAMILY_ESP32S2 = 2
+            
+            if (isS2) {
+              // ESP32-S2: Forget old port and show modal for port selection
+              if (espStub.port && espStub.port.forget) {
+                try {
+                  await espStub.port.forget();
+                  logMsg("Forgot old port");
+                } catch (forgetErr) {
+                  logMsg(`Port forget error (ignored): ${forgetErr.message}`);
+                }
               }
-            }
-            
-            // Wait a bit for browser to process
-            await sleep(100);
-            
-            // Show modal for port selection (requires user gesture)
-            const modal = document.getElementById("esp32s2Modal");
-            const reconnectBtn = document.getElementById("butReconnectS2");
-            
-            // Update modal text for console mode
-            const modalTitle = modal.querySelector("h2");
-            const modalText = modal.querySelector("p");
-            if (modalTitle) modalTitle.textContent = "Device has been reset to firmware mode";
-            if (modalText) modalText.textContent = "Please click the button below to select the serial port for console.";
-            
-            modal.classList.remove("hidden");
-            
-            // Handle reconnect button click
-            const handleReconnect = async () => {
-              modal.classList.add("hidden");
-              reconnectBtn.removeEventListener("click", handleReconnect);
               
+              // Wait a bit for browser to process
+              await sleep(100);
+              
+              // Show modal for port selection (requires user gesture)
+              const modal = document.getElementById("esp32s2Modal");
+              const reconnectBtn = document.getElementById("butReconnectS2");
+              
+              // Update modal text for console mode
+              const modalTitle = modal.querySelector("h2");
+              const modalText = modal.querySelector("p");
+              if (modalTitle) modalTitle.textContent = "Device has been reset to firmware mode";
+              if (modalText) modalText.textContent = "Please click the button below to select the serial port for console.";
+              
+              modal.classList.remove("hidden");
+              
+              // Handle reconnect button click
+              const handleReconnect = async () => {
+                modal.classList.add("hidden");
+                reconnectBtn.removeEventListener("click", handleReconnect);
+                
+                try {
+                  // Request the NEW port (user gesture from button click)
+                  logMsg("Please select the serial port for console mode...");
+                  const newPort = await navigator.serial.requestPort();
+                  
+                  // Open the NEW port at 115200 for console
+                  await newPort.open({ baudRate: 115200 });
+                  espStub.port = newPort;
+                  espStub.connected = true;
+                  logMsg("Port opened for console at 115200 baud");
+                  
+                  // Device is already in firmware mode, port is open at 115200
+                  // Initialize console directly
+                  consoleSwitch.checked = true;
+                  saveSetting("console", true);
+                  
+                  // Wait for port to be ready
+                  await sleep(200);
+                  
+                  // Show console container
+                  consoleContainer.classList.remove("hidden");
+                  
+                  // Initialize console
+                  consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
+                  await consoleInstance.init();
+                  
+                  // Listen for console reset events
+                  if (consoleResetHandler) {
+                    consoleContainer.removeEventListener('console-reset', consoleResetHandler);
+                  }
+                  consoleResetHandler = async () => {
+                    if (espStub && typeof espStub.hardReset === 'function') {
+                      try {
+                        logMsg("Resetting device from console...");
+                        await espStub.hardReset();
+                        logMsg("Device reset successful");
+                      } catch (err) {
+                        errorMsg("Failed to reset device: " + err.message);
+                      }
+                    }
+                  };
+                  consoleContainer.addEventListener('console-reset', consoleResetHandler);
+                  
+                  // Listen for console close events
+                  if (consoleCloseHandler) {
+                    consoleContainer.removeEventListener('console-close', consoleCloseHandler);
+                  }
+                  consoleCloseHandler = async () => {
+                    if (!consoleSwitch.checked) return;
+                    logMsg("Closing console...");
+                    consoleSwitch.checked = false;
+                    saveSetting("console", false);
+                    await closeConsole();
+                  };
+                  consoleContainer.addEventListener('console-close', consoleCloseHandler);
+                  
+                  logMsg("Console initialized");
+                } catch (err) {
+                  errorMsg(`Failed to open port for console: ${err.message}`);
+                  consoleSwitch.checked = false;
+                  saveSetting("console", false);
+                }
+              };
+              
+              reconnectBtn.addEventListener("click", handleReconnect);
+            } else {
+              // ESP32-S3: Direct requestPort (no modal, no forget)
               try {
-                // Request the NEW port (user gesture from button click)
-                logMsg("Please select the serial port for console mode...");
+                // Request port selection from user (direct, like console branch)
+                logMsg("Please select the serial port again for console mode...");
                 const newPort = await navigator.serial.requestPort();
                 
-                // Open the NEW port at 115200 for console
+                // Open the new port at 115200 for console
                 await newPort.open({ baudRate: 115200 });
                 espStub.port = newPort;
                 espStub.connected = true;
@@ -905,9 +976,7 @@ async function clickConsole() {
                 consoleSwitch.checked = false;
                 saveSetting("console", false);
               }
-            };
-            
-            reconnectBtn.addEventListener("click", handleReconnect);
+            }
             
             return;
           } else {
