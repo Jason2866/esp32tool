@@ -7358,6 +7358,42 @@ class ESPLoader extends EventTarget {
         return await this._resetToFirmwareIfNeeded();
     }
     /**
+     * @name enterConsoleMode
+     * Prepare device for console mode by resetting to firmware
+     * Handles both USB-JTAG/OTG devices (closes port) and external serial chips (keeps port open)
+     * @returns true if port was closed (USB-JTAG), false if port stays open (serial chip)
+     */
+    async enterConsoleMode() {
+        // Set console mode flag
+        this._consoleMode = true;
+        // Check device type
+        const isUsbJtag = this.isUsbJtagOrOtg === true;
+        if (isUsbJtag) {
+            // USB-JTAG/OTG devices: Use watchdog reset which closes port
+            const wasReset = await this._resetToFirmwareIfNeeded();
+            return wasReset; // true = port closed, caller must reopen
+        }
+        else {
+            // External serial chip devices: Release locks and do simple reset
+            try {
+                await this.releaseReaderWriter();
+                await this.sleep(100);
+            }
+            catch (err) {
+                this.logger.debug(`Failed to release locks: ${err}`);
+            }
+            // Hardware reset to firmware mode (IO0=HIGH)
+            try {
+                await this.hardReset(false);
+                this.logger.log("Device reset to firmware mode");
+            }
+            catch (err) {
+                this.logger.debug(`Could not reset device: ${err}`);
+            }
+            return false; // Port stays open
+        }
+    }
+    /**
      * @name _resetToFirmwareIfNeeded
      * Reset device from bootloader to firmware when switching to console mode
      * Detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
