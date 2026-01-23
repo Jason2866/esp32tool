@@ -4778,6 +4778,13 @@ const unpack = (format, bytes) => {
 
 /// <reference types="@types/w3c-web-serial" />
 class ESPLoader extends EventTarget {
+    /**
+     * Check if device is using USB-JTAG or USB-OTG (not external serial chip)
+     * Returns undefined if not yet determined
+     */
+    get isUsbJtagOrOtg() {
+        return this._parent ? this._parent._isUsbJtagOrOtg : this._isUsbJtagOrOtg;
+    }
     constructor(port, logger, _parent) {
         super();
         this.port = port;
@@ -4868,6 +4875,10 @@ class ESPLoader extends EventTarget {
         else {
             this.__consoleMode = value;
         }
+    }
+    // Public setter for console mode (used by script.js)
+    setConsoleMode(value) {
+        this._consoleMode = value;
     }
     get _inputBuffer() {
         if (this._parent) {
@@ -5105,6 +5116,29 @@ class ESPLoader extends EventTarget {
         await this.connectWithResetStrategies();
         // Detect chip type
         await this.detectChip();
+        // Detect if device is using USB-JTAG/Serial or USB-OTG (not external serial chip)
+        // This is needed to determine the correct reset strategy for console mode
+        try {
+            if (this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+                this.chipFamily === CHIP_FAMILY_ESP32S3) {
+                const isUsingUsbOtg = await this.usingUsbOtg();
+                const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
+                this._isUsbJtagOrOtg = isUsingUsbOtg || isUsingUsbJtagSerial;
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+                const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
+                this._isUsbJtagOrOtg = isUsingUsbJtagSerial;
+            }
+            else {
+                // Other chips don't have USB-JTAG/OTG
+                this._isUsbJtagOrOtg = false;
+            }
+            this.logger.debug(`USB connection type: ${this._isUsbJtagOrOtg ? "USB-JTAG/OTG" : "External Serial Chip"}`);
+        }
+        catch (err) {
+            this.logger.debug(`Could not detect USB connection type: ${err}`);
+            // Leave as undefined if detection fails
+        }
         // Read the OTP data for this chip and store into this.efuses array
         const FlAddr = getSpiFlashAddresses(this.getChipFamily());
         const AddrMAC = FlAddr.macFuse;
@@ -7320,39 +7354,14 @@ class ESPLoader extends EventTarget {
     async _resetToFirmwareIfNeeded() {
         try {
             // Check if device is using USB-JTAG/Serial or USB-OTG
-            let needsReset = false;
-            let resetMethod = "";
-            // Use cached value if available (stub doesn't allow register reads)
-            if (this._isUsbJtagOrOtg !== undefined) {
-                needsReset = this._isUsbJtagOrOtg;
-                resetMethod = "USB (cached)";
-            }
-            else if (this.chipFamily === CHIP_FAMILY_ESP32S2 ||
-                this.chipFamily === CHIP_FAMILY_ESP32S3) {
-                const isUsingUsbOtg = await this.usingUsbOtg();
-                const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
-                if (isUsingUsbOtg || isUsingUsbJtagSerial) {
-                    needsReset = true;
-                    resetMethod = isUsingUsbJtagSerial ? "USB-JTAG/Serial" : "USB-OTG";
-                    // Cache the result for subsequent calls
-                    this._isUsbJtagOrOtg = true;
-                }
-                else {
-                    this._isUsbJtagOrOtg = false;
-                }
-            }
-            else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
-                const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
-                if (isUsingUsbJtagSerial) {
-                    needsReset = true;
-                    resetMethod = "USB-JTAG/Serial";
-                    this._isUsbJtagOrOtg = true;
-                }
-                else {
-                    this._isUsbJtagOrOtg = false;
-                }
-            }
+            // Value should already be set during main() connection
+            // Use getter to access parent's value if this is a stub
+            const needsReset = this.isUsbJtagOrOtg === true;
             if (needsReset) {
+                const resetMethod = this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+                    this.chipFamily === CHIP_FAMILY_ESP32S3
+                    ? "USB-JTAG/Serial or USB-OTG"
+                    : "USB-JTAG/Serial";
                 this.logger.log(`Resetting ${this.chipFamily} (${resetMethod}) to boot into firmware...`);
                 // Set console mode flag before reset to prevent subsequent hardReset calls
                 this._consoleMode = true;
