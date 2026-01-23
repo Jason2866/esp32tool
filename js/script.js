@@ -780,11 +780,33 @@ async function clickConsole() {
         }
         
         // Reset device to firmware mode (automatic USB detection)
-        // resetToFirmware() handles reader/writer release internally
+        // resetToFirmware() closes the port after reset
         try {
           const wasReset = await espStub.resetToFirmware();
           if (wasReset) {
-            logMsg("Device reset to firmware mode");
+            logMsg("Device reset to firmware mode (port closed)");
+            
+            // For USB-JTAG/Serial devices, we need to request the port again
+            // This is because the watchdog closes the port on reset
+            logMsg("Please select the serial port again for console mode...");
+            
+            try {
+              // Request port selection from user
+              const newPort = await navigator.serial.requestPort();
+              
+              // Open the new port at 115200 for console
+              await newPort.open({ baudRate: 115200 });
+              
+              // Update espStub to use the new port
+              espStub.port = newPort;
+              
+              logMsg("Port opened for console at 115200 baud");
+            } catch (openErr) {
+              errorMsg(`Failed to open port for console: ${openErr.message}`);
+              consoleSwitch.checked = false;
+              saveSetting("console", false);
+              return;
+            }
           } else {
             logMsg("Device already in firmware mode (no reset needed)");
           }

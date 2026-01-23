@@ -3233,14 +3233,17 @@ export class ESPLoader extends EventTarget {
           );
         }
 
-        // Wait longer for device to fully boot into firmware
+        // Wait for device to fully boot into firmware
         this.logger.log("Waiting for device to boot into firmware...");
         await this.sleep(2000);
 
-        // Reconnect without entering bootloader mode
-        await this._reconnectForConsole();
+        // Close the port so caller can reopen it for console mode
+        // This is necessary because the watchdog reset destroys the readable stream
+        this.logger.log("Closing port after reset...");
+        await this._closePort();
+
         this.logger.log(
-          "Device reset to firmware mode, connection re-established",
+          "Device reset to firmware mode. Port closed - caller must open for console.",
         );
         return true;
       }
@@ -3252,8 +3255,50 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
+   * @name _closePort
+   * Close the port after watchdog reset, cleaning up reader/writer
+   */
+  private async _closePort(): Promise<void> {
+    // Release writer
+    if (this._writer) {
+      try {
+        this._writer.releaseLock();
+        this.logger.debug("Writer released for close");
+      } catch (err) {
+        this.logger.debug(`Writer release error: ${err}`);
+      }
+      this._writer = undefined;
+    }
+
+    // Release reader (should already be dead from reset)
+    if (this._reader) {
+      try {
+        this._suppressDisconnect = true;
+        this._reader.releaseLock();
+        this.logger.debug("Reader released for close");
+      } catch (err) {
+        this.logger.debug(`Reader release error: ${err}`);
+      } finally {
+        this._suppressDisconnect = false;
+      }
+      this._reader = undefined;
+    }
+
+    // Close the port
+    try {
+      await this.port.close();
+      this.connected = false;
+      this.logger.log("Port closed successfully");
+    } catch (err) {
+      this.logger.debug(`Port close error: ${err}`);
+    }
+  }
+
+  /**
    * @name _reconnectForConsole
-   * Reconnect after reset for console mode (without entering bootloader)
+   * Prepare for console mode after watchdog reset
+   * IMPORTANT: Keeps reader ACTIVE during reset to preserve port.readable stream
+   * The watchdog reset will disconnect the reader automatically, then we wait for firmware boot
    */
   private async _reconnectForConsole(): Promise<void> {
     this.logger.log("Reconnecting for console mode...");
@@ -3280,15 +3325,21 @@ export class ESPLoader extends EventTarget {
       this._writer = undefined;
     }
 
-    // Cancel and release reader
+    // DO NOT cancel reader before reset - this would kill port.readable!
+    // The watchdog reset will naturally disconnect the reader, then we clean up
+    this.logger.log(
+      "Waiting for firmware to boot (reader stays active during reset)...",
+    );
+
+    // Wait for firmware to boot after watchdog reset
+    await this.sleep(2000);
+
+    // Now clean up the reader that was disconnected by the reset
     if (this._reader) {
       try {
         this._suppressDisconnect = true;
-        await this._reader.cancel();
-        this.logger.debug("Reader cancelled");
-      } catch (err) {
-        this.logger.debug(`Reader cancel error: ${err}`);
-      } finally {
+        this.logger.debug("Releasing reader after reset...");
+        // Don't cancel - just release the lock (reader is already dead from reset)
         try {
           this._reader.releaseLock();
           this.logger.debug("Reader released");
@@ -3296,59 +3347,22 @@ export class ESPLoader extends EventTarget {
           this.logger.debug(`Reader release error: ${err}`);
         }
         this._suppressDisconnect = false;
+      } catch (err) {
+        this.logger.debug(`Reader cleanup error: ${err}`);
       }
       this._reader = undefined;
     }
 
-    // Close port
-    try {
-      await this.port.close();
-      this.logger.log("Port closed");
-    } catch (err) {
-      this.logger.debug(`Port close error: ${err}`);
-    }
-
-    // Wait longer for device to re-enumerate on USB bus after watchdog reset
-    // USB-JTAG/Serial devices need more time to come back online
-    this.logger.log("Waiting for USB device to re-enumerate...");
-    await this.sleep(2500);
-
-    // Open the port with firmware baudrate (115200) - retry if needed
-    this.logger.log("Opening port...");
-    let retries = 3;
-    let lastError: Error | null = null;
-
-    while (retries > 0) {
-      try {
-        await this.port.open({ baudRate: 115200 });
-        this.connected = true;
-        this.currentBaudRate = 115200;
-        this.logger.log("Port opened successfully");
-        break;
-      } catch (err) {
-        lastError = err as Error;
-        retries--;
-        if (retries > 0) {
-          this.logger.debug(
-            `Failed to open port (${retries} retries left): ${err}`,
-          );
-          await this.sleep(1000);
-        }
-      }
-    }
-
-    if (!this.connected) {
-      throw new Error(
-        `Failed to open port after multiple retries: ${lastError}`,
-      );
-    }
-
-    // Verify port streams are available
+    // Verify port streams are available after firmware boot
     if (!this.port.readable || !this.port.writable) {
       throw new Error(
-        `Port streams not available after open (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`,
+        `Port streams not available after firmware boot (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`,
       );
     }
+
+    this.connected = true;
+    // Note: Baudrate was already set to 115200 before reset
+    this.logger.log("Ready for console mode (streams preserved)");
 
     // Do NOT start readLoop here - the console component will manage the stream
     // Reset input buffer for console mode
