@@ -765,6 +765,17 @@ export class ESPLoader extends EventTarget {
       // This prevents "Cannot write during port reconfiguration" errors
       // when the read loop dies unexpectedly
       this._isReconfiguring = false;
+      
+      // Release reader if still locked
+      if (this._reader) {
+        try {
+          this._reader.releaseLock();
+          this.logger.log("Reader released in readLoop cleanup");
+        } catch (err) {
+          this.logger.log(`Reader release error in readLoop: ${err}`);
+        }
+        this._reader = undefined;
+      }
     }
 
     // Disconnected!
@@ -787,7 +798,7 @@ export class ESPLoader extends EventTarget {
     if (!this._suppressDisconnect) {
       this.dispatchEvent(new Event("disconnect"));
     }
-    this.logger.debug("Finished read loop");
+    this.logger.log("Finished read loop");
   }
 
   sleep(ms = 100) {
@@ -3284,8 +3295,7 @@ export class ESPLoader extends EventTarget {
         // Set console mode flag before reset to prevent subsequent hardReset calls
         this._consoleMode = true;
 
-        // For S2/S3: Clear force download boot mask and check strapping before reset
-        // (matches Python hard_reset implementation)
+        // For S2/S3: Clear force download boot mask before WDT reset
         if (
           this.chipFamily === CHIP_FAMILY_ESP32S2 ||
           this.chipFamily === CHIP_FAMILY_ESP32S3
@@ -3298,18 +3308,9 @@ export class ESPLoader extends EventTarget {
             this.chipFamily === CHIP_FAMILY_ESP32S2
               ? ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK
               : ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
-          const GPIO_STRAP_REG =
-            this.chipFamily === CHIP_FAMILY_ESP32S2
-              ? ESP32S2_GPIO_STRAP_REG
-              : ESP32S3_GPIO_STRAP_REG;
-          const GPIO_STRAP_SPI_BOOT_MASK =
-            this.chipFamily === CHIP_FAMILY_ESP32S2
-              ? ESP32S2_GPIO_STRAP_SPI_BOOT_MASK
-              : ESP32S3_GPIO_STRAP_SPI_BOOT_MASK;
 
           try {
             // Clear force download boot mode to avoid chip being stuck in download mode
-            // (Workaround for https://github.com/espressif/arduino-esp32/issues/6762)
             await this.writeRegister(
               OPTION1_REG,
               0,
@@ -3318,37 +3319,8 @@ export class ESPLoader extends EventTarget {
             );
             this.logger.debug("Cleared force download boot mask");
           } catch (err) {
-            // Skip invalid response and continue reset (can happen when monitoring during reset)
-            // This error is normal and expected - Python esptool also ignores it
             this.logger.debug(
               `Expected error clearing force download boot mask: ${err}`,
-            );
-          }
-
-          // Check the strapping register to see if we can perform a watchdog reset
-          try {
-            const strapReg = await this.readRegister(GPIO_STRAP_REG);
-            const forceDlReg = await this.readRegister(OPTION1_REG);
-
-            const gpio0Low = (strapReg & GPIO_STRAP_SPI_BOOT_MASK) === 0;
-            const forceDownloadNotSet =
-              (forceDlReg & FORCE_DOWNLOAD_BOOT_MASK) === 0;
-
-            this.logger.debug(
-              `Strapping check: GPIO0=${gpio0Low ? "LOW" : "HIGH"}, ForceDownload=${forceDownloadNotSet ? "NOT SET" : "SET"}`,
-            );
-
-            if (!gpio0Low || !forceDownloadNotSet) {
-              this.logger.log(
-                "Skipping watchdog reset: conditions not met (GPIO0 must be LOW and force download must be clear)",
-              );
-              // Close port - caller will reopen for console
-              await this._closePort();
-              return true;
-            }
-          } catch (err) {
-            this.logger.debug(
-              `Could not read strapping registers: ${err}, proceeding with reset anyway`,
             );
           }
         }
@@ -3366,15 +3338,16 @@ export class ESPLoader extends EventTarget {
 
         // Wait for device to fully boot into firmware
         this.logger.log("Waiting for device to boot into firmware...");
-        await this.sleep(2000);
+        await this.sleep(1000);
 
-        // Close the port so caller can reopen it for console mode
-        // This is necessary because the watchdog reset destroys the readable stream
-        this.logger.log("Closing port after reset...");
-        await this._closePort();
-
+        // After WDT reset, streams are dead/locked - don't try to manipulate them
+        // Just mark everything as disconnected and let browser clean up
+        this.connected = false;
+        this._writer = undefined;
+        this._reader = undefined;
+        
         this.logger.log(
-          "Device reset to firmware mode. Port closed - caller must open for console.",
+          "Device reset to firmware mode (port closed)",
         );
         return true;
       }
@@ -3383,46 +3356,6 @@ export class ESPLoader extends EventTarget {
       // Continue anyway - console mode might still work
     }
     return false;
-  }
-
-  /**
-   * @name _closePort
-   * Close the port after watchdog reset, cleaning up reader/writer
-   */
-  private async _closePort(): Promise<void> {
-    // Release writer
-    if (this._writer) {
-      try {
-        this._writer.releaseLock();
-        this.logger.debug("Writer released for close");
-      } catch (err) {
-        this.logger.debug(`Writer release error: ${err}`);
-      }
-      this._writer = undefined;
-    }
-
-    // Release reader (should already be dead from reset)
-    if (this._reader) {
-      try {
-        this._suppressDisconnect = true;
-        this._reader.releaseLock();
-        this.logger.debug("Reader released for close");
-      } catch (err) {
-        this.logger.debug(`Reader release error: ${err}`);
-      } finally {
-        this._suppressDisconnect = false;
-      }
-      this._reader = undefined;
-    }
-
-    // Close the port
-    try {
-      await this.port.close();
-      this.connected = false;
-      this.logger.log("Port closed successfully");
-    } catch (err) {
-      this.logger.debug(`Port close error: ${err}`);
-    }
   }
 
   /**

@@ -752,7 +752,31 @@ async function clickShowLog() {
  */
 async function clickConsole() {
   const shouldEnable = consoleSwitch.checked;
+  
   if (shouldEnable) {
+    // After WDT reset, everything is gone - start fresh with port selection
+    if (isConnected && espStub && !espStub.connected) {
+      // Port was closed after WDT reset - select new port
+      try {
+        logMsg("Please select the serial port for console mode...");
+        const newPort = await navigator.serial.requestPort();
+        
+        // Open the new port at 115200 for console
+        await newPort.open({ baudRate: 115200 });
+        
+        // Update espStub to use the new port
+        espStub.port = newPort;
+        espStub.connected = true;
+        
+        logMsg("Port opened for console at 115200 baud");
+      } catch (openErr) {
+        errorMsg(`Failed to open port for console: ${openErr.message}`);
+        consoleSwitch.checked = false;
+        saveSetting("console", false);
+        return;
+      }
+    }
+    
     // Initialize console if connected and not already created
     if (isConnected && espStub && espStub.port && !consoleInstance) {
       try {
@@ -783,27 +807,107 @@ async function clickConsole() {
           const portWasClosed = await espStub.enterConsoleMode();
           
           if (portWasClosed) {
-            // USB-JTAG/OTG device: Port was closed, need to reopen
+            // USB-JTAG/OTG device: Port was closed after WDT reset
             logMsg("Device reset to firmware mode (port closed)");
-            logMsg("Please select the serial port again for console mode...");
             
-            try {
-              // Request port selection from user
-              const newPort = await navigator.serial.requestPort();
-              
-              // Open the new port at 115200 for console
-              await newPort.open({ baudRate: 115200 });
-              
-              // Update espStub to use the new port
-              espStub.port = newPort;
-              
-              logMsg("Port opened for console at 115200 baud");
-            } catch (openErr) {
-              errorMsg(`Failed to open port for console: ${openErr.message}`);
-              consoleSwitch.checked = false;
-              saveSetting("console", false);
-              return;
+            // For S2/S3, the port changes after WDT reset
+            // Create a button for port selection
+            const selectPortBtn = document.createElement('button');
+            selectPortBtn.textContent = 'Select Port for Console';
+            selectPortBtn.className = 'button';
+            selectPortBtn.id = 'selectConsolePort';
+            selectPortBtn.style.display = 'block';
+            selectPortBtn.style.margin = '10px auto';
+            
+            selectPortBtn.onclick = async () => {
+              try {
+                // First, forget the OLD port so browser doesn't return it again
+                if (espStub.port && espStub.port.forget) {
+                  try {
+                    await espStub.port.forget();
+                    logMsg("Forgot old port");
+                  } catch (forgetErr) {
+                    logMsg(`Port forget error (ignored): ${forgetErr.message}`);
+                  }
+                }
+                
+                // Wait a bit for browser to process
+                await sleep(100);
+                
+                // Now request a NEW port (browser won't return the old one)
+                const newPort = await navigator.serial.requestPort();
+                
+                // Open the NEW port at 115200 for console
+                await newPort.open({ baudRate: 115200 });
+                espStub.port = newPort;
+                espStub.connected = true;
+                logMsg("Port opened for console at 115200 baud");
+                
+                // Remove the button
+                selectPortBtn.remove();
+                
+                // Device is already in firmware mode, port is open at 115200
+                // Just initialize console directly without calling clickConsole again
+                consoleSwitch.checked = true;
+                saveSetting("console", true);
+                
+                // Wait for port to be ready
+                await sleep(200);
+                
+                // Show console container
+                consoleContainer.classList.remove("hidden");
+                
+                // Initialize console
+                consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
+                await consoleInstance.init();
+                
+                // Listen for console reset events
+                if (consoleResetHandler) {
+                  consoleContainer.removeEventListener('console-reset', consoleResetHandler);
+                }
+                consoleResetHandler = async () => {
+                  if (espStub && typeof espStub.hardReset === 'function') {
+                    try {
+                      logMsg("Resetting device from console...");
+                      await espStub.hardReset();
+                      logMsg("Device reset successful");
+                    } catch (err) {
+                      errorMsg("Failed to reset device: " + err.message);
+                    }
+                  }
+                };
+                consoleContainer.addEventListener('console-reset', consoleResetHandler);
+                
+                // Listen for console close events
+                if (consoleCloseHandler) {
+                  consoleContainer.removeEventListener('console-close', consoleCloseHandler);
+                }
+                consoleCloseHandler = async () => {
+                  if (!consoleSwitch.checked) return;
+                  logMsg("Closing console...");
+                  consoleSwitch.checked = false;
+                  saveSetting("console", false);
+                  await closeConsole();
+                };
+                consoleContainer.addEventListener('console-close', consoleCloseHandler);
+                
+                logMsg("Console initialized");
+              } catch (err) {
+                errorMsg(`Failed to open port: ${err.message}`);
+              }
+            };
+            
+            // Insert button after connect button
+            const connectButton = document.getElementById('butConnect');
+            if (connectButton && connectButton.parentNode) {
+              connectButton.parentNode.insertBefore(selectPortBtn, connectButton.nextSibling);
             }
+            
+            // Disable console switch
+            consoleSwitch.checked = false;
+            saveSetting("console", false);
+            
+            return;
           } else {
             // Serial chip device: Port stays open
             logMsg("Device reset to firmware mode");
