@@ -33,7 +33,12 @@ export class ColoredConsole {
     let i = 0;
 
     if (this.state.carriageReturn) {
-      this.targetElement.lastChild?.remove();
+      if (line !== "\n") {
+        // don't remove if \r\n
+        if (this.targetElement.lastChild) {
+          this.targetElement.removeChild(this.targetElement.lastChild);
+        }
+      }
       this.state.carriageReturn = false;
     }
 
