@@ -656,7 +656,7 @@ export class ESPLoader extends EventTarget {
     } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
       return await this.getChipRevisionC3();
     }
-    
+
     return 0;
   }
 
@@ -1504,18 +1504,18 @@ export class ESPLoader extends EventTarget {
       // Revision < 101: 0x3FCDF064
       // Revision >= 101: 0x3FCDF060
       let bssUartDevAddr: number;
-      
+
       // Get chip revision if not already set
       if (this.chipRevision === null) {
         this.chipRevision = await this.getChipRevisionC3();
       }
-      
+
       if (this.chipRevision < 101) {
         bssUartDevAddr = 0x3fcdf064;
       } else {
         bssUartDevAddr = 0x3fcdf060;
       }
-      
+
       uartDevBufNo = bssUartDevAddr + ESP32C3_BUF_UART_NO_OFFSET;
       usbJtagSerialValue = ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
     } else {
@@ -1534,27 +1534,29 @@ export class ESPLoader extends EventTarget {
     if (this.chipFamily !== CHIP_FAMILY_ESP32C3) {
       return 0;
     }
-    
+
     // Get minor chip version
     // hi_num_word = 5, hi = bits [23] of word 5
-    const word5 = await this.readRegister(ESP32C3_EFUSE_BLOCK1_ADDR + (4 * 5));
+    const word5 = await this.readRegister(ESP32C3_EFUSE_BLOCK1_ADDR + 4 * 5);
     const hi = (word5 >> 23) & 0x01;
-    
+
     // low_num_word = 3, low = bits [20:18] of word 3
-    const word3 = await this.readRegister(ESP32C3_EFUSE_BLOCK1_ADDR + (4 * 3));
+    const word3 = await this.readRegister(ESP32C3_EFUSE_BLOCK1_ADDR + 4 * 3);
     const low = (word3 >> 18) & 0x07;
-    
+
     const minorVersion = (hi << 3) + low;
-    
+
     // Get major chip version
     // num_word = 5, major = bits [25:24] of word 5
     const majorVersion = (word5 >> 24) & 0x03;
-    
+
     // Combine as major * 100 + minor (e.g., revision 0.3 = 3, revision 1.0 = 100, revision 1.1 = 101)
     const revision = majorVersion * 100 + minorVersion;
-    
-    this.logger.debug(`ESP32-C3 revision: ${majorVersion}.${minorVersion} (${revision})`);
-    
+
+    this.logger.debug(
+      `ESP32-C3 revision: ${majorVersion}.${minorVersion} (${revision})`,
+    );
+
     return revision;
   }
 
