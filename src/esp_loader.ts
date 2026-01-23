@@ -89,6 +89,14 @@ import {
   ESP32C3_RTC_CNTL_WDTCONFIG0_REG,
   ESP32C3_RTC_CNTL_WDTCONFIG1_REG,
   ESP32C3_RTC_CNTL_WDT_WKEY,
+  ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG,
+  ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG,
+  ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG,
+  ESP32C5_C6_RTC_CNTL_WDT_WKEY,
+  ESP32C5_UARTDEV_BUF_NO,
+  ESP32C5_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
+  ESP32C6_UARTDEV_BUF_NO,
+  ESP32C6_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
 } from "./const";
 import { getStubCode } from "./stubs";
 import { hexFormatter, sleep, slipEncode, toHex } from "./util";
@@ -509,7 +517,11 @@ export class ESPLoader extends EventTarget {
         const isUsingUsbOtg = await this.usingUsbOtg();
         const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
         this._isUsbJtagOrOtg = isUsingUsbOtg || isUsingUsbJtagSerial;
-      } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+      } else if (
+        this.chipFamily === CHIP_FAMILY_ESP32C3 ||
+        this.chipFamily === CHIP_FAMILY_ESP32C5 ||
+        this.chipFamily === CHIP_FAMILY_ESP32C6
+      ) {
         const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
         this._isUsbJtagOrOtg = isUsingUsbJtagSerial;
       } else {
@@ -884,6 +896,20 @@ export class ESPLoader extends EventTarget {
     await this.setRTS(true); // EN=LOW, chip in reset
     await this.sleep(100);
     await this.setRTS(false); // EN=HIGH, chip out of reset (IO0 stays HIGH)
+    await this.sleep(50);
+
+    await this.sleep(200);
+  }
+
+  /**
+   * Reset to firmware mode (not bootloader) for WebUSB
+   * Keeps IO0=HIGH during reset so chip boots into firmware
+   */
+  async hardResetToFirmwareWebUSB() {
+    await this.setDTRWebUSB(false); // IO0=HIGH
+    await this.setRTSWebUSB(true); // EN=LOW, chip in reset
+    await this.sleep(100);
+    await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset (IO0 stays HIGH)
     await this.sleep(50);
 
     await this.sleep(200);
@@ -1530,6 +1556,12 @@ export class ESPLoader extends EventTarget {
 
       uartDevBufNo = bssUartDevAddr + ESP32C3_BUF_UART_NO_OFFSET;
       usbJtagSerialValue = ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32C5) {
+      uartDevBufNo = ESP32C5_UARTDEV_BUF_NO;
+      usbJtagSerialValue = ESP32C5_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32C6) {
+      uartDevBufNo = ESP32C6_UARTDEV_BUF_NO;
+      usbJtagSerialValue = ESP32C6_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
     } else {
       return false;
     }
@@ -1590,6 +1622,15 @@ export class ESPLoader extends EventTarget {
       WDTCONFIG0_REG = ESP32C3_RTC_CNTL_WDTCONFIG0_REG;
       WDTCONFIG1_REG = ESP32C3_RTC_CNTL_WDTCONFIG1_REG;
       WDT_WKEY = ESP32C3_RTC_CNTL_WDT_WKEY;
+    } else if (
+      this.chipFamily === CHIP_FAMILY_ESP32C5 ||
+      this.chipFamily === CHIP_FAMILY_ESP32C6
+    ) {
+      // C5 and C6 use LP_WDT (Low Power Watchdog Timer)
+      WDTWPROTECT_REG = ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG;
+      WDTCONFIG1_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG;
+      WDT_WKEY = ESP32C5_C6_RTC_CNTL_WDT_WKEY;
     } else {
       throw new Error(
         `rtcWdtResetChipSpecific() is not supported for ${this.chipFamily}`,
@@ -1673,7 +1714,7 @@ export class ESPLoader extends EventTarget {
       // Simple hardware reset to restart firmware (IO0=HIGH)
       this.logger.log("Performing hardware reset (console mode)...");
       if (this.isWebUSB()) {
-        await this.hardResetClassicWebUSB();
+        await this.hardResetToFirmwareWebUSB();
       } else {
         await this.hardResetToFirmware();
       }
