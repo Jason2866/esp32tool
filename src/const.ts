@@ -201,10 +201,9 @@ export const ESP32C3_RTC_CNTL_SWD_AUTO_FEED_EN = 1 << 31;
 export const ESP32C3_RTC_CNTL_SWD_WPROTECT_REG =
   ESP32C3_RTC_RTCCNTL_BASE_REG + 0x00b0;
 export const ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
-export const ESP32C3_BSS_UART_DEV_ADDR = 0x3fcdf060; // Default for revision >= 101 todo: < 101 0x3FCDF064 !!
 export const ESP32C3_BUF_UART_NO_OFFSET = 24;
-export const ESP32C3_UARTDEV_BUF_NO =
-  ESP32C3_BSS_UART_DEV_ADDR + ESP32C3_BUF_UART_NO_OFFSET;
+// Note: ESP32C3_BSS_UART_DEV_ADDR is calculated dynamically based on chip revision in esp_loader.ts
+// Revision < 101: 0x3FCDF064, Revision >= 101: 0x3FCDF060
 
 export const ESP32C5_SPI_REG_BASE = 0x60003000;
 export const ESP32C5_BASEFUSEADDR = 0x600b4800;

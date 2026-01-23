@@ -81,8 +81,8 @@ import {
   ESP32S3_UARTDEV_BUF_NO,
   ESP32S3_UARTDEV_BUF_NO_USB_OTG,
   ESP32S3_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
-  ESP32C3_UARTDEV_BUF_NO,
   ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
+  ESP32C3_BUF_UART_NO_OFFSET,
   ESP32C3_RTC_CNTL_WDTWPROTECT_REG,
   ESP32C3_RTC_CNTL_WDTCONFIG0_REG,
   ESP32C3_RTC_CNTL_WDTCONFIG1_REG,
@@ -551,7 +551,7 @@ export class ESPLoader extends EventTarget {
         this.chipName = chipInfo.name;
         this.chipFamily = chipInfo.family;
 
-        // Get chip revision for ESP32-P4
+        // Get chip revision for ESP32-P4 and ESP32-C3
         if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
           this.chipRevision = await this.getChipRevision();
           this.logger.debug(`ESP32-P4 revision: ${this.chipRevision}`);
@@ -563,6 +563,9 @@ export class ESPLoader extends EventTarget {
             this.chipVariant = "rev0";
           }
           this.logger.debug(`ESP32-P4 variant: ${this.chipVariant}`);
+        } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+          this.chipRevision = await this.getChipRevision();
+          this.logger.debug(`ESP32-C3 revision: ${this.chipRevision}`);
         }
 
         this.logger.debug(
@@ -622,6 +625,9 @@ export class ESPLoader extends EventTarget {
         this.chipVariant = "rev0";
       }
       this.logger.debug(`ESP32-P4 variant: ${this.chipVariant}`);
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+      this.chipRevision = await this.getChipRevision();
+      this.logger.debug(`ESP32-C3 revision: ${this.chipRevision}`);
     }
 
     this.logger.debug(
@@ -633,22 +639,24 @@ export class ESPLoader extends EventTarget {
    * Get chip revision for ESP32-P4
    */
   async getChipRevision(): Promise<number> {
-    if (this.chipFamily !== CHIP_FAMILY_ESP32P4) {
-      return 0;
+    if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+      // Read from EFUSE_BLOCK1 to get chip revision
+      // Word 2 contains revision info for ESP32-P4
+      const word2 = await this.readRegister(ESP32P4_EFUSE_BLOCK1_ADDR + 8);
+
+      // Minor revision: bits [3:0]
+      const minorRev = word2 & 0x0f;
+
+      // Major revision: bits [23] << 2 | bits [5:4]
+      const majorRev = (((word2 >> 23) & 1) << 2) | ((word2 >> 4) & 0x03);
+
+      // Revision is major * 100 + minor
+      return majorRev * 100 + minorRev;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+      return await this.getChipRevisionC3();
     }
-
-    // Read from EFUSE_BLOCK1 to get chip revision
-    // Word 2 contains revision info for ESP32-P4
-    const word2 = await this.readRegister(ESP32P4_EFUSE_BLOCK1_ADDR + 8);
-
-    // Minor revision: bits [3:0]
-    const minorRev = word2 & 0x0f;
-
-    // Major revision: bits [23] << 2 | bits [5:4]
-    const majorRev = (((word2 >> 23) & 1) << 2) | ((word2 >> 4) & 0x03);
-
-    // Revision is major * 100 + minor
-    return majorRev * 100 + minorRev;
+    
+    return 0;
   }
 
   /**
@@ -1491,7 +1499,23 @@ export class ESPLoader extends EventTarget {
       uartDevBufNo = ESP32S3_UARTDEV_BUF_NO;
       usbJtagSerialValue = ESP32S3_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
     } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
-      uartDevBufNo = ESP32C3_UARTDEV_BUF_NO;
+      // ESP32-C3: BSS_UART_DEV_ADDR depends on chip revision
+      // Revision < 101: 0x3FCDF064
+      // Revision >= 101: 0x3FCDF060
+      let bssUartDevAddr: number;
+      
+      // Get chip revision if not already set
+      if (this.chipRevision === null) {
+        this.chipRevision = await this.getChipRevisionC3();
+      }
+      
+      if (this.chipRevision < 101) {
+        bssUartDevAddr = 0x3fcdf064;
+      } else {
+        bssUartDevAddr = 0x3fcdf060;
+      }
+      
+      uartDevBufNo = bssUartDevAddr + ESP32C3_BUF_UART_NO_OFFSET;
       usbJtagSerialValue = ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
     } else {
       return false;
@@ -1499,6 +1523,29 @@ export class ESPLoader extends EventTarget {
 
     const uartNo = (await this.readRegister(uartDevBufNo)) & 0xff;
     return uartNo === usbJtagSerialValue;
+  }
+
+  /**
+   * Get chip revision for ESP32-C3
+   * Reads from EFUSE_RD_MAC_SPI_SYS_3_REG
+   */
+  async getChipRevisionC3(): Promise<number> {
+    if (this.chipFamily !== CHIP_FAMILY_ESP32C3) {
+      return 0;
+    }
+
+    // ESP32-C3 EFUSE register for chip revision
+    const EFUSE_RD_MAC_SPI_SYS_3_REG = 0x60008044;
+    
+    // Read the register
+    const word3 = await this.readRegister(EFUSE_RD_MAC_SPI_SYS_3_REG);
+    
+    // Chip revision is in bits [23:18]
+    const revision = (word3 >> 18) & 0x3f;
+    
+    this.logger.debug(`ESP32-C3 revision: ${revision}`);
+    
+    return revision;
   }
 
   /**
