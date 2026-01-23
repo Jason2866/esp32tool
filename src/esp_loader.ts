@@ -76,6 +76,17 @@ import {
   ESP32S3_GPIO_STRAP_SPI_BOOT_MASK,
   ESP32S3_RTC_CNTL_OPTION1_REG,
   ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+  ESP32S2_UARTDEV_BUF_NO,
+  ESP32S2_UARTDEV_BUF_NO_USB_OTG,
+  ESP32S3_UARTDEV_BUF_NO,
+  ESP32S3_UARTDEV_BUF_NO_USB_OTG,
+  ESP32S3_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
+  ESP32C3_UARTDEV_BUF_NO,
+  ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
+  ESP32C3_RTC_CNTL_WDTWPROTECT_REG,
+  ESP32C3_RTC_CNTL_WDTCONFIG0_REG,
+  ESP32C3_RTC_CNTL_WDTCONFIG1_REG,
+  ESP32C3_RTC_CNTL_WDT_WKEY,
 } from "./const";
 import { getStubCode } from "./stubs";
 import { hexFormatter, sleep, slipEncode, toHex } from "./util";
@@ -1367,13 +1378,65 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name watchdogReset
-   * Watchdog reset for ESP32-S2/S3 with USB-OTG
+   * Watchdog reset for ESP32-S2/S3/C3 with USB-OTG or USB-JTAG/Serial
    * Uses RTC watchdog timer to reset the chip - works when DTR/RTS signals are not available
+   * This is an alias for rtcWdtResetChipSpecific() for backwards compatibility
    */
   async watchdogReset() {
+    await this.rtcWdtResetChipSpecific();
+  }
+
+  /**
+   * Check if ESP32-S2 is using USB-OTG
+   */
+  public async usingUsbOtgS2(): Promise<boolean> {
+    if (this.chipFamily !== CHIP_FAMILY_ESP32S2) {
+      return false;
+    }
+    const uartNo = (await this.readRegister(ESP32S2_UARTDEV_BUF_NO)) & 0xff;
+    return uartNo === ESP32S2_UARTDEV_BUF_NO_USB_OTG;
+  }
+
+  /**
+   * Check if ESP32-S3 is using USB-OTG
+   */
+  public async usingUsbOtgS3(): Promise<boolean> {
+    if (this.chipFamily !== CHIP_FAMILY_ESP32S3) {
+      return false;
+    }
+    const uartNo = (await this.readRegister(ESP32S3_UARTDEV_BUF_NO)) & 0xff;
+    return uartNo === ESP32S3_UARTDEV_BUF_NO_USB_OTG;
+  }
+
+  /**
+   * Check if ESP32-S3 is using USB-JTAG/Serial
+   */
+  public async usingUsbJtagSerialS3(): Promise<boolean> {
+    if (this.chipFamily !== CHIP_FAMILY_ESP32S3) {
+      return false;
+    }
+    const uartNo = (await this.readRegister(ESP32S3_UARTDEV_BUF_NO)) & 0xff;
+    return uartNo === ESP32S3_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+  }
+
+  /**
+   * Check if ESP32-C3 is using USB-JTAG/Serial
+   */
+  public async usingUsbJtagSerialC3(): Promise<boolean> {
+    if (this.chipFamily !== CHIP_FAMILY_ESP32C3) {
+      return false;
+    }
+    const uartNo = (await this.readRegister(ESP32C3_UARTDEV_BUF_NO)) & 0xff;
+    return uartNo === ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+  }
+
+  /**
+   * RTC watchdog timer reset for ESP32-S2, ESP32-S3, or ESP32-C3
+   * Uses specific registers for each chip family
+   */
+  public async rtcWdtResetChipSpecific(): Promise<void> {
     this.logger.log("Hard resetting with watchdog timer...");
 
-    // Select correct register addresses based on chip family
     let WDTWPROTECT_REG: number;
     let WDTCONFIG0_REG: number;
     let WDTCONFIG1_REG: number;
@@ -1389,17 +1452,22 @@ export class ESPLoader extends EventTarget {
       WDTCONFIG0_REG = ESP32S3_RTC_CNTL_WDTCONFIG0_REG;
       WDTCONFIG1_REG = ESP32S3_RTC_CNTL_WDTCONFIG1_REG;
       WDT_WKEY = ESP32S3_RTC_CNTL_WDT_WKEY;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+      WDTWPROTECT_REG = ESP32C3_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32C3_RTC_CNTL_WDTCONFIG0_REG;
+      WDTCONFIG1_REG = ESP32C3_RTC_CNTL_WDTCONFIG1_REG;
+      WDT_WKEY = ESP32C3_RTC_CNTL_WDT_WKEY;
     } else {
       throw new Error(
-        `watchdogReset() is only supported for ESP32-S2 and ESP32-S3, not ${this.chipFamily}`,
+        `rtcWdtResetChipSpecific() is not supported for ${this.chipFamily}`,
       );
     }
 
     // Unlock watchdog registers
     await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
 
-    // Set WDT timeout to 2000ms
-    await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);
+    // Set WDT timeout to 5000ms
+    await this.writeRegister(WDTCONFIG1_REG, 5000, undefined, 0);
 
     // Enable WDT: bit 31 = enable, bits 28-30 = stage, bit 8 = sys reset, bits 0-2 = prescaler
     const wdtConfig = (1 << 31) | (5 << 28) | (1 << 8) | 2;
@@ -1410,6 +1478,54 @@ export class ESPLoader extends EventTarget {
 
     // Wait for reset to take effect
     await this.sleep(500);
+  }
+
+  /**
+   * Chip-specific hard reset for ESP32-S2
+   * Checks if using USB-JTAG/Serial and uses watchdog reset if necessary
+   */
+  public async hardResetS2(): Promise<void> {
+    const isUsingUsbOtg = await this.usingUsbOtgS2();
+    if (isUsingUsbOtg) {
+      await this.rtcWdtResetChipSpecific();
+      this.logger.log("ESP32-S2: RTC WDT reset (USB-OTG detected)");
+    } else {
+      // Use standard hardware reset
+      await this.hardResetClassic();
+      this.logger.log("ESP32-S2: Classic reset");
+    }
+  }
+
+  /**
+   * Chip-specific hard reset for ESP32-S3
+   * Checks if using USB-JTAG/Serial and uses watchdog reset if necessary
+   */
+  public async hardResetS3(): Promise<void> {
+    const isUsingUsbJtagSerial = await this.usingUsbJtagSerialS3();
+    if (isUsingUsbJtagSerial) {
+      await this.rtcWdtResetChipSpecific();
+      this.logger.log("ESP32-S3: RTC WDT reset (USB-JTAG/Serial detected)");
+    } else {
+      // Use standard hardware reset
+      await this.hardResetClassic();
+      this.logger.log("ESP32-S3: Classic reset");
+    }
+  }
+
+  /**
+   * Chip-specific hard reset for ESP32-C3
+   * Checks if using USB-JTAG/Serial and uses watchdog reset if necessary
+   */
+  public async hardResetC3(): Promise<void> {
+    const isUsingUsbJtagSerial = await this.usingUsbJtagSerialC3();
+    if (isUsingUsbJtagSerial) {
+      await this.rtcWdtResetChipSpecific();
+      this.logger.log("ESP32-C3: RTC WDT reset (USB-JTAG/Serial detected)");
+    } else {
+      // Use standard hardware reset
+      await this.hardResetClassic();
+      this.logger.log("ESP32-C3: Classic reset");
+    }
   }
 
   async hardReset(bootloader = false) {
@@ -1505,12 +1621,12 @@ export class ESPLoader extends EventTarget {
         }
 
         if (useWatchdogReset) {
-          await this.watchdogReset();
+          await this.rtcWdtResetChipSpecific();
           this.logger.log("Watchdog reset (USB-OTG).");
         } else {
           // Not in download mode, can use DTR/RTS reset
           // But USB-OTG doesn't have DTR/RTS, so fall back to watchdog
-          await this.watchdogReset();
+          await this.rtcWdtResetChipSpecific();
           this.logger.log("Watchdog reset (USB-OTG, normal boot).");
         }
       } else if (this.isWebUSB()) {
