@@ -771,7 +771,6 @@ async function clickConsole() {
 
         // Console ALWAYS runs at 115200 baud (firmware default)
         // Always set baudrate to 115200 before opening console
-
         try {
           await espStub.setBaudrate(115200);
           logMsg("Baudrate set to 115200 for console");
@@ -779,20 +778,41 @@ async function clickConsole() {
           logMsg(`Failed to set baudrate to 115200: ${baudErr.message}`);
         }
         
-        // Release reader/writer locks
+        // Enter console mode - handles both USB-JTAG and serial chip devices
         try {
-          await espStub.releaseReaderWriter();
-          await sleep(100);
+          const portWasClosed = await espStub.enterConsoleMode();
+          
+          if (portWasClosed) {
+            // USB-JTAG/OTG device: Port was closed, need to reopen
+            logMsg("Device reset to firmware mode (port closed)");
+            logMsg("Please select the serial port again for console mode...");
+            
+            try {
+              // Request port selection from user
+              const newPort = await navigator.serial.requestPort();
+              
+              // Open the new port at 115200 for console
+              await newPort.open({ baudRate: 115200 });
+              
+              // Update espStub to use the new port
+              espStub.port = newPort;
+              
+              logMsg("Port opened for console at 115200 baud");
+            } catch (openErr) {
+              errorMsg(`Failed to open port for console: ${openErr.message}`);
+              consoleSwitch.checked = false;
+              saveSetting("console", false);
+              return;
+            }
+          } else {
+            // Serial chip device: Port stays open
+            logMsg("Device reset to firmware mode");
+          }
         } catch (err) {
-          logMsg(`Failed to release locks: ${err.message}`);
-        }
-
-        // Hardware reset needed to switch to FIRMWARE mode
-        try {
-          await espStub.hardReset();
-          logMsg("Device reset to firmware mode");
-        } catch (err) {
-          logMsg(`Could not reset device: ${err}`);
+          errorMsg(`Failed to enter console mode: ${err.message}`);
+          consoleSwitch.checked = false;
+          saveSetting("console", false);
+          return;
         }
         
         // Wait for:
@@ -877,7 +897,34 @@ async function closeConsole() {
   
   // Restore original state (bootloader + stub + baudrate)
   if (espLoaderBeforeConsole && Number.isFinite(baudRateBeforeConsole)) {
+    // Check if this is a USB-JTAG/OTG device
+    const isUsbJtag = espLoaderBeforeConsole._isUsbJtagOrOtg === true;
+    
     try {
+      if (isUsbJtag) {
+        // USB-JTAG/OTG devices: Port was lost, need to request new port
+        logMsg("Please select the serial port again to reconnect...");
+        
+        try {
+          // Request port selection from user
+          const newPort = await navigator.serial.requestPort();
+          
+          // Update the loader to use the new port
+          espLoaderBeforeConsole.port = newPort;
+          
+          logMsg("Port selected, reconnecting to bootloader...");
+        } catch (portErr) {
+          errorMsg(`Failed to select port: ${portErr.message}`);
+          // Reset connection state to allow fresh connect
+          espStub = undefined;
+          toggleUIConnected(false);
+          espLoaderBeforeConsole = null;
+          baudRateBeforeConsole = null;
+          chipFamilyBeforeConsole = null;
+          return;
+        }
+      }
+      
       // Use reconnectToBootloader() - it handles everything:
       // - Releases locks
       // - Resets to bootloader
