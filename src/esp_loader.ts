@@ -3018,6 +3018,9 @@ export class ESPLoader extends EventTarget {
       return;
     }
 
+    // Check if device is in JTAG mode and needs reset to boot into firmware
+    await this._resetToFirmwareIfNeeded();
+
     // Wait for pending writes to complete
     try {
       await this._writeChain;
@@ -3058,6 +3061,67 @@ export class ESPLoader extends EventTarget {
       if (this._reader === reader) {
         this._reader = undefined;
       }
+    }
+  }
+
+  /**
+   * @name _resetToFirmwareIfNeeded
+   * Reset device from bootloader to firmware when switching to console mode
+   * Detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
+   */
+  private async _resetToFirmwareIfNeeded(): Promise<void> {
+    try {
+      // Check if device is using USB-JTAG/Serial or USB-OTG
+      let needsReset = false;
+      let resetMethod: string = "";
+
+      if (
+        this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+        this.chipFamily === CHIP_FAMILY_ESP32S3
+      ) {
+        const isUsingUsbOtg = await this.usingUsbOtg();
+        const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
+
+        if (isUsingUsbOtg || isUsingUsbJtagSerial) {
+          needsReset = true;
+          resetMethod = isUsingUsbJtagSerial
+            ? "USB-JTAG/Serial"
+            : "USB-OTG";
+        }
+      } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+        const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
+        if (isUsingUsbJtagSerial) {
+          needsReset = true;
+          resetMethod = "USB-JTAG/Serial";
+        }
+      }
+
+      if (needsReset) {
+        this.logger.log(
+          `Resetting ${this.chipFamily} (${resetMethod}) to boot into firmware...`,
+        );
+        
+        // Perform watchdog reset to reboot into firmware
+        try {
+          await this.rtcWdtResetChipSpecific();
+          this.logger.log("Watchdog reset completed");
+        } catch (err) {
+          this.logger.debug(`Watchdog reset error: ${err}`);
+        }
+        
+        // Wait for device to reset and stabilize
+        await this.sleep(2000);
+        
+        // Restart the read loop for console mode
+        this.connected = true;
+        this.readLoop();
+        this.logger.log("Device reset to firmware mode, connection re-established");
+      }
+    } catch (err) {
+      this.logger.debug(
+        `Could not reset device to firmware mode: ${err}`,
+      );
+      // Continue anyway - console mode might still work
     }
   }
 
