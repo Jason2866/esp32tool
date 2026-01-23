@@ -83,7 +83,8 @@ import {
   ESP32S3_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
   ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
   ESP32C3_BUF_UART_NO_OFFSET,
-  ESP32C3_EFUSE_BLOCK1_ADDR,
+  ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG,
+  ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG,
   ESP32C3_RTC_CNTL_WDTWPROTECT_REG,
   ESP32C3_RTC_CNTL_WDTCONFIG0_REG,
   ESP32C3_RTC_CNTL_WDTCONFIG1_REG,
@@ -1528,34 +1529,25 @@ export class ESPLoader extends EventTarget {
 
   /**
    * Get chip revision for ESP32-C3
-   * Reads from EFUSE_BLOCK1 and calculates major.minor revision
+   * Reads from EFUSE registers and calculates revision
    */
   async getChipRevisionC3(): Promise<number> {
     if (this.chipFamily !== CHIP_FAMILY_ESP32C3) {
       return 0;
     }
 
-    // Get minor chip version
-    // hi_num_word = 5, hi = bits [23] of word 5
-    const word5 = await this.readRegister(ESP32C3_EFUSE_BLOCK1_ADDR + 4 * 5);
-    const hi = (word5 >> 23) & 0x01;
-
-    // low_num_word = 3, low = bits [20:18] of word 3
-    const word3 = await this.readRegister(ESP32C3_EFUSE_BLOCK1_ADDR + 4 * 3);
+    // Read EFUSE_RD_MAC_SPI_SYS_3_REG (bits [20:18] = lower 3 bits of revision)
+    const word3 = await this.readRegister(ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG);
     const low = (word3 >> 18) & 0x07;
 
-    const minorVersion = (hi << 3) + low;
+    // Read EFUSE_RD_MAC_SPI_SYS_5_REG (bits [25:23] = upper 3 bits of revision)
+    const word5 = await this.readRegister(ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG);
+    const hi = (word5 >> 23) & 0x07;
 
-    // Get major chip version
-    // num_word = 5, major = bits [25:24] of word 5
-    const majorVersion = (word5 >> 24) & 0x03;
+    // Combine: upper 3 bits from word5, lower 3 bits from word3
+    const revision = (hi << 3) | low;
 
-    // Combine as major * 100 + minor (e.g., revision 0.3 = 3, revision 1.0 = 100, revision 1.1 = 101)
-    const revision = majorVersion * 100 + minorVersion;
-
-    this.logger.debug(
-      `ESP32-C3 revision: ${majorVersion}.${minorVersion} (${revision})`,
-    );
+    this.logger.debug(`ESP32-C3 revision: ${revision}`);
 
     return revision;
   }

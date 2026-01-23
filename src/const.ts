@@ -205,6 +205,9 @@ export const ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when U
 export const ESP32C3_BUF_UART_NO_OFFSET = 24;
 // Note: ESP32C3_BSS_UART_DEV_ADDR is calculated dynamically based on chip revision in esp_loader.ts
 // Revision < 101: 0x3FCDF064, Revision >= 101: 0x3FCDF060
+// ESP32-C3 EFUSE registers for chip revision detection
+export const ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG = 0x60008850;
+export const ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG = 0x60008858;
 
 export const ESP32C5_SPI_REG_BASE = 0x60003000;
 export const ESP32C5_BASEFUSEADDR = 0x600b4800;

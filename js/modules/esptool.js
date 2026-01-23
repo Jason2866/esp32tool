@@ -159,7 +159,6 @@ const ESP32C2_UART_DATE_REG_ADDR = 0x6000007c;
 const ESP32C2_BOOTLOADER_FLASH_OFFSET = 0x0000;
 const ESP32C3_SPI_REG_BASE = 0x60002000;
 const ESP32C3_BASEFUSEADDR = 0x60008800;
-const ESP32C3_EFUSE_BLOCK1_ADDR = ESP32C3_BASEFUSEADDR + 0x044;
 const ESP32C3_MACFUSEADDR = 0x60008800 + 0x044;
 const ESP32C3_SPI_USR_OFFS = 0x18;
 const ESP32C3_SPI_USR1_OFFS = 0x1c;
@@ -179,6 +178,9 @@ const ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG
 const ESP32C3_BUF_UART_NO_OFFSET = 24;
 // Note: ESP32C3_BSS_UART_DEV_ADDR is calculated dynamically based on chip revision in esp_loader.ts
 // Revision < 101: 0x3FCDF064, Revision >= 101: 0x3FCDF060
+// ESP32-C3 EFUSE registers for chip revision detection
+const ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG = 0x60008850;
+const ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG = 0x60008858;
 const ESP32C5_SPI_REG_BASE = 0x60003000;
 const ESP32C5_BASEFUSEADDR = 0x600b4800;
 const ESP32C5_MACFUSEADDR = 0x600b4800 + 0x044;
@@ -5991,26 +5993,21 @@ class ESPLoader extends EventTarget {
     }
     /**
      * Get chip revision for ESP32-C3
-     * Reads from EFUSE_BLOCK1 and calculates major.minor revision
+     * Reads from EFUSE registers and calculates revision
      */
     async getChipRevisionC3() {
         if (this.chipFamily !== CHIP_FAMILY_ESP32C3) {
             return 0;
         }
-        // Get minor chip version
-        // hi_num_word = 5, hi = bits [23] of word 5
-        const word5 = await this.readRegister(ESP32C3_EFUSE_BLOCK1_ADDR + (4 * 5));
-        const hi = (word5 >> 23) & 0x01;
-        // low_num_word = 3, low = bits [20:18] of word 3
-        const word3 = await this.readRegister(ESP32C3_EFUSE_BLOCK1_ADDR + (4 * 3));
+        // Read EFUSE_RD_MAC_SPI_SYS_3_REG (bits [20:18] = lower 3 bits of revision)
+        const word3 = await this.readRegister(ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG);
         const low = (word3 >> 18) & 0x07;
-        const minorVersion = (hi << 3) + low;
-        // Get major chip version
-        // num_word = 5, major = bits [25:24] of word 5
-        const majorVersion = (word5 >> 24) & 0x03;
-        // Combine as major * 100 + minor (e.g., revision 0.3 = 3, revision 1.0 = 100, revision 1.1 = 101)
-        const revision = majorVersion * 100 + minorVersion;
-        this.logger.debug(`ESP32-C3 revision: ${majorVersion}.${minorVersion} (${revision})`);
+        // Read EFUSE_RD_MAC_SPI_SYS_5_REG (bits [25:23] = upper 3 bits of revision)
+        const word5 = await this.readRegister(ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG);
+        const hi = (word5 >> 23) & 0x07;
+        // Combine: upper 3 bits from word5, lower 3 bits from word3
+        const revision = (hi << 3) | low;
+        this.logger.debug(`ESP32-C3 revision: ${revision}`);
         return revision;
     }
     /**
