@@ -765,7 +765,7 @@ export class ESPLoader extends EventTarget {
       // This prevents "Cannot write during port reconfiguration" errors
       // when the read loop dies unexpectedly
       this._isReconfiguring = false;
-      
+
       // Release reader if still locked
       if (this._reader) {
         try {
@@ -3345,10 +3345,8 @@ export class ESPLoader extends EventTarget {
         this.connected = false;
         this._writer = undefined;
         this._reader = undefined;
-        
-        this.logger.log(
-          "Device reset to firmware mode (port closed)",
-        );
+
+        this.logger.log("Device reset to firmware mode (port closed)");
         return true;
       }
     } catch (err) {
