@@ -127,6 +127,7 @@ export class ESPLoader extends EventTarget {
   private __commandLock: Promise<[number, number[]]> = Promise.resolve([0, []]);
   private __isReconfiguring: boolean = false;
   private __abandonCurrentOperation: boolean = false;
+  private _suppressDisconnect: boolean = false;
 
   // Adaptive speed adjustment for flash read operations
   private __adaptiveBlockMultiplier: number = 1;
@@ -719,7 +720,10 @@ export class ESPLoader extends EventTarget {
       );
     }
 
-    this.dispatchEvent(new Event("disconnect"));
+    // Only dispatch disconnect event if not suppressed
+    if (!this._suppressDisconnect) {
+      this.dispatchEvent(new Event("disconnect"));
+    }
     this.logger.debug("Finished read loop");
   }
 
@@ -3036,6 +3040,8 @@ export class ESPLoader extends EventTarget {
     if (this._reader) {
       const reader = this._reader;
       try {
+        // Suppress disconnect event during console mode switching
+        this._suppressDisconnect = true;
         await reader.cancel();
         this.logger.log("Reader cancelled");
       } catch (err) {
@@ -3046,6 +3052,8 @@ export class ESPLoader extends EventTarget {
         } catch (err) {
           this.logger.debug(`Reader release error: ${err}`);
         }
+        // Always clear the suppress flag
+        this._suppressDisconnect = false;
       }
       if (this._reader === reader) {
         this._reader = undefined;
@@ -3065,6 +3073,7 @@ export class ESPLoader extends EventTarget {
 
     try {
       this.logger.log("Reconnecting serial port...");
+      const savedBaudRate = this.currentBaudRate;
 
       this.connected = false;
       this.__inputBuffer = [];
@@ -3167,8 +3176,8 @@ export class ESPLoader extends EventTarget {
       this.logger.debug("Stub loaded");
 
       // Restore baudrate if it was changed
-      if (this.currentBaudRate !== ESP_ROM_BAUD) {
-        await stubLoader.setBaudrate(this.currentBaudRate);
+      if (savedBaudRate !== ESP_ROM_BAUD) {
+        await stubLoader.setBaudrate(savedBaudRate);
 
         // Verify port is still ready after baudrate change
         if (!this.port.writable || !this.port.readable) {
@@ -3270,6 +3279,8 @@ export class ESPLoader extends EventTarget {
       // Reset chip info and stub state
       this.__chipFamily = undefined;
       this.chipName = "Unknown Chip";
+      this.chipRevision = null;
+      this.chipVariant = null;
       this.IS_STUB = false;
 
       // Start read loop
