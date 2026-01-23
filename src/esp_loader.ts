@@ -129,6 +129,7 @@ export class ESPLoader extends EventTarget {
   private __abandonCurrentOperation: boolean = false;
   private _suppressDisconnect: boolean = false;
   private __consoleMode: boolean = false;
+  private _isUsbJtagOrOtg: boolean | undefined = undefined;
 
   // Adaptive speed adjustment for flash read operations
   private __adaptiveBlockMultiplier: number = 1;
@@ -3104,7 +3105,11 @@ export class ESPLoader extends EventTarget {
       let needsReset = false;
       let resetMethod: string = "";
 
-      if (
+      // Use cached value if available (stub doesn't allow register reads)
+      if (this._isUsbJtagOrOtg !== undefined) {
+        needsReset = this._isUsbJtagOrOtg;
+        resetMethod = "USB (cached)";
+      } else if (
         this.chipFamily === CHIP_FAMILY_ESP32S2 ||
         this.chipFamily === CHIP_FAMILY_ESP32S3
       ) {
@@ -3114,12 +3119,19 @@ export class ESPLoader extends EventTarget {
         if (isUsingUsbOtg || isUsingUsbJtagSerial) {
           needsReset = true;
           resetMethod = isUsingUsbJtagSerial ? "USB-JTAG/Serial" : "USB-OTG";
+          // Cache the result for subsequent calls
+          this._isUsbJtagOrOtg = true;
+        } else {
+          this._isUsbJtagOrOtg = false;
         }
       } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
         const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
         if (isUsingUsbJtagSerial) {
           needsReset = true;
           resetMethod = "USB-JTAG/Serial";
+          this._isUsbJtagOrOtg = true;
+        } else {
+          this._isUsbJtagOrOtg = false;
         }
       }
 
@@ -3393,6 +3405,9 @@ export class ESPLoader extends EventTarget {
 
     try {
       this.logger.log("Reconnecting to bootloader mode...");
+
+      // Clear console mode flag when reconnecting to bootloader
+      this._consoleMode = false;
 
       this.connected = false;
       this.__inputBuffer = [];
