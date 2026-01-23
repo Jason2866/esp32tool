@@ -6009,9 +6009,21 @@ class ESPLoader extends EventTarget {
         }
     }
     async hardReset(bootloader = false) {
-        // Skip reset if in console mode
+        // In console mode, only allow simple hardware reset (no bootloader entry)
         if (this._consoleMode) {
-            this.logger.log("Skipping reset - device is in console mode");
+            if (bootloader) {
+                this.logger.log("Skipping bootloader reset - device is in console mode");
+                return;
+            }
+            // Simple hardware reset to restart firmware
+            this.logger.log("Performing hardware reset (console mode)...");
+            if (this.isWebUSB()) {
+                await this.hardResetClassicWebUSB();
+            }
+            else {
+                await this.hardResetClassic();
+            }
+            this.logger.log("Hardware reset complete");
             return;
         }
         if (bootloader) {
@@ -7380,8 +7392,8 @@ class ESPLoader extends EventTarget {
                         this.logger.debug(`Strapping check: GPIO0=${gpio0Low ? "LOW" : "HIGH"}, ForceDownload=${forceDownloadNotSet ? "NOT SET" : "SET"}`);
                         if (!gpio0Low || !forceDownloadNotSet) {
                             this.logger.log("Skipping watchdog reset: conditions not met (GPIO0 must be LOW and force download must be clear)");
-                            // Don't perform watchdog reset, just reconnect
-                            await this._reconnectForConsole();
+                            // Close port - caller will reopen for console
+                            await this._closePort();
                             return true;
                         }
                     }
@@ -7455,76 +7467,6 @@ class ESPLoader extends EventTarget {
         catch (err) {
             this.logger.debug(`Port close error: ${err}`);
         }
-    }
-    /**
-     * @name _reconnectForConsole
-     * Prepare for console mode after watchdog reset
-     * IMPORTANT: Keeps reader ACTIVE during reset to preserve port.readable stream
-     * The watchdog reset will disconnect the reader automatically, then we wait for firmware boot
-     */
-    async _reconnectForConsole() {
-        this.logger.log("Reconnecting for console mode...");
-        this.connected = false;
-        this.__inputBuffer = [];
-        this.__inputBufferReadIndex = 0;
-        // Wait for pending writes to complete
-        try {
-            await this._writeChain;
-        }
-        catch (err) {
-            this.logger.debug(`Pending write error during reconnect: ${err}`);
-        }
-        // Release writer first
-        if (this._writer) {
-            try {
-                this._writer.releaseLock();
-                this.logger.debug("Writer released");
-            }
-            catch (err) {
-                this.logger.debug(`Writer release error: ${err}`);
-            }
-            this._writer = undefined;
-        }
-        // DO NOT cancel reader before reset - this would kill port.readable!
-        // The watchdog reset will naturally disconnect the reader, then we clean up
-        this.logger.log("Waiting for firmware to boot (reader stays active during reset)...");
-        // Wait for firmware to boot after watchdog reset
-        await this.sleep(2000);
-        // Now clean up the reader that was disconnected by the reset
-        if (this._reader) {
-            try {
-                this._suppressDisconnect = true;
-                this.logger.debug("Releasing reader after reset...");
-                // Don't cancel - just release the lock (reader is already dead from reset)
-                try {
-                    this._reader.releaseLock();
-                    this.logger.debug("Reader released");
-                }
-                catch (err) {
-                    this.logger.debug(`Reader release error: ${err}`);
-                }
-                this._suppressDisconnect = false;
-            }
-            catch (err) {
-                this.logger.debug(`Reader cleanup error: ${err}`);
-            }
-            this._reader = undefined;
-        }
-        // Verify port streams are available after firmware boot
-        if (!this.port.readable || !this.port.writable) {
-            throw new Error(`Port streams not available after firmware boot (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`);
-        }
-        this.connected = true;
-        // Note: Baudrate was already set to 115200 before reset
-        this.logger.log("Ready for console mode (streams preserved)");
-        // Do NOT start readLoop here - the console component will manage the stream
-        // Reset input buffer for console mode
-        if (!this._parent) {
-            this.__inputBuffer = [];
-            this.__inputBufferReadIndex = 0;
-            this.__totalBytesRead = 0;
-        }
-        this.logger.log("Reconnection for console mode complete");
     }
     /**
      * @name reconnectAndResume
