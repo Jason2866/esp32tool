@@ -111,6 +111,19 @@ body.mobile-device select {
   user-select: text;
 }
 
+/* Re-enable text selection for log/file viewers and code blocks */
+body.mobile-device #log,
+body.mobile-device .log-viewer,
+body.mobile-device .file-viewer,
+body.mobile-device .file-viewer-body,
+body.mobile-device .code-block,
+body.mobile-device pre,
+body.mobile-device code,
+body.mobile-device .console-container {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* Disable hover effects on mobile */
 body.no-hover *:hover {
   /* Prevent hover state changes on touch devices */

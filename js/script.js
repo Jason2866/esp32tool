@@ -238,12 +238,44 @@ function isMobileDevice() {
   return isMobileUA || (hasTouch && isSmallScreen);
 }
 
-// Apply mobile class on load
-if (isMobileDevice()) {
-  document.body.classList.add('mobile-device');
-  // Disable hover effects on mobile
-  document.body.classList.add('no-hover');
+// Update mobile classes and padding
+function updateMobileClasses() {
+  const isMobile = isMobileDevice();
+  
+  if (isMobile) {
+    document.body.classList.add('mobile-device');
+    document.body.classList.add('no-hover');
+  } else {
+    document.body.classList.remove('mobile-device');
+    document.body.classList.remove('no-hover');
+  }
+  
+  // Update main padding to match header height
+  updateMainPadding();
 }
+
+// Debounce helper
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Debounced resize handler
+const debouncedUpdateMobileClasses = debounce(updateMobileClasses, 250);
+
+// Apply mobile class on load
+updateMobileClasses();
+
+// Update on resize and orientation change
+window.addEventListener('resize', debouncedUpdateMobileClasses);
+window.addEventListener('orientationchange', debouncedUpdateMobileClasses);
 
 document.addEventListener("DOMContentLoaded", () => {
   butConnect.addEventListener("click", () => {
