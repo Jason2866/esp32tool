@@ -1145,7 +1145,6 @@ async function closeConsole() {
       // Reload stub using the reconnected bootloader
       const newStub = await espLoaderBeforeConsole.runStub();
       espStub = newStub;
-      attachDisconnectHandler(espStub);
 
       // Restore original baudrate
       if (baudRateBeforeConsole !== 115200) {
