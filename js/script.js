@@ -221,6 +221,30 @@ const tabHex = document.getElementById("tabHex");
 let currentViewedFile = null;
 let currentViewedFileData = null;
 
+// Mobile detection
+function isMobileDevice() {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  
+  // Check for mobile user agents
+  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+  const isMobileUA = mobileRegex.test(userAgent);
+  
+  // Check for touch support
+  const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  
+  // Check screen size
+  const isSmallScreen = window.innerWidth <= 768;
+  
+  return isMobileUA || (hasTouch && isSmallScreen);
+}
+
+// Apply mobile class on load
+if (isMobileDevice()) {
+  document.body.classList.add('mobile-device');
+  // Disable hover effects on mobile
+  document.body.classList.add('no-hover');
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   butConnect.addEventListener("click", () => {
     clickConnect().catch(async (e) => {

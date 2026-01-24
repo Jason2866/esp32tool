@@ -96,6 +96,26 @@ body {
   margin: 0;
 }
 
+/* Mobile-specific optimizations */
+body.mobile-device {
+  -webkit-tap-highlight-color: rgba(0, 167, 233, 0.3);
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body.mobile-device input,
+body.mobile-device textarea,
+body.mobile-device select {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Disable hover effects on mobile */
+body.no-hover *:hover {
+  /* Prevent hover state changes on touch devices */
+}
+
 p {
   margin: 0;
 }
@@ -155,6 +175,21 @@ div.clear {
   height: 0;
   visibility: hidden;
   max-height: 0;
+}
+
+/* Mobile console optimization */
+@media (max-width: 768px) {
+  .console-container {
+    height: 400px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .console-container {
+    height: 350px;
+    font-size: 13px;
+  }
 }
 
 .notSupported {
@@ -1076,69 +1111,147 @@ div.clear {
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
+  /* Larger touch targets and better readability */
+  body {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+
   .header {
     height: auto;
-    min-height: 60px;
-    padding: 10px 15px;
+    min-height: auto;
+    padding: 12px;
+    border-bottom: 3px solid #00a7e9;
   }
 
   .header-content {
-    gap: 8px;
+    gap: 12px;
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .header-content > label {
-    font-size: 12px;
-    margin-left: 3px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 0;
     white-space: nowrap;
+    min-width: 60px;
   }
 
+  /* Larger buttons for mobile */
+  .header button {
+    height: 44px;
+    min-width: 44px;
+    font-size: 16px;
+    padding: 0 16px;
+    border-width: 2px;
+    touch-action: manipulation;
+  }
+
+  .header select {
+    height: 44px;
+    font-size: 16px;
+    min-width: 120px;
+    padding: 8px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+  }
+
+  /* Larger on/off switches */
   .onoffswitch {
-    width: 50px;
+    width: 60px;
+    height: 32px;
+    margin: 0 8px;
   }
 
+  .onoffswitch-label {
+    border-radius: 16px;
+    border-width: 2px;
+  }
+
+  .onoffswitch-inner:before,
+  .onoffswitch-inner:after {
+    height: 32px;
+    line-height: 32px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .onoffswitch-switch {
+    width: 24px;
+    height: 24px;
+    margin: 2px;
+    border-radius: 12px;
+  }
+
+  .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
+    right: 2px;
+  }
+
+  /* Adjust main content padding */
   .main {
-    padding-top: 80px;
+    padding-top: 160px;
   }
+  
   .main.advanced-active {
-    padding-top: 130px;
+    padding-top: 240px;
   }
 
+  /* Larger touch targets for commands */
   #commands {
     min-width: unset;
-    padding: 0 15px;
+    padding: 0 12px;
   }
 
   #commands .upload {
     max-width: 100%;
     padding-left: 0;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 12px;
+    margin: 12px 0;
   }
 
   #commands .upload label {
     width: 100%;
+    font-size: 16px;
+  }
+
+  #commands .upload .offset {
+    width: 100px;
+    height: 44px;
+    font-size: 16px;
+    padding: 8px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
   }
 
   #commands .upload .firmware {
     width: 100%;
-    margin-left: 0;
-    margin-right: 0;
+    height: 44px;
+    margin: 8px 0;
     justify-content: center;
+    font-size: 16px;
   }
 
   #commands .buttons {
     width: 100%;
     flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  #commands .buttons button {
+    flex: 1;
+    min-width: 140px;
+    height: 48px;
+    font-size: 17px;
+    font-weight: 600;
   }
 
   #commands .partition-table,
   #commands .read-flash {
     width: 100%;
-    padding: 15px 0;
+    padding: 20px 0;
   }
 
   #commands .partition-table .progress-bar,
@@ -1149,65 +1262,102 @@ div.clear {
   #commands .read-flash-inputs {
     flex-wrap: wrap;
     width: 100%;
+    gap: 12px;
+  }
+
+  #commands .read-flash label {
+    font-size: 16px;
   }
 
   #commands .read-flash input {
-    width: 80px;
+    width: 100px;
+    height: 44px;
+    font-size: 16px;
+    padding: 8px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
   }
 
+  #commands .read-flash button,
+  #commands .partition-table button {
+    height: 48px;
+    font-size: 17px;
+    font-weight: 600;
+    padding: 0 20px;
+  }
+
+  /* Larger, more readable log */
   #log {
-    padding: 0 15px;
-    border: 10px solid #000;
-    font-size: 14px;
+    padding: 12px;
+    border: 8px solid #000;
+    font-size: 15px;
+    line-height: 1.6;
   }
 
   .footer {
-    padding: 10px 15px;
+    padding: 12px;
   }
 
+  /* Better filesystem manager on mobile */
   .littlefs-manager {
     width: 100%;
-    margin: 15px auto;
-    padding: 15px;
+    margin: 12px auto;
+    padding: 12px;
   }
 
   .littlefs-controls {
     flex-direction: column;
+    gap: 12px;
   }
 
   .littlefs-controls button {
     width: 100%;
+    height: 48px;
+    font-size: 17px;
   }
 
   .littlefs-file-upload {
     flex-direction: column;
+    gap: 12px;
   }
 
   .littlefs-file-upload input[type="file"],
   .littlefs-file-upload button {
     width: 100%;
+    height: 48px;
+    font-size: 16px;
   }
 
   .file-table {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .file-table th,
   .file-table td {
-    padding: 6px 8px;
+    padding: 10px 8px;
   }
 
   .file-actions {
     flex-direction: column;
+    gap: 8px;
   }
 
   .file-actions button {
     width: 100%;
+    height: 40px;
+    font-size: 15px;
   }
 
+  /* Better modals on mobile */
   .modal-content {
-    padding: 25px;
-    max-width: 90%;
+    padding: 20px;
+    max-width: 92%;
+  }
+
+  .modal-button {
+    height: 48px;
+    font-size: 18px;
+    padding: 0 24px;
   }
 
   .file-viewer-content {
@@ -1234,56 +1384,88 @@ div.clear {
 }
 
 @media (max-width: 480px) {
+  /* Extra small screens - keep labels but make everything more compact */
   .header {
-    padding: 8px 10px;
+    padding: 10px;
   }
 
   .header-content {
-    gap: 6px;
+    gap: 10px;
   }
 
   .header-content > label {
-    display: none;
+    font-size: 13px;
+    min-width: 50px;
   }
 
   .header-content select {
-    min-width: 90px;
-    height: 30px;
-    font-size: 13px;
+    min-width: 100px;
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .header button {
+    height: 40px;
+    font-size: 15px;
+    padding: 0 12px;
   }
 
   .onoffswitch {
-    width: 50px;
-    margin-left: 2px;
-    margin-right: 2px;
+    width: 56px;
+    height: 30px;
+    margin: 0 6px;
+  }
+
+  .onoffswitch-inner:before,
+  .onoffswitch-inner:after {
+    height: 30px;
+    line-height: 30px;
+    font-size: 14px;
+  }
+
+  .onoffswitch-switch {
+    width: 22px;
+    height: 22px;
   }
 
   .log-controls {
-    padding-left: 8px;
+    padding-left: 0;
   }
 
   .small-btn {
-    padding: 4px 8px;
-    font-size: 11px;
+    padding: 6px 12px;
+    font-size: 14px;
+    height: 36px;
   }
 
   #commands {
     padding: 0 10px;
   }
 
+  #commands .buttons button {
+    min-width: 120px;
+    height: 44px;
+    font-size: 16px;
+  }
+
   #log {
-    padding: 0 10px;
-    font-size: 12px;
+    padding: 10px;
+    border: 6px solid #000;
+    font-size: 14px;
   }
 
   button,
   .firmware {
-    font-size: 14px;
-    padding-left: 15px;
-    padding-right: 15px;
+    font-size: 15px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .main {
+    padding-top: 140px;
   }
 
   .main.advanced-active {
-    padding-top: 120px;
+    padding-top: 220px;
   }
 }
