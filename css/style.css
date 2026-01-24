@@ -2080,11 +2080,6 @@ div.clear {
   }
 
   /* Filesystem manager for Galaxy S8 */
-  .littlefs-manager {
-    padding: 3px;
-    margin: 2px 0;
-  }
-
   .littlefs-manager h3 {
     font-size: 13px;
     margin-bottom: 4px;
@@ -2117,11 +2112,6 @@ div.clear {
     margin-bottom: 3px;
   }
 
-  .littlefs-controls button {
-    height: 28px;
-    font-size: 10px;
-  }
-
   .littlefs-breadcrumb {
     padding: 3px;
     margin-bottom: 3px;
@@ -2143,13 +2133,9 @@ div.clear {
     gap: 3px;
   }
 
-  .littlefs-file-upload input[type="file"],
-  .littlefs-file-upload button {
+  .littlefs-file-upload input[type="file"] {
     height: 32px;
     font-size: 12px;
-  }
-
-  .littlefs-file-upload input[type="file"] {
     padding: 6px;
   }
 
@@ -2179,12 +2165,6 @@ div.clear {
   .file-actions {
     gap: 2px;
     margin-top: 3px;
-  }
-
-  .file-actions button {
-    height: 26px;
-    font-size: 9px;
-    padding: 0 4px;
   }
 
   #log {

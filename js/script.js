@@ -1231,11 +1231,16 @@ function updateMainPadding() {
   // Use requestAnimationFrame to ensure DOM has updated
   requestAnimationFrame(() => {
     const header = document.querySelector('.header');
-    if (header) {
-      const headerHeight = header.offsetHeight;
-      // Add small buffer (10px) for better spacing
-      main.style.paddingTop = (headerHeight + 10) + 'px';
+    const main = document.querySelector('.main');
+    
+    // Guard against missing elements
+    if (!header || !main) {
+      return;
     }
+    
+    const headerHeight = header.offsetHeight;
+    // Add small buffer (10px) for better spacing
+    main.style.paddingTop = (headerHeight + 10) + 'px';
   });
 }
 
