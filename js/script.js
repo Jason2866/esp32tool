@@ -767,6 +767,21 @@ async function clickConsole() {
         // Update espStub to use the new port
         espStub.port = newPort;
         espStub.connected = true;
+        // Keep parent/loader in sync (used by closeConsole)
+       if (espStub._parent) {
+         espStub._parent.port = newPort;
+       }
+       if (espLoaderBeforeConsole) {
+         espLoaderBeforeConsole.port = newPort;
+       }
+        
+        // Keep parent/loader in sync (used by closeConsole)
+        if (espStub._parent) {
+          espStub._parent.port = newPort;
+        }
+        if (espLoaderBeforeConsole) {
+          espLoaderBeforeConsole.port = newPort;
+        }
         
         logMsg("Port opened for console at 115200 baud");
       } catch (openErr) {
@@ -814,7 +829,7 @@ async function clickConsole() {
             await sleep(500);
             
             // Check if this is ESP32-S2 (needs port forget and modal) or ESP32-S3 (direct requestPort)
-            const isS2 = chipFamilyBeforeConsole === 2; // CHIP_FAMILY_ESP32S2 = 2
+            const isS2 = chipFamilyBeforeConsole === 0x3252; // CHIP_FAMILY_ESP32S2 = 0x3252
             
             if (isS2) {
               // ESP32-S2: Forget old port and show modal for port selection
@@ -856,6 +871,15 @@ async function clickConsole() {
                   await newPort.open({ baudRate: 115200 });
                   espStub.port = newPort;
                   espStub.connected = true;
+                  
+                  // Keep parent/loader in sync (used by closeConsole)
+                  if (espStub._parent) {
+                    espStub._parent.port = newPort;
+                  }
+                  if (espLoaderBeforeConsole) {
+                    espLoaderBeforeConsole.port = newPort;
+                  }
+                  
                   logMsg("Port opened for console at 115200 baud");
                   
                   // Device is already in firmware mode, port is open at 115200
@@ -913,7 +937,7 @@ async function clickConsole() {
               
               reconnectBtn.addEventListener("click", handleReconnect);
             } else {
-              // ESP32-S3: Direct requestPort (no modal, no forget)
+              // ESP32-S3/C3/C5/C6/H2/P4: Direct requestPort (no modal, no forget)
               try {
                 // Request port selection from user (direct, like console branch)
                 logMsg("Please select the serial port again for console mode...");
@@ -923,6 +947,15 @@ async function clickConsole() {
                 await newPort.open({ baudRate: 115200 });
                 espStub.port = newPort;
                 espStub.connected = true;
+                
+                // Keep parent/loader in sync (used by closeConsole)
+                if (espStub._parent) {
+                  espStub._parent.port = newPort;
+                }
+                if (espLoaderBeforeConsole) {
+                  espLoaderBeforeConsole.port = newPort;
+                }
+                
                 logMsg("Port opened for console at 115200 baud");
                 
                 // Device is already in firmware mode, port is open at 115200

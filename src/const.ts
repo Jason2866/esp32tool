@@ -187,20 +187,19 @@ export const ESP32C3_SPI_W0_OFFS = 0x58;
 export const ESP32C3_UART_DATE_REG_ADDR = 0x6000007c;
 export const ESP32C3_BOOTLOADER_FLASH_OFFSET = 0x0000;
 // ESP32-C3 RTC Watchdog Timer registers
-export const ESP32C3_RTC_RTCCNTL_BASE_REG = 0x60008000;
+export const ESP32C3_RTC_CNTL_BASE_REG = 0x60008000;
 export const ESP32C3_RTC_CNTL_WDTWPROTECT_REG =
-  ESP32C3_RTC_RTCCNTL_BASE_REG + 0x00a8;
+  ESP32C3_RTC_CNTL_BASE_REG + 0x00a8;
 export const ESP32C3_RTC_CNTL_WDTCONFIG0_REG =
-  ESP32C3_RTC_RTCCNTL_BASE_REG + 0x0090;
+  ESP32C3_RTC_CNTL_BASE_REG + 0x0090;
 export const ESP32C3_RTC_CNTL_WDTCONFIG1_REG =
-  ESP32C3_RTC_RTCCNTL_BASE_REG + 0x0094;
+  ESP32C3_RTC_CNTL_BASE_REG + 0x0094;
 export const ESP32C3_RTC_CNTL_WDT_WKEY = 0x50d83aa1;
 export const ESP32C3_RTC_CNTL_SWD_WKEY = 0x8f1d312a;
-export const ESP32C3_RTC_CNTL_SWD_CONF_REG =
-  ESP32C3_RTC_RTCCNTL_BASE_REG + 0x00ac;
+export const ESP32C3_RTC_CNTL_SWD_CONF_REG = ESP32C3_RTC_CNTL_BASE_REG + 0x00ac;
 export const ESP32C3_RTC_CNTL_SWD_AUTO_FEED_EN = 1 << 31;
 export const ESP32C3_RTC_CNTL_SWD_WPROTECT_REG =
-  ESP32C3_RTC_RTCCNTL_BASE_REG + 0x00b0;
+  ESP32C3_RTC_CNTL_BASE_REG + 0x00b0;
 export const ESP32C3_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
 export const ESP32C3_BUF_UART_NO_OFFSET = 24;
 // Note: ESP32C3_BSS_UART_DEV_ADDR is calculated dynamically based on chip revision in esp_loader.ts
@@ -239,6 +238,9 @@ export const ESP32C5_SPI_MISO_DLEN_OFFS = 0x28;
 export const ESP32C5_SPI_W0_OFFS = 0x58;
 export const ESP32C5_UART_DATE_REG_ADDR = 0x6000007c;
 export const ESP32C5_BOOTLOADER_FLASH_OFFSET = 0x2000;
+// ESP32-C5 USB-JTAG/Serial detection
+export const ESP32C5_UARTDEV_BUF_NO = 0x4085f514; // Variable in ROM .bss which indicates the port in use
+export const ESP32C5_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
 
 // ESP32-C6 USB-JTAG/Serial detection
 export const ESP32C6_UARTDEV_BUF_NO = 0x4087f580; // Variable in ROM .bss which indicates the port in use
@@ -265,6 +267,24 @@ export const ESP32C6_RTC_CNTL_WDTCONFIG1_REG =
   ESP32C6_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_RWDT_CONFIG1_REG
 export const ESP32C6_RTC_CNTL_WDT_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY, same as WDT key in this case
 export const ESP32C6_RTC_CNTL_SWD_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY, same as WDT key in this case
+// ESP32-C6 USB-JTAG/Serial detection
+export const ESP32C6_UARTDEV_BUF_NO = 0x4087f580; // Variable in ROM .bss which indicates the port in use
+export const ESP32C6_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
+
+// ESP32-C5/C6 LP Watchdog Timer registers (Low Power WDT)
+export const ESP32C5_C6_DR_REG_LP_WDT_BASE = 0x600b1c00;
+export const ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG =
+  ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0000; // LP_WDT_RWDT_CONFIG0_REG
+export const ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG =
+  ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_RWDT_CONFIG1_REG
+export const ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG =
+  ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0018; // LP_WDT_RWDT_WPROTECT_REG
+export const ESP32C5_C6_RTC_CNTL_WDT_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY
+export const ESP32C5_C6_RTC_CNTL_SWD_CONF_REG =
+  ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x001c; // LP_WDT_SWD_CONFIG_REG
+export const ESP32C5_C6_RTC_CNTL_SWD_AUTO_FEED_EN = 1 << 18;
+export const ESP32C5_C6_RTC_CNTL_SWD_WPROTECT_REG =
+  ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0020; // LP_WDT_SWD_WPROTECT_REG
 
 export const ESP32C61_SPI_REG_BASE = 0x60003000;
 export const ESP32C61_BASEFUSEADDR = 0x600b4800;
@@ -299,6 +319,9 @@ export const ESP32H2_RTC_CNTL_WDTCONFIG1_REG =
   ESP32H2_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_RWDT_CONFIG1_REG
 export const ESP32H2_RTC_CNTL_WDT_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY, same as WDT key in this case
 export const ESP32H2_RTC_CNTL_SWD_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY, same as WDT key in this case
+// ESP32-H2 USB-JTAG/Serial detection
+export const ESP32H2_UARTDEV_BUF_NO = 0x4084fefc; // Variable in ROM .bss which indicates the port in use
+export const ESP32H2_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
 
 export const ESP32H4_SPI_REG_BASE = 0x60099000;
 export const ESP32H4_BASEFUSEADDR = 0x600b1800;
@@ -371,6 +394,18 @@ export const ESP32P4_RTC_CNTL_SWD_AUTO_FEED_EN = 1 << 18;
 export const ESP32P4_RTC_CNTL_SWD_WPROTECT_REG =
   ESP32P4_DR_REG_LP_WDT_BASE + 0x0020; // RTC_WDT_SWD_WPROTECT_REG
 export const ESP32P4_RTC_CNTL_SWD_WKEY = 0x50d83aa1; // RTC_WDT_SWD_WKEY, same as WDT key in this case
+// ESP32-P4 USB-JTAG/Serial and USB-OTG detection
+// Note: UARTDEV_BUF_NO is dynamic based on chip revision
+// Revision < 300: 0x4FF3FEB0 + 24 = 0x4FF3FEC8
+// Revision >= 300: 0x4FFBFEB0 + 24 = 0x4FFBFEC8
+export const ESP32P4_UARTDEV_BUF_NO_REV0 = 0x4ff3fec8; // Variable in ROM .bss (revision < 300)
+export const ESP32P4_UARTDEV_BUF_NO_REV300 = 0x4ffbfec8; // Variable in ROM .bss (revision >= 300)
+export const ESP32P4_UARTDEV_BUF_NO_USB_OTG = 5; // The above var when USB-OTG is used
+export const ESP32P4_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 6; // The above var when USB-JTAG/Serial is used
+export const ESP32P4_GPIO_STRAP_REG = 0x500e0038;
+export const ESP32P4_GPIO_STRAP_SPI_BOOT_MASK = 0x8; // Not download mode
+export const ESP32P4_RTC_CNTL_OPTION1_REG = 0x50110008;
+export const ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK = 0x4; // Is download mode forced over USB?
 
 export const ESP32S31_SPI_REG_BASE = 0x20500000;
 export const ESP32S31_BASEFUSEADDR = 0x20715000;
