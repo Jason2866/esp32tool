@@ -787,7 +787,10 @@ export class ESPLoader extends EventTarget {
         this._totalBytesRead += value.length;
       }
     } catch {
-      this.logger.error("Read loop got disconnected");
+      // Don't log error if this is an expected disconnect during console mode transition
+      if (!this._consoleMode) {
+        this.logger.error("Read loop got disconnected");
+      }
     } finally {
       // Always reset reconfiguring flag when read loop ends
       // This prevents "Cannot write during port reconfiguration" errors
@@ -798,9 +801,9 @@ export class ESPLoader extends EventTarget {
       if (this._reader) {
         try {
           this._reader.releaseLock();
-          this.logger.log("Reader released in readLoop cleanup");
+          this.logger.debug("Reader released in readLoop cleanup");
         } catch (err) {
-          this.logger.log(`Reader release error in readLoop: ${err}`);
+          this.logger.debug(`Reader release error in readLoop: ${err}`);
         }
         this._reader = undefined;
       }
@@ -826,7 +829,8 @@ export class ESPLoader extends EventTarget {
     if (!this._suppressDisconnect) {
       this.dispatchEvent(new Event("disconnect"));
     }
-    this.logger.log("Finished read loop");
+    this._suppressDisconnect = false;
+    this.logger.debug("Finished read loop");
   }
 
   sleep(ms = 100) {
@@ -1429,7 +1433,9 @@ export class ESPLoader extends EventTarget {
       try {
         // Check if port is still open, if not, skip this strategy
         if (!this.connected || !this.port.writable) {
-          this.logger.log(`Port disconnected, skipping ${strategy.name} reset`);
+          this.logger.debug(
+            `Port disconnected, skipping ${strategy.name} reset`,
+          );
           continue;
         }
 
@@ -1479,7 +1485,7 @@ export class ESPLoader extends EventTarget {
         }
       } catch (error) {
         lastError = error as Error;
-        this.logger.log(
+        this.logger.debug(
           `${strategy.name} reset failed: ${(error as Error).message}`,
         );
 
@@ -1646,7 +1652,7 @@ export class ESPLoader extends EventTarget {
    * Note: ESP32-H2 does NOT support WDT reset
    */
   public async rtcWdtResetChipSpecific(): Promise<void> {
-    this.logger.log("Hard resetting with watchdog timer...");
+    this.logger.debug("Hard resetting with watchdog timer...");
 
     let WDTWPROTECT_REG: number;
     let WDTCONFIG0_REG: number;
@@ -1702,9 +1708,9 @@ export class ESPLoader extends EventTarget {
           ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
           0,
         );
-        this.logger.log("Cleared force download boot mask");
+        this.logger.debug("Cleared force download boot mask");
       } catch (err) {
-        this.logger.log(
+        this.logger.debug(
           `Expected error clearing force download boot mask: ${err}`,
         );
       }
@@ -1716,9 +1722,9 @@ export class ESPLoader extends EventTarget {
           ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
           0,
         );
-        this.logger.log("Cleared force download boot mask");
+        this.logger.debug("Cleared force download boot mask");
       } catch (err) {
-        this.logger.log(
+        this.logger.debug(
           `Expected error clearing force download boot mask: ${err}`,
         );
       }
@@ -1730,9 +1736,9 @@ export class ESPLoader extends EventTarget {
           ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
           0,
         );
-        this.logger.log("Cleared force download boot mask");
+        this.logger.debug("Cleared force download boot mask");
       } catch (err) {
-        this.logger.log(
+        this.logger.debug(
           `Expected error clearing force download boot mask: ${err}`,
         );
       }
@@ -1760,11 +1766,11 @@ export class ESPLoader extends EventTarget {
     const isUsingUsbOtg = await this.usingUsbOtg();
     if (isUsingUsbOtg) {
       await this.rtcWdtResetChipSpecific();
-      this.logger.log("ESP32-S2: RTC WDT reset (USB-OTG detected)");
+      this.logger.debug("ESP32-S2: RTC WDT reset (USB-OTG detected)");
     } else {
       // Use standard hardware reset
       await this.hardResetClassic();
-      this.logger.log("ESP32-S2: Classic reset");
+      this.logger.debug("ESP32-S2: Classic reset");
     }
   }
 
@@ -1776,11 +1782,11 @@ export class ESPLoader extends EventTarget {
     const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
     if (isUsingUsbJtagSerial) {
       await this.rtcWdtResetChipSpecific();
-      this.logger.log("ESP32-S3: RTC WDT reset (USB-JTAG/Serial detected)");
+      this.logger.debug("ESP32-S3: RTC WDT reset (USB-JTAG/Serial detected)");
     } else {
       // Use standard hardware reset
       await this.hardResetClassic();
-      this.logger.log("ESP32-S3: Classic reset");
+      this.logger.debug("ESP32-S3: Classic reset");
     }
   }
 
@@ -1792,11 +1798,11 @@ export class ESPLoader extends EventTarget {
     const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
     if (isUsingUsbJtagSerial) {
       await this.rtcWdtResetChipSpecific();
-      this.logger.log("ESP32-C3: RTC WDT reset (USB-JTAG/Serial detected)");
+      this.logger.debug("ESP32-C3: RTC WDT reset (USB-JTAG/Serial detected)");
     } else {
       // Use standard hardware reset
       await this.hardResetClassic();
-      this.logger.log("ESP32-C3: Classic reset");
+      this.logger.debug("ESP32-C3: Classic reset");
     }
   }
 
@@ -1804,19 +1810,19 @@ export class ESPLoader extends EventTarget {
     // In console mode, only allow simple hardware reset (no bootloader entry)
     if (this._consoleMode) {
       if (bootloader) {
-        this.logger.log(
+        this.logger.debug(
           "Skipping bootloader reset - device is in console mode",
         );
         return;
       }
       // Simple hardware reset to restart firmware (IO0=HIGH)
-      this.logger.log("Performing hardware reset (console mode)...");
+      this.logger.debug("Performing hardware reset (console mode)...");
       if (this.isWebUSB()) {
         await this.hardResetToFirmwareWebUSB();
       } else {
         await this.hardResetToFirmware();
       }
-      this.logger.log("Hardware reset complete");
+      this.logger.debug("Hardware reset complete");
       return;
     }
 
@@ -1824,15 +1830,15 @@ export class ESPLoader extends EventTarget {
       // enter flash mode
       if (this.port.getInfo().usbProductId === USB_JTAG_SERIAL_PID) {
         await this.hardResetUSBJTAGSerial();
-        this.logger.log("USB-JTAG/Serial reset.");
+        this.logger.debug("USB-JTAG/Serial reset.");
       } else {
         // Use different reset strategy for WebUSB (Android) vs Web Serial (Desktop)
         if (this.isWebUSB()) {
           await this.hardResetClassicWebUSB();
-          this.logger.log("Classic reset (WebUSB/Android).");
+          this.logger.debug("Classic reset (WebUSB/Android).");
         } else {
           await this.hardResetClassic();
-          this.logger.log("Classic reset.");
+          this.logger.debug("Classic reset.");
         }
       }
     } else {
@@ -1858,7 +1864,7 @@ export class ESPLoader extends EventTarget {
             (forceDlReg & RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK) === 0
           ) {
             await this.rtcWdtResetChipSpecific();
-            this.logger.log(
+            this.logger.debug(
               "ESP32-S2: RTC WDT reset (USB detected, GPIO0 low)",
             );
             return;
@@ -1887,7 +1893,7 @@ export class ESPLoader extends EventTarget {
             (forceDlReg & RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK) === 0
           ) {
             await this.rtcWdtResetChipSpecific();
-            this.logger.log(
+            this.logger.debug(
               "ESP32-S3: RTC WDT reset (USB detected, GPIO0 low)",
             );
             return;
@@ -1902,13 +1908,13 @@ export class ESPLoader extends EventTarget {
         await this.sleep(200);
         await this.setRTSWebUSB(false);
         await this.sleep(200);
-        this.logger.log("Hard reset (WebUSB).");
+        this.logger.debug("Hard reset (WebUSB).");
       } else {
         // Web Serial: Standard reset
         await this.setRTS(true); // EN->LOW
         await this.sleep(100);
         await this.setRTS(false);
-        this.logger.log("Hard reset.");
+        this.logger.debug("Hard reset.");
       }
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -3327,7 +3333,7 @@ export class ESPLoader extends EventTarget {
     if (this._writer) {
       try {
         this._writer.releaseLock();
-        this.logger.log("Writer released");
+        this.logger.debug("Writer released");
       } catch (err) {
         this.logger.debug(`Writer release error: ${err}`);
       }
@@ -3341,7 +3347,7 @@ export class ESPLoader extends EventTarget {
         // Suppress disconnect event during console mode switching
         this._suppressDisconnect = true;
         await reader.cancel();
-        this.logger.log("Reader cancelled");
+        this.logger.debug("Reader cancelled");
       } catch (err) {
         this.logger.debug(`Reader cancel error: ${err}`);
       } finally {
@@ -3350,8 +3356,6 @@ export class ESPLoader extends EventTarget {
         } catch (err) {
           this.logger.debug(`Reader release error: ${err}`);
         }
-        // Always clear the suppress flag
-        this._suppressDisconnect = false;
       }
       if (this._reader === reader) {
         this._reader = undefined;
@@ -3467,10 +3471,10 @@ export class ESPLoader extends EventTarget {
         // Perform watchdog reset to reboot into firmware
         try {
           await this.rtcWdtResetChipSpecific();
-          this.logger.log("Watchdog reset triggered successfully");
+          this.logger.debug("Watchdog reset triggered successfully");
         } catch (err) {
           // Error is expected - device resets before responding
-          this.logger.log(
+          this.logger.debug(
             `Watchdog reset initiated (connection lost as expected: ${err})`,
           );
         }
@@ -3485,7 +3489,7 @@ export class ESPLoader extends EventTarget {
         this._writer = undefined;
         this._reader = undefined;
 
-        this.logger.log("Device reset to firmware mode (port closed)");
+        this.logger.debug("Device reset to firmware mode (port closed)");
         return true;
       }
     } catch (err) {
@@ -3546,7 +3550,7 @@ export class ESPLoader extends EventTarget {
       // Close port
       try {
         await this.port.close();
-        this.logger.log("Port closed");
+        this.logger.debug("Port closed");
       } catch (err) {
         this.logger.debug(`Port close error: ${err}`);
       }
@@ -3688,7 +3692,7 @@ export class ESPLoader extends EventTarget {
       // Close port
       try {
         await this.port.close();
-        this.logger.log("Port closed");
+        this.logger.debug("Port closed");
       } catch (err) {
         this.logger.debug(`Port close error: ${err}`);
       }
@@ -4126,7 +4130,7 @@ export class ESPLoader extends EventTarget {
           // Check if it's a timeout error or SLIP error
           if (err instanceof SlipReadError) {
             if (retryCount <= MAX_RETRIES) {
-              this.logger.log(
+              this.logger.debug(
                 `${err.message} at 0x${currentAddr.toString(16)}. Draining buffer and retrying (attempt ${retryCount}/${MAX_RETRIES})...`,
               );
 

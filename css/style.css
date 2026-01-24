@@ -17,15 +17,14 @@
   justify-content: flex-start;
   align-items: flex-start;
   top: 0;
-  transition: transform 0.3s ease-in-out;
+  /* Auto-hide feature disabled - header stays visible at all times */
+  /* transition: transform 0.3s ease-in-out; */
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
-.header-hidden {
-  transform: translateY(-100%);
-}
+/* .header-hidden class removed - auto-hide feature disabled */
 
 .header-content {
   display: flex;
@@ -136,9 +135,7 @@ div.clear {
   padding-top: 140px;
 }
 
-.main.no-header-padding {
-  padding-top: 0;
-}
+/* .main.no-header-padding removed - auto-hide feature disabled */
 
 .hidden {
   display: none;
@@ -149,6 +146,8 @@ div.clear {
   height: 500px;
   overflow: hidden;
   transition: height 0.3s ease-in-out;
+  margin: 0;
+  padding: 0;
 }
 
 .console-container.hidden {

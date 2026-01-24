@@ -51,7 +51,7 @@ function clearAllCachedData() {
         currentLittleFS.destroy();
       }
     } catch (e) {
-      console.error('Error destroying filesystem:', e);
+      debugMsg('Error destroying filesystem: ' + e);
     }
   }
   
@@ -224,7 +224,7 @@ let currentViewedFileData = null;
 document.addEventListener("DOMContentLoaded", () => {
   butConnect.addEventListener("click", () => {
     clickConnect().catch(async (e) => {
-      console.error(e);
+      debugMsg('Connection error: ' + e);
       errorMsg(e.message || e);
       if (espStub) {
         await espStub.disconnect();
@@ -277,10 +277,11 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("Got an uncaught error: ", event.error);
   });
   
-  // Header auto-hide functionality
+  // Header auto-hide functionality - DISABLED
   const header = document.querySelector(".header");
   const main = document.querySelector(".main");
   
+  /* DISABLED: Auto-hide header
   // Show header on mouse enter at top of page
   main.addEventListener("mousemove", (e) => {
     if (e.clientY < 5 && header.classList.contains("header-hidden")) {
@@ -306,6 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 1000);
     }
   });
+  */
   
   // Check for Web Serial or WebUSB support
   if ("serial" in navigator || "usb" in navigator) {
@@ -584,7 +586,7 @@ async function clickConnect() {
         }
       } catch (disconnectErr) {
         // Ignore disconnect errors
-        console.warn("Error during disconnect:", disconnectErr);
+        debugMsg("Error during disconnect: " + disconnectErr);
       }
       
       // Show modal dialog ONLY for Desktop
@@ -767,15 +769,6 @@ async function clickConsole() {
         // Update espStub to use the new port
         espStub.port = newPort;
         espStub.connected = true;
-        // Keep parent/loader in sync (used by closeConsole)
-       if (espStub._parent) {
-         espStub._parent.port = newPort;
-       }
-       if (espLoaderBeforeConsole) {
-         espLoaderBeforeConsole.port = newPort;
-       }
-        
-        // Keep parent/loader in sync (used by closeConsole)
         if (espStub._parent) {
           espStub._parent.port = newPort;
         }
@@ -812,7 +805,7 @@ async function clickConsole() {
         // Always set baudrate to 115200 before opening console
         try {
           await espStub.setBaudrate(115200);
-          logMsg("Baudrate set to 115200 for console");
+          debugMsg("Baudrate set to 115200 for console");
         } catch (baudErr) {
           logMsg(`Failed to set baudrate to 115200: ${baudErr.message}`);
         }
@@ -823,7 +816,7 @@ async function clickConsole() {
           
           if (portWasClosed) {
             // USB-JTAG/OTG device: Port was closed after WDT reset
-            logMsg("Device reset to firmware mode (port closed)");
+            debugMsg("Device reset to firmware mode (port closed)");
             
             // Wait a bit for device to boot
             await sleep(500);
@@ -864,7 +857,7 @@ async function clickConsole() {
                 
                 try {
                   // Request the NEW port (user gesture from button click)
-                  logMsg("Please select the serial port for console mode...");
+                  debugMsg("Please select the serial port for console mode...");
                   const newPort = await navigator.serial.requestPort();
                   
                   // Open the NEW port at 115200 for console
@@ -880,7 +873,7 @@ async function clickConsole() {
                     espLoaderBeforeConsole.port = newPort;
                   }
                   
-                  logMsg("Port opened for console at 115200 baud");
+                  debugMsg("Port opened for console at 115200 baud");
                   
                   // Device is already in firmware mode, port is open at 115200
                   // Initialize console directly
@@ -890,8 +883,10 @@ async function clickConsole() {
                   // Wait for port to be ready
                   await sleep(200);
                   
-                  // Show console container
+                  // Show console container and hide commands
                   consoleContainer.classList.remove("hidden");
+                  const commands = document.getElementById("commands");
+                  if (commands) commands.classList.add("hidden");
                   
                   // Initialize console
                   consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
@@ -904,9 +899,9 @@ async function clickConsole() {
                   consoleResetHandler = async () => {
                     if (espStub && typeof espStub.hardReset === 'function') {
                       try {
-                        logMsg("Resetting device from console...");
+                        debugMsg("Resetting device from console...");
                         await espStub.hardReset();
-                        logMsg("Device reset successful");
+                        debugMsg("Device reset successful");
                       } catch (err) {
                         errorMsg("Failed to reset device: " + err.message);
                       }
@@ -920,7 +915,7 @@ async function clickConsole() {
                   }
                   consoleCloseHandler = async () => {
                     if (!consoleSwitch.checked) return;
-                    logMsg("Closing console...");
+                    debugMsg("Closing console...");
                     consoleSwitch.checked = false;
                     saveSetting("console", false);
                     await closeConsole();
@@ -940,7 +935,7 @@ async function clickConsole() {
               // ESP32-S3/C3/C5/C6/H2/P4: Direct requestPort (no modal, no forget)
               try {
                 // Request port selection from user (direct, like console branch)
-                logMsg("Please select the serial port again for console mode...");
+                debugMsg("Please select the serial port again for console mode...");
                 const newPort = await navigator.serial.requestPort();
                 
                 // Open the new port at 115200 for console
@@ -956,7 +951,7 @@ async function clickConsole() {
                   espLoaderBeforeConsole.port = newPort;
                 }
                 
-                logMsg("Port opened for console at 115200 baud");
+                debugMsg("Port opened for console at 115200 baud");
                 
                 // Device is already in firmware mode, port is open at 115200
                 // Initialize console directly
@@ -966,8 +961,10 @@ async function clickConsole() {
                 // Wait for port to be ready
                 await sleep(200);
                 
-                // Show console container
+                // Show console container and hide commands
                 consoleContainer.classList.remove("hidden");
+                const commands = document.getElementById("commands");
+                if (commands) commands.classList.add("hidden");
                 
                 // Initialize console
                 consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
@@ -980,9 +977,9 @@ async function clickConsole() {
                 consoleResetHandler = async () => {
                   if (espStub && typeof espStub.hardReset === 'function') {
                     try {
-                      logMsg("Resetting device from console...");
+                      debugMsg("Resetting device from console...");
                       await espStub.hardReset();
-                      logMsg("Device reset successful");
+                      debugMsg("Device reset successful");
                     } catch (err) {
                       errorMsg("Failed to reset device: " + err.message);
                     }
@@ -996,7 +993,7 @@ async function clickConsole() {
                 }
                 consoleCloseHandler = async () => {
                   if (!consoleSwitch.checked) return;
-                  logMsg("Closing console...");
+                  debugMsg("Closing console...");
                   consoleSwitch.checked = false;
                   saveSetting("console", false);
                   await closeConsole();
@@ -1014,7 +1011,7 @@ async function clickConsole() {
             return;
           } else {
             // Serial chip device: Port stays open
-            logMsg("Device reset to firmware mode");
+            debugMsg("Device reset to firmware mode");
           }
         } catch (err) {
           errorMsg(`Failed to enter console mode: ${err.message}`);
@@ -1028,8 +1025,10 @@ async function clickConsole() {
         // - Port to be ready for new reader
         await sleep(200);
         
-        // Show console container
+        // Show console container and hide commands
         consoleContainer.classList.remove("hidden");
+        const commands = document.getElementById("commands");
+        if (commands) commands.classList.add("hidden");
         
         // Initialize console
         consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
@@ -1042,9 +1041,9 @@ async function clickConsole() {
         consoleResetHandler = async () => {
           if (espStub && typeof espStub.hardReset === 'function') {
             try {
-              logMsg("Resetting device from console...");
+              debugMsg("Resetting device from console...");
               await espStub.hardReset();
-              logMsg("Device reset successful");
+              debugMsg("Device reset successful");
             } catch (err) {
               errorMsg("Failed to reset device: " + err.message);
             }
@@ -1058,7 +1057,7 @@ async function clickConsole() {
         }
         consoleCloseHandler = async () => {
           if (!consoleSwitch.checked) return; // Already closing
-          logMsg("Closing console...");
+          debugMsg("Closing console...");
           consoleSwitch.checked = false;
           saveSetting("console", false);
           // Directly call close logic without triggering clickConsole
@@ -1091,14 +1090,16 @@ async function clickConsole() {
  * Close console and restore device to bootloader state
  */
 async function closeConsole() {
-  // Hide and cleanup console
+  // Hide console and show commands again
   consoleContainer.classList.add("hidden");
+  const commands = document.getElementById("commands");
+  if (commands) commands.classList.remove("hidden");
   
   if (consoleInstance) {
     try {
       await consoleInstance.disconnect();
     } catch (err) {
-      console.error("Error disconnecting console:", err);
+      debugMsg("Error disconnecting console: " + err);
     }
     consoleInstance = null;
   }
@@ -1111,7 +1112,7 @@ async function closeConsole() {
     try {
       if (isUsbJtag) {
         // USB-JTAG/OTG devices: Port was lost, need to request new port
-        logMsg("Please select the serial port again to reconnect...");
+        debugMsg("Please select the serial port again to reconnect...");
         
         try {
           // Request port selection from user
@@ -1120,7 +1121,7 @@ async function closeConsole() {
           // Update the loader to use the new port
           espLoaderBeforeConsole.port = newPort;
           
-          logMsg("Port selected, reconnecting to bootloader...");
+          debugMsg("Port selected, reconnecting to bootloader...");
         } catch (portErr) {
           errorMsg(`Failed to select port: ${portErr.message}`);
           // Reset connection state to allow fresh connect
@@ -1162,7 +1163,7 @@ async function closeConsole() {
           await espLoaderBeforeConsole.port.close();
         }
       } catch (closeErr) {
-        console.error("Failed to close port:", closeErr);
+        debugMsg("Failed to close port: " + closeErr);
       }
       // Reset connection state to allow fresh connect
       espStub = undefined;
@@ -1438,7 +1439,7 @@ async function clickDetectFS() {
     
   } catch (e) {
     errorMsg(`Failed to detect/open filesystem: ${e.message || e}`);
-    console.error(e);
+    debugMsg('Filesystem detection error details: ' + e);
   } finally {
     // Hide progress bar
     readProgress.classList.add('hidden');
@@ -2022,11 +2023,12 @@ function toggleUIConnected(connected) {
     lbl = "Disconnect";
     isConnected = true;
     
-    // Auto-hide header after connection
+    /* DISABLED: Auto-hide header after connection
     setTimeout(() => {
       header.classList.add("header-hidden");
       main.classList.add("no-header-padding");
     }, 2000); // Hide after 2 seconds
+    */
   } else {
     isConnected = false;
     toggleUIToolbar(false);
@@ -2034,19 +2036,22 @@ function toggleUIConnected(connected) {
     // Cleanup console if it was running
     if (consoleInstance) {
       consoleInstance.disconnect().catch(err => {
-        console.error("Error disconnecting console:", err);
+        debugMsg("Error disconnecting console: " + err);
       });
       consoleInstance = null;
     }
     
-    // Hide console container and uncheck switch
+    // Hide console container, show commands, and uncheck switch
     consoleContainer.classList.add("hidden");
+    const commands = document.getElementById("commands");
+    if (commands) commands.classList.remove("hidden");
     consoleSwitch.checked = false;
     saveSetting("console", false);
     
-    // Show header when disconnected
+    /* DISABLED: Show header when disconnected
     header.classList.remove("header-hidden");
     main.classList.remove("no-header-padding");
+    */
   }
   butConnect.textContent = lbl;
 }
@@ -2239,7 +2244,8 @@ async function loadLittlefsModule() {
     
     littlefsModulePromise = import(modulePath)
       .catch(error => {
-        console.error('Failed to load LittleFS module from:', modulePath, error);
+        errorMsg('Failed to load LittleFS module from: ' + modulePath);
+        debugMsg('LittleFS module load error: ' + error);
         littlefsModulePromise = null; // Reset on error so it can be retried
         throw error;
       });
@@ -2257,7 +2263,7 @@ function resetLittleFSState() {
       // Don't call destroy() - it can cause crashes
       // Just let garbage collection handle it
     } catch (e) {
-      console.error('Error cleaning up LittleFS:', e);
+      debugMsg('Error cleaning up LittleFS: ' + e);
     }
   }
   
@@ -2277,7 +2283,7 @@ function resetLittleFSState() {
       littlefsFileList.innerHTML = '';
     }
   } catch (e) {
-    console.error('Error resetting LittleFS UI:', e);
+    debugMsg('Error resetting LittleFS UI: ' + e);
   }
 }
 
@@ -2544,7 +2550,7 @@ async function openFatFS(partition) {
     logMsg('FatFS filesystem opened successfully');
   } catch (e) {
     errorMsg(`Failed to open FatFS: ${e.message || e}`);
-    console.error('FatFS open error:', e);
+    debugMsg('FatFS open error details: ' + e);
     resetLittleFSState();
   }
 }
@@ -2804,7 +2810,7 @@ async function openSPIFFS(partition) {
     logMsg('SPIFFS filesystem opened successfully');
   } catch (e) {
     errorMsg(`Failed to open SPIFFS: ${e.message || e}`);
-    console.error('SPIFFS open error:', e);
+    debugMsg('SPIFFS open error details: ' + e);
     resetLittleFSState();
   }
 }
@@ -3143,7 +3149,7 @@ function clickLittlefsClose() {
         currentLittleFS.destroy();
       }
     } catch (e) {
-      console.error(`Error destroying ${fsName}:`, e);
+      debugMsg(`Error destroying ${fsName}: ` + e);
     }
     currentLittleFS = null;
   }
