@@ -767,6 +767,13 @@ async function clickConsole() {
         // Update espStub to use the new port
         espStub.port = newPort;
         espStub.connected = true;
+        // Keep parent/loader in sync (used by closeConsole)
+       if (espStub._parent) {
+         espStub._parent.port = newPort;
+       }
+       if (espLoaderBeforeConsole) {
+         espLoaderBeforeConsole.port = newPort;
+       }
         
         logMsg("Port opened for console at 115200 baud");
       } catch (openErr) {
@@ -1112,6 +1119,7 @@ async function closeConsole() {
       // Reload stub using the reconnected bootloader
       const newStub = await espLoaderBeforeConsole.runStub();
       espStub = newStub;
+      attachDisconnectHandler(espStub);
 
       // Restore original baudrate
       if (baudRateBeforeConsole !== 115200) {
