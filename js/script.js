@@ -18,6 +18,7 @@ let currentFilesystemType = null; // 'littlefs', 'fatfs', or 'spiffs'
 let littlefsModulePromise = null; // Cache for LittleFS WASM module
 let lastReadFlashData = null; // Store last read flash data for ESP8266
 let currentChipName = null; // Store chip name globally
+let currentMacAddr = null; // Store MAC address globally
 let isConnected = false; // Track connection state
 let consoleInstance = null; // ESP32ToolConsole instance
 let baudRateBeforeConsole = null; // Store baudrate before opening console
@@ -63,6 +64,7 @@ function clearAllCachedData() {
   currentFilesystemType = null;
   lastReadFlashData = null;
   currentChipName = null;
+  currentMacAddr = null;
   
   // Hide filesystem manager
   littlefsManager.classList.add('hidden');
@@ -702,6 +704,7 @@ async function clickConnect() {
 
   // Store chip info globally
   currentChipName = esploader.chipName;
+  currentMacAddr = formatMacAddr(esploader.macAddr());
 
   espStub = await esploader.runStub();
   
@@ -1634,7 +1637,10 @@ async function clickReadFlash() {
     return;
   }
 
-  const defaultFilename = `flash_0x${offset.toString(16)}_0x${size.toString(16)}.bin`;
+  // Create filename with chip type and MAC address
+  const chipInfo = currentChipName ? currentChipName.replace(/\s+/g, '_') : 'ESP';
+  const macInfo = currentMacAddr ? currentMacAddr.replace(/:/g, '') : '';
+  const defaultFilename = `${chipInfo}${macInfo ? '_' + macInfo : ''}_flash_0x${offset.toString(16)}_0x${size.toString(16)}.bin`;
 
   baudRateSelect.disabled = true;
   butErase.disabled = true;
@@ -1952,7 +1958,10 @@ function displayPartitions(partitions) {
  * Download a partition
  */
 async function downloadPartition(partition) {
-  const defaultFilename = `${partition.name}_0x${partition.offset.toString(16)}.bin`;
+  // Create filename with chip type and MAC address
+  const chipInfo = currentChipName ? currentChipName.replace(/\s+/g, '_') : 'ESP';
+  const macInfo = currentMacAddr ? currentMacAddr.replace(/:/g, '') : '';
+  const defaultFilename = `${chipInfo}${macInfo ? '_' + macInfo : ''}_${partition.name}_0x${partition.offset.toString(16)}.bin`;
 
   const partitionProgress = document.getElementById("partitionProgress");
   const progressBar = partitionProgress.querySelector("div");
@@ -3071,8 +3080,11 @@ async function clickLittlefsBackup() {
     logMsg(`Creating ${getFilesystemDisplayName()} backup image...`);
     const image = currentLittleFS.toImage();
     
+    // Create filename with chip type and MAC address
+    const chipInfo = currentChipName ? currentChipName.replace(/\s+/g, '_') : 'ESP';
+    const macInfo = currentMacAddr ? currentMacAddr.replace(/:/g, '') : '';
     const fsType = currentFilesystemType || 'filesystem';
-    const filename = `${currentLittleFSPartition.name}_${fsType}_backup.bin`;
+    const filename = `${chipInfo}${macInfo ? '_' + macInfo : ''}_${currentLittleFSPartition.name}_${fsType}_backup.bin`;
     await saveDataToFile(image, filename);
     
     logMsg(`${getFilesystemDisplayName()} backup saved as "${filename}"`);
