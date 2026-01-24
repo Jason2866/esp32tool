@@ -54,7 +54,7 @@
     "@types/serialport": "^10.2.0",
     "@types/w3c-web-serial": "^1.0.7",
     "archiver": "^7.0.1",
-    "electron": "^39.2.5",
+    "electron": "^40.0.0",
     "electron-squirrel-startup": "^1.0.1",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
