@@ -749,6 +749,57 @@ async function clickShowLog() {
 }
 
 /**
+ * @name initConsoleUI
+ * Initialize console UI, event handlers, and start console instance
+ * Extracted helper to avoid duplication across different console init flows
+ */
+async function initConsoleUI() {
+  // Wait for port to be ready
+  await sleep(200);
+  
+  // Show console container and hide commands
+  consoleContainer.classList.remove("hidden");
+  const commands = document.getElementById("commands");
+  if (commands) commands.classList.add("hidden");
+  
+  // Initialize console
+  consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
+  await consoleInstance.init();
+  
+  // Listen for console reset events
+  if (consoleResetHandler) {
+    consoleContainer.removeEventListener('console-reset', consoleResetHandler);
+  }
+  consoleResetHandler = async () => {
+    if (espStub && typeof espStub.hardReset === 'function') {
+      try {
+        debugMsg("Resetting device from console...");
+        await espStub.hardReset();
+        debugMsg("Device reset successful");
+      } catch (err) {
+        errorMsg("Failed to reset device: " + err.message);
+      }
+    }
+  };
+  consoleContainer.addEventListener('console-reset', consoleResetHandler);
+  
+  // Listen for console close events
+  if (consoleCloseHandler) {
+    consoleContainer.removeEventListener('console-close', consoleCloseHandler);
+  }
+  consoleCloseHandler = async () => {
+    if (!consoleSwitch.checked) return;
+    debugMsg("Closing console...");
+    consoleSwitch.checked = false;
+    saveSetting("console", false);
+    await closeConsole();
+  };
+  consoleContainer.addEventListener('console-close', consoleCloseHandler);
+  
+  logMsg("Console initialized");
+}
+
+/**
  * @name clickConsole
  * Change handler for the Console checkbox.
  */
@@ -880,49 +931,8 @@ async function clickConsole() {
                   consoleSwitch.checked = true;
                   saveSetting("console", true);
                   
-                  // Wait for port to be ready
-                  await sleep(200);
-                  
-                  // Show console container and hide commands
-                  consoleContainer.classList.remove("hidden");
-                  const commands = document.getElementById("commands");
-                  if (commands) commands.classList.add("hidden");
-                  
-                  // Initialize console
-                  consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
-                  await consoleInstance.init();
-                  
-                  // Listen for console reset events
-                  if (consoleResetHandler) {
-                    consoleContainer.removeEventListener('console-reset', consoleResetHandler);
-                  }
-                  consoleResetHandler = async () => {
-                    if (espStub && typeof espStub.hardReset === 'function') {
-                      try {
-                        debugMsg("Resetting device from console...");
-                        await espStub.hardReset();
-                        debugMsg("Device reset successful");
-                      } catch (err) {
-                        errorMsg("Failed to reset device: " + err.message);
-                      }
-                    }
-                  };
-                  consoleContainer.addEventListener('console-reset', consoleResetHandler);
-                  
-                  // Listen for console close events
-                  if (consoleCloseHandler) {
-                    consoleContainer.removeEventListener('console-close', consoleCloseHandler);
-                  }
-                  consoleCloseHandler = async () => {
-                    if (!consoleSwitch.checked) return;
-                    debugMsg("Closing console...");
-                    consoleSwitch.checked = false;
-                    saveSetting("console", false);
-                    await closeConsole();
-                  };
-                  consoleContainer.addEventListener('console-close', consoleCloseHandler);
-                  
-                  logMsg("Console initialized");
+                  // Initialize console UI and handlers
+                  await initConsoleUI();
                 } catch (err) {
                   errorMsg(`Failed to open port for console: ${err.message}`);
                   consoleSwitch.checked = false;
@@ -958,49 +968,8 @@ async function clickConsole() {
                 consoleSwitch.checked = true;
                 saveSetting("console", true);
                 
-                // Wait for port to be ready
-                await sleep(200);
-                
-                // Show console container and hide commands
-                consoleContainer.classList.remove("hidden");
-                const commands = document.getElementById("commands");
-                if (commands) commands.classList.add("hidden");
-                
-                // Initialize console
-                consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
-                await consoleInstance.init();
-                
-                // Listen for console reset events
-                if (consoleResetHandler) {
-                  consoleContainer.removeEventListener('console-reset', consoleResetHandler);
-                }
-                consoleResetHandler = async () => {
-                  if (espStub && typeof espStub.hardReset === 'function') {
-                    try {
-                      debugMsg("Resetting device from console...");
-                      await espStub.hardReset();
-                      debugMsg("Device reset successful");
-                    } catch (err) {
-                      errorMsg("Failed to reset device: " + err.message);
-                    }
-                  }
-                };
-                consoleContainer.addEventListener('console-reset', consoleResetHandler);
-                
-                // Listen for console close events
-                if (consoleCloseHandler) {
-                  consoleContainer.removeEventListener('console-close', consoleCloseHandler);
-                }
-                consoleCloseHandler = async () => {
-                  if (!consoleSwitch.checked) return;
-                  debugMsg("Closing console...");
-                  consoleSwitch.checked = false;
-                  saveSetting("console", false);
-                  await closeConsole();
-                };
-                consoleContainer.addEventListener('console-close', consoleCloseHandler);
-                
-                logMsg("Console initialized");
+                // Initialize console UI and handlers
+                await initConsoleUI();
               } catch (err) {
                 errorMsg(`Failed to open port for console: ${err.message}`);
                 consoleSwitch.checked = false;
@@ -1025,48 +994,10 @@ async function clickConsole() {
         // - Port to be ready for new reader
         await sleep(200);
         
-        // Show console container and hide commands
-        consoleContainer.classList.remove("hidden");
-        const commands = document.getElementById("commands");
-        if (commands) commands.classList.add("hidden");
-        
-        // Initialize console
-        consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
-        await consoleInstance.init();
-        
-        // Listen for console reset events
-        if (consoleResetHandler) {
-          consoleContainer.removeEventListener('console-reset', consoleResetHandler);
-        }
-        consoleResetHandler = async () => {
-          if (espStub && typeof espStub.hardReset === 'function') {
-            try {
-              debugMsg("Resetting device from console...");
-              await espStub.hardReset();
-              debugMsg("Device reset successful");
-            } catch (err) {
-              errorMsg("Failed to reset device: " + err.message);
-            }
-          }
-        };
-        consoleContainer.addEventListener('console-reset', consoleResetHandler);
-        
-        // Listen for console close events
-        if (consoleCloseHandler) {
-          consoleContainer.removeEventListener('console-close', consoleCloseHandler);
-        }
-        consoleCloseHandler = async () => {
-          if (!consoleSwitch.checked) return; // Already closing
-          debugMsg("Closing console...");
-          consoleSwitch.checked = false;
-          saveSetting("console", false);
-          // Directly call close logic without triggering clickConsole
-          await closeConsole();
-        };
-        consoleContainer.addEventListener('console-close', consoleCloseHandler);
+        // Initialize console UI and handlers
+        await initConsoleUI();
         
         saveSetting("console", true);
-        logMsg("Console initialized");
       } catch (err) {
         errorMsg("Failed to initialize console: " + err.message);
         consoleSwitch.checked = false;
