@@ -883,8 +883,10 @@ async function clickConsole() {
                   // Wait for port to be ready
                   await sleep(200);
                   
-                  // Show console container
+                  // Show console container and hide commands
                   consoleContainer.classList.remove("hidden");
+                  const commands = document.getElementById("commands");
+                  if (commands) commands.classList.add("hidden");
                   
                   // Initialize console
                   consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
@@ -959,8 +961,10 @@ async function clickConsole() {
                 // Wait for port to be ready
                 await sleep(200);
                 
-                // Show console container
+                // Show console container and hide commands
                 consoleContainer.classList.remove("hidden");
+                const commands = document.getElementById("commands");
+                if (commands) commands.classList.add("hidden");
                 
                 // Initialize console
                 consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
@@ -1021,8 +1025,10 @@ async function clickConsole() {
         // - Port to be ready for new reader
         await sleep(200);
         
-        // Show console container
+        // Show console container and hide commands
         consoleContainer.classList.remove("hidden");
+        const commands = document.getElementById("commands");
+        if (commands) commands.classList.add("hidden");
         
         // Initialize console
         consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
@@ -1084,8 +1090,10 @@ async function clickConsole() {
  * Close console and restore device to bootloader state
  */
 async function closeConsole() {
-  // Hide and cleanup console
+  // Hide console and show commands again
   consoleContainer.classList.add("hidden");
+  const commands = document.getElementById("commands");
+  if (commands) commands.classList.remove("hidden");
   
   if (consoleInstance) {
     try {
@@ -2033,8 +2041,10 @@ function toggleUIConnected(connected) {
       consoleInstance = null;
     }
     
-    // Hide console container and uncheck switch
+    // Hide console container, show commands, and uncheck switch
     consoleContainer.classList.add("hidden");
+    const commands = document.getElementById("commands");
+    if (commands) commands.classList.remove("hidden");
     consoleSwitch.checked = false;
     saveSetting("console", false);
     

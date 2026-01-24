@@ -42,10 +42,12 @@ export class ESP32ToolConsole {
           margin: 0;
           font-size: 14px;
           font-weight: 600;
+          order: 2;
         }
         .esp32tool-console-controls {
           display: flex;
           gap: 8px;
+          order: 1;
         }
         .esp32tool-console-controls button {
           padding: 4px 12px;
@@ -87,12 +89,12 @@ export class ESP32ToolConsole {
       </style>
       <div class="esp32tool-console-wrapper">
         <div class="esp32tool-console-header">
-          <h3>ESP Console</h3>
           <div class="esp32tool-console-controls">
             <button id="console-clear-btn">Clear</button>
             <button id="console-reset-btn">Reset Device</button>
             <button id="console-close-btn">Close Console</button>
           </div>
+          <h3>ESP Console</h3>
         </div>
         <div class="log"></div>
         ${
