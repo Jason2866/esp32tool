@@ -775,6 +775,14 @@ async function clickConsole() {
          espLoaderBeforeConsole.port = newPort;
        }
         
+        // Keep parent/loader in sync (used by closeConsole)
+        if (espStub._parent) {
+          espStub._parent.port = newPort;
+        }
+        if (espLoaderBeforeConsole) {
+          espLoaderBeforeConsole.port = newPort;
+        }
+        
         logMsg("Port opened for console at 115200 baud");
       } catch (openErr) {
         errorMsg(`Failed to open port for console: ${openErr.message}`);
@@ -821,7 +829,7 @@ async function clickConsole() {
             await sleep(500);
             
             // Check if this is ESP32-S2 (needs port forget and modal) or ESP32-S3 (direct requestPort)
-            const isS2 = chipFamilyBeforeConsole === 2; // CHIP_FAMILY_ESP32S2 = 2
+            const isS2 = chipFamilyBeforeConsole === 0x3252; // CHIP_FAMILY_ESP32S2 = 0x3252
             
             if (isS2) {
               // ESP32-S2: Forget old port and show modal for port selection
@@ -863,6 +871,15 @@ async function clickConsole() {
                   await newPort.open({ baudRate: 115200 });
                   espStub.port = newPort;
                   espStub.connected = true;
+                  
+                  // Keep parent/loader in sync (used by closeConsole)
+                  if (espStub._parent) {
+                    espStub._parent.port = newPort;
+                  }
+                  if (espLoaderBeforeConsole) {
+                    espLoaderBeforeConsole.port = newPort;
+                  }
+                  
                   logMsg("Port opened for console at 115200 baud");
                   
                   // Device is already in firmware mode, port is open at 115200
@@ -930,6 +947,15 @@ async function clickConsole() {
                 await newPort.open({ baudRate: 115200 });
                 espStub.port = newPort;
                 espStub.connected = true;
+                
+                // Keep parent/loader in sync (used by closeConsole)
+                if (espStub._parent) {
+                  espStub._parent.port = newPort;
+                }
+                if (espLoaderBeforeConsole) {
+                  espLoaderBeforeConsole.port = newPort;
+                }
+                
                 logMsg("Port opened for console at 115200 baud");
                 
                 // Device is already in firmware mode, port is open at 115200

@@ -902,6 +902,20 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
+   * Reset to firmware mode (not bootloader) for WebUSB
+   * Keeps IO0=HIGH during reset so chip boots into firmware
+   */
+  async hardResetToFirmwareWebUSB() {
+    await this.setDTRWebUSB(false); // IO0=HIGH
+    await this.setRTSWebUSB(true); // EN=LOW, chip in reset
+    await this.sleep(100);
+    await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset (IO0 stays HIGH)
+    await this.sleep(50);
+
+    await this.sleep(200);
+  }
+
+  /**
    * @name hardResetUnixTight
    * Unix Tight reset for Web Serial (Desktop) - sets DTR and RTS simultaneously
    */
@@ -1700,7 +1714,7 @@ export class ESPLoader extends EventTarget {
       // Simple hardware reset to restart firmware (IO0=HIGH)
       this.logger.log("Performing hardware reset (console mode)...");
       if (this.isWebUSB()) {
-        await this.hardResetClassicWebUSB();
+        await this.hardResetToFirmwareWebUSB();
       } else {
         await this.hardResetToFirmware();
       }
