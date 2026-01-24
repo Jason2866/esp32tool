@@ -277,10 +277,11 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("Got an uncaught error: ", event.error);
   });
   
-  // Header auto-hide functionality
+  // Header auto-hide functionality - DISABLED
   const header = document.querySelector(".header");
   const main = document.querySelector(".main");
   
+  /* DISABLED: Auto-hide header
   // Show header on mouse enter at top of page
   main.addEventListener("mousemove", (e) => {
     if (e.clientY < 5 && header.classList.contains("header-hidden")) {
@@ -306,6 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 1000);
     }
   });
+  */
   
   // Check for Web Serial or WebUSB support
   if ("serial" in navigator || "usb" in navigator) {
@@ -2013,11 +2015,12 @@ function toggleUIConnected(connected) {
     lbl = "Disconnect";
     isConnected = true;
     
-    // Auto-hide header after connection
+    /* DISABLED: Auto-hide header after connection
     setTimeout(() => {
       header.classList.add("header-hidden");
       main.classList.add("no-header-padding");
     }, 2000); // Hide after 2 seconds
+    */
   } else {
     isConnected = false;
     toggleUIToolbar(false);
@@ -2035,9 +2038,10 @@ function toggleUIConnected(connected) {
     consoleSwitch.checked = false;
     saveSetting("console", false);
     
-    // Show header when disconnected
+    /* DISABLED: Show header when disconnected
     header.classList.remove("header-hidden");
     main.classList.remove("no-header-padding");
+    */
   }
   butConnect.textContent = lbl;
 }
