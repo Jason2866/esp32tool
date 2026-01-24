@@ -1834,31 +1834,37 @@ function displayPartitions(partitions) {
     
     // Name
     const nameCell = document.createElement("td");
+    nameCell.setAttribute("data-label", "Name");
     nameCell.textContent = partition.name;
     row.appendChild(nameCell);
     
     // Type
     const typeCell = document.createElement("td");
+    typeCell.setAttribute("data-label", "Type");
     typeCell.textContent = partition.typeName;
     row.appendChild(typeCell);
     
     // SubType
     const subtypeCell = document.createElement("td");
+    subtypeCell.setAttribute("data-label", "SubType");
     subtypeCell.textContent = partition.subtypeName;
     row.appendChild(subtypeCell);
     
     // Offset
     const offsetCell = document.createElement("td");
+    offsetCell.setAttribute("data-label", "Offset");
     offsetCell.textContent = `0x${partition.offset.toString(16)}`;
     row.appendChild(offsetCell);
     
     // Size
     const sizeCell = document.createElement("td");
+    sizeCell.setAttribute("data-label", "Size");
     sizeCell.textContent = formatSize(partition.size);
     row.appendChild(sizeCell);
     
     // Action
     const actionCell = document.createElement("td");
+    actionCell.setAttribute("data-label", "Action");
     const downloadBtn = document.createElement("button");
     downloadBtn.textContent = "Download";
     downloadBtn.className = "partition-download-btn";
@@ -2884,6 +2890,7 @@ function refreshLittleFS() {
       
       // Name
       const nameCell = document.createElement('td');
+      nameCell.setAttribute('data-label', 'Name');
       const nameDiv = document.createElement('div');
       nameDiv.className = 'file-name' + (entry.type === 'dir' ? ' clickable' : '');
       
@@ -2908,16 +2915,19 @@ function refreshLittleFS() {
       
       // Type
       const typeCell = document.createElement('td');
+      typeCell.setAttribute('data-label', 'Type');
       typeCell.textContent = entry.type === 'dir' ? 'Directory' : 'File';
       row.appendChild(typeCell);
       
       // Size
       const sizeCell = document.createElement('td');
+      sizeCell.setAttribute('data-label', 'Size');
       sizeCell.textContent = entry.type === 'file' ? formatSize(entry.size) : '-';
       row.appendChild(sizeCell);
       
       // Actions
       const actionsCell = document.createElement('td');
+      actionsCell.setAttribute('data-label', 'Actions');
       const actionsDiv = document.createElement('div');
       actionsDiv.className = 'file-actions';
       

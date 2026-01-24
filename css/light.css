@@ -146,6 +146,47 @@ button {
   border-color: #ccc;
 }
 
+.partition-table-display tr {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-color: #ccc;
+}
+
+.partition-table-display td::before {
+  color: #666;
+}
+
+/* Upload cards light mode */
+@media (max-width: 768px) {
+  #commands .upload {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-color: #ccc;
+  }
+
+  #commands .upload label:first-child {
+    color: #666;
+  }
+
+  #commands .partition-table {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-color: #ccc;
+  }
+
+  /* Filesystem manager cards */
+  .littlefs-file-upload {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-color: #ccc;
+  }
+
+  .file-table tr {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-color: #ccc;
+  }
+
+  .file-table td::before {
+    color: #666;
+  }
+}
+
 .littlefs-fs-button {
   background-color: #8ec641;
   color: white;

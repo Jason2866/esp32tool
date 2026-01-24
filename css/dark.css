@@ -146,6 +146,47 @@ input {
   border-color: #555;
 }
 
+.partition-table-display tr {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: #555;
+}
+
+.partition-table-display td::before {
+  color: #aaa;
+}
+
+/* Upload cards dark mode */
+@media (max-width: 768px) {
+  #commands .upload {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: #555;
+  }
+
+  #commands .upload label:first-child {
+    color: #aaa;
+  }
+
+  #commands .partition-table {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: #555;
+  }
+
+  /* Filesystem manager cards */
+  .littlefs-file-upload {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: #555;
+  }
+
+  .file-table tr {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: #555;
+  }
+
+  .file-table td::before {
+    color: #aaa;
+  }
+}
+
 .littlefs-fs-button {
   background-color: #8ec641;
   color: white;
