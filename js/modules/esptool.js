@@ -5358,7 +5358,10 @@ class ESPLoader extends EventTarget {
             }
         }
         catch {
-            this.logger.error("Read loop got disconnected");
+            // Don't log error if this is an expected disconnect during console mode transition
+            if (!this._consoleMode) {
+                this.logger.error("Read loop got disconnected");
+            }
         }
         finally {
             // Always reset reconfiguring flag when read loop ends
