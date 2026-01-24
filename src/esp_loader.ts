@@ -826,6 +826,7 @@ export class ESPLoader extends EventTarget {
     if (!this._suppressDisconnect) {
       this.dispatchEvent(new Event("disconnect"));
     }
+    this._suppressDisconnect = false;
     this.logger.log("Finished read loop");
   }
 
@@ -3350,8 +3351,6 @@ export class ESPLoader extends EventTarget {
         } catch (err) {
           this.logger.debug(`Reader release error: ${err}`);
         }
-        // Always clear the suppress flag
-        this._suppressDisconnect = false;
       }
       if (this._reader === reader) {
         this._reader = undefined;

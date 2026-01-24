@@ -767,15 +767,6 @@ async function clickConsole() {
         // Update espStub to use the new port
         espStub.port = newPort;
         espStub.connected = true;
-        // Keep parent/loader in sync (used by closeConsole)
-       if (espStub._parent) {
-         espStub._parent.port = newPort;
-       }
-       if (espLoaderBeforeConsole) {
-         espLoaderBeforeConsole.port = newPort;
-       }
-        
-        // Keep parent/loader in sync (used by closeConsole)
         if (espStub._parent) {
           espStub._parent.port = newPort;
         }
