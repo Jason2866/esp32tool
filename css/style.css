@@ -145,14 +145,16 @@ div.clear {
 .console-container {
   height: 500px;
   overflow: hidden;
-  transition: height 0.3s ease-in-out;
+  transition: height 0.3s ease-in-out, visibility 0.3s ease-in-out;
   margin: 0;
   padding: 0;
+  visibility: visible;
 }
 
 .console-container.hidden {
   height: 0;
-  display: none;
+  visibility: hidden;
+  max-height: 0;
 }
 
 .notSupported {
