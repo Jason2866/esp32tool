@@ -237,12 +237,6 @@ const ESP32H2_SPI_MISO_DLEN_OFFS = 0x28;
 const ESP32H2_SPI_W0_OFFS = 0x58;
 const ESP32H2_UART_DATE_REG_ADDR = 0x6000007c;
 const ESP32H2_BOOTLOADER_FLASH_OFFSET = 0x0000;
-// ESP32-H2 RTC Watchdog Timer registers (LP_WDT)
-const ESP32H2_DR_REG_LP_WDT_BASE = 0x600b1c00;
-const ESP32H2_RTC_CNTL_WDTWPROTECT_REG = ESP32H2_DR_REG_LP_WDT_BASE + 0x001c; // LP_WDT_RWDT_WPROTECT_REG
-const ESP32H2_RTC_CNTL_WDTCONFIG0_REG = ESP32H2_DR_REG_LP_WDT_BASE + 0x0000; // LP_WDT_RWDT_CONFIG0_REG
-const ESP32H2_RTC_CNTL_WDTCONFIG1_REG = ESP32H2_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_RWDT_CONFIG1_REG
-const ESP32H2_RTC_CNTL_WDT_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY, same as WDT key in this case
 // ESP32-H2 USB-JTAG/Serial detection
 const ESP32H2_UARTDEV_BUF_NO = 0x4084fefc; // Variable in ROM .bss which indicates the port in use
 const ESP32H2_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
@@ -5167,8 +5161,7 @@ class ESPLoader extends EventTarget {
             }
             else if (this.chipFamily === CHIP_FAMILY_ESP32C3 ||
                 this.chipFamily === CHIP_FAMILY_ESP32C5 ||
-                this.chipFamily === CHIP_FAMILY_ESP32C6 ||
-                this.chipFamily === CHIP_FAMILY_ESP32H2) {
+                this.chipFamily === CHIP_FAMILY_ESP32C6) {
                 const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
                 this._isUsbJtagOrOtg = isUsingUsbJtagSerial;
             }
@@ -6119,8 +6112,9 @@ class ESPLoader extends EventTarget {
         return revision;
     }
     /**
-     * RTC watchdog timer reset for ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-P4, and ESP32-H2
+     * RTC watchdog timer reset for ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C5, ESP32-C6, and ESP32-P4
      * Uses specific registers for each chip family
+     * Note: ESP32-H2 does NOT support WDT reset
      */
     async rtcWdtResetChipSpecific() {
         this.logger.log("Hard resetting with watchdog timer...");
@@ -6160,14 +6154,6 @@ class ESPLoader extends EventTarget {
             WDTCONFIG0_REG = ESP32P4_RTC_CNTL_WDTCONFIG0_REG;
             WDTCONFIG1_REG = ESP32P4_RTC_CNTL_WDTCONFIG1_REG;
             WDT_WKEY = ESP32P4_RTC_CNTL_WDT_WKEY;
-            // WDT does not work with ESP32H2 ?
-        }
-        else if (this.chipFamily === CHIP_FAMILY_ESP32H2) {
-            // H2 uses LP_WDT (Low Power Watchdog Timer)
-            WDTWPROTECT_REG = ESP32H2_RTC_CNTL_WDTWPROTECT_REG;
-            WDTCONFIG0_REG = ESP32H2_RTC_CNTL_WDTCONFIG0_REG;
-            WDTCONFIG1_REG = ESP32H2_RTC_CNTL_WDTCONFIG1_REG;
-            WDT_WKEY = ESP32H2_RTC_CNTL_WDT_WKEY;
         }
         else {
             throw new Error(`rtcWdtResetChipSpecific() is not supported for ${this.chipFamily}`);

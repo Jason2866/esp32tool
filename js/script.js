@@ -937,7 +937,7 @@ async function clickConsole() {
               
               reconnectBtn.addEventListener("click", handleReconnect);
             } else {
-              // ESP32-S3: Direct requestPort (no modal, no forget)
+              // ESP32-S3/C3/C5/C6/H2/P4: Direct requestPort (no modal, no forget)
               try {
                 // Request port selection from user (direct, like console branch)
                 logMsg("Please select the serial port again for console mode...");
