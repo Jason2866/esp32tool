@@ -208,6 +208,25 @@ export const ESP32C3_BUF_UART_NO_OFFSET = 24;
 export const ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG = 0x60008850;
 export const ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG = 0x60008858;
 
+// ESP32-C5/C6 LP Watchdog Timer registers (Low Power WDT)
+export const ESP32C5_C6_DR_REG_LP_WDT_BASE = 0x600b1c00;
+export const ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG =
+  ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0000; // LP_WDT_RWDT_CONFIG0_REG
+export const ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG =
+  ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_RWDT_CONFIG1_REG
+export const ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG =
+  ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0018; // LP_WDT_RWDT_WPROTECT_REG
+export const ESP32C5_C6_RTC_CNTL_WDT_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY
+export const ESP32C5_C6_RTC_CNTL_SWD_CONF_REG =
+  ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x001c; // LP_WDT_SWD_CONFIG_REG
+export const ESP32C5_C6_RTC_CNTL_SWD_AUTO_FEED_EN = 1 << 18;
+export const ESP32C5_C6_RTC_CNTL_SWD_WPROTECT_REG =
+  ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0020; // LP_WDT_SWD_WPROTECT_REG
+
+// ESP32-C5 USB-JTAG/Serial detection
+export const ESP32C5_UARTDEV_BUF_NO = 0x4085f514; // Variable in ROM .bss which indicates the port in use
+export const ESP32C5_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
+
 export const ESP32C5_SPI_REG_BASE = 0x60003000;
 export const ESP32C5_BASEFUSEADDR = 0x600b4800;
 export const ESP32C5_MACFUSEADDR = 0x600b4800 + 0x044;
@@ -222,6 +241,10 @@ export const ESP32C5_BOOTLOADER_FLASH_OFFSET = 0x2000;
 // ESP32-C5 USB-JTAG/Serial detection
 export const ESP32C5_UARTDEV_BUF_NO = 0x4085f514; // Variable in ROM .bss which indicates the port in use
 export const ESP32C5_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
+
+// ESP32-C6 USB-JTAG/Serial detection
+export const ESP32C6_UARTDEV_BUF_NO = 0x4087f580; // Variable in ROM .bss which indicates the port in use
+export const ESP32C6_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
 
 export const ESP32C6_SPI_REG_BASE = 0x60003000;
 export const ESP32C6_BASEFUSEADDR = 0x600b0800;
