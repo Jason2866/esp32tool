@@ -647,7 +647,6 @@ export class ESPLoader extends EventTarget {
 
     if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
       this.chipRevision = await this.getChipRevision();
-      this.logger.debug(`ESP32-P4 revision: ${this.chipRevision}`);
 
       if (this.chipRevision >= 300) {
         this.chipVariant = "rev300";
@@ -657,7 +656,6 @@ export class ESPLoader extends EventTarget {
       this.logger.debug(`ESP32-P4 variant: ${this.chipVariant}`);
     } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
       this.chipRevision = await this.getChipRevision();
-      this.logger.debug(`ESP32-C3 revision: ${this.chipRevision}`);
     }
 
     this.logger.debug(
@@ -1640,8 +1638,6 @@ export class ESPLoader extends EventTarget {
 
     // Combine: upper 3 bits from word5, lower 3 bits from word3
     const revision = (hi << 3) | low;
-
-    this.logger.debug(`ESP32-C3 revision: ${revision}`);
 
     return revision;
   }
