@@ -124,9 +124,14 @@ body.mobile-device .console-container {
   user-select: text;
 }
 
-/* Disable hover effects on mobile */
+/* Disable hover effects on mobile - reset all hover properties */
 body.no-hover *:hover {
-  /* Prevent hover state changes on touch devices */
+  background-color: inherit !important;
+  color: inherit !important;
+  border-color: inherit !important;
+  opacity: inherit !important;
+  transform: none !important;
+  box-shadow: inherit !important;
 }
 
 p {
@@ -1149,7 +1154,7 @@ div.clear {
     align-items: center;
   }
 
-  /* Zeile 1: Connect, Baud + Select */
+  /* Row 1: Connect, Baud + Select */
   .header-content > button#butConnect {
     order: 1;
   }
@@ -1458,78 +1463,76 @@ div.clear {
   }
 
   /* Card layout for partition table on mobile */
-  @supports (display: grid) {
-    .partition-table-display {
-      display: block;
-      min-width: 100%;
-      border: none;
-    }
+  .partition-table-display {
+    display: block;
+    min-width: 100%;
+    border: none;
+  }
 
-    .partition-table-display thead {
-      display: none;
-    }
+  .partition-table-display thead {
+    display: none;
+  }
 
-    .partition-table-display tbody {
-      display: block;
-    }
+  .partition-table-display tbody {
+    display: block;
+  }
 
-    .partition-table-display tr {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px;
-      margin-bottom: 4px;
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      background-color: rgba(0, 0, 0, 0.02);
-    }
+  .partition-table-display tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 4px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.02);
+  }
 
-    .partition-table-display td {
-      display: flex;
-      flex-direction: column;
-      padding: 2px 0;
-      border: none;
-      white-space: normal;
-      font-size: 11px;
-    }
+  .partition-table-display td {
+    display: flex;
+    flex-direction: column;
+    padding: 2px 0;
+    border: none;
+    white-space: normal;
+    font-size: 11px;
+  }
 
-    .partition-table-display td::before {
-      content: attr(data-label);
-      font-weight: 600;
-      font-size: 8px;
-      text-transform: uppercase;
-      color: #666;
-      margin-bottom: 1px;
-    }
+  .partition-table-display td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 8px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 1px;
+  }
 
-    /* Name spans full width */
-    .partition-table-display td:nth-child(1) {
-      grid-column: 1 / -1;
-      font-size: 12px;
-      font-weight: 700;
-      padding-bottom: 4px;
-      border-bottom: 1px solid #ddd;
-    }
+  /* Name spans full width */
+  .partition-table-display td:nth-child(1) {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    font-weight: 700;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #ddd;
+  }
 
-    /* Action buttons span full width */
-    .partition-table-display td:nth-child(6) {
-      grid-column: 1 / -1;
-      flex-direction: row;
-      gap: 4px;
-      padding-top: 4px;
-    }
+  /* Action buttons span full width */
+  .partition-table-display td:nth-child(6) {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    gap: 4px;
+    padding-top: 4px;
+  }
 
-    .partition-table-display td:nth-child(6)::before {
-      display: none;
-    }
+  .partition-table-display td:nth-child(6)::before {
+    display: none;
+  }
 
-    .partition-download-btn,
-    .littlefs-fs-button {
-      flex: 1;
-      padding: 5px 8px;
-      font-size: 11px;
-      white-space: nowrap;
-    }
+  .partition-download-btn,
+  .littlefs-fs-button {
+    flex: 1;
+    padding: 5px 8px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 
   /* Read Flash as 2-column grid card wie Partition Table */
@@ -2252,12 +2255,5 @@ div.clear {
     -ms-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-  }
-
-  /* Better touch scrolling */
-  #log,
-  .console-container,
-  .file-viewer-body {
-    -webkit-overflow-scrolling: touch;
   }
 }

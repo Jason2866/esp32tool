@@ -379,9 +379,6 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Set initial main padding based on header height
   updateMainPadding();
-  
-  // Update padding on window resize
-  window.addEventListener('resize', updateMainPadding);
 });
 
 function initBaudRate() {
