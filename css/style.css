@@ -1129,11 +1129,127 @@ div.clear {
   }
 
   .header-content {
-    gap: 6px;
+    gap: 5px;
     width: 100%;
+    display: flex;
     flex-wrap: wrap;
-    justify-content: flex-start;
     align-items: center;
+  }
+
+  /* Zeile 1: Connect, Baud + Select */
+  .header-content > button#butConnect {
+    order: 1;
+  }
+
+  .header-content > label[for="baudRate"] {
+    order: 2;
+  }
+
+  .header-content > select#baudRate {
+    order: 3;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* Zeile 2: Show Log, Show Log Switch, Clear, Dark Label, Dark Switch */
+  .header-content > label[for="showlog"] {
+    order: 10;
+    flex-basis: 100%;
+  }
+
+  .header-content > label[for="showlog"] + .onoffswitch {
+    order: 11;
+  }
+
+  .header-content > .log-controls {
+    order: 12;
+  }
+
+  .header-content > label[for="darkmode"] {
+    order: 13;
+  }
+
+  .header-content > label[for="darkmode"] + .onoffswitch {
+    order: 14;
+  }
+
+  /* Zeile 3: Advanced Label + Switch + Autoscroll (eigene Zeile) */
+  .header-content > label[for="advanced"] {
+    order: 20;
+    flex-basis: 100%;
+    width: auto;
+  }
+
+  .header-content > label[for="advanced"] + .onoffswitch {
+    order: 21;
+  }
+
+  /* Autoscroll direkt nach Advanced Switch in derselben Zeile */
+  .header-content > label[for="autoscroll"] {
+    order: 22;
+  }
+
+  .header-content > label[for="autoscroll"] + .onoffswitch {
+    order: 23;
+  }
+
+  /* Advanced Row - separate container for advanced options */
+  .header-content.advanced-row {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+  }
+
+  /* Zeile 4 (Advanced): Console + Debug in einer Zeile */
+  .header-content.advanced-row > label[for="console"] {
+    order: 1;
+  }
+
+  .header-content.advanced-row > label[for="console"] + .onoffswitch {
+    order: 2;
+  }
+
+  .header-content.advanced-row > label[for="debugmode"] {
+    order: 3;
+  }
+
+  .header-content.advanced-row > label[for="debugmode"] + .onoffswitch {
+    order: 4;
+  }
+
+  /* Zeile 5 (Advanced): Chunk + Select (volle Breite) */
+  .header-content.advanced-row > label[for="chunkSize"] {
+    order: 10;
+    flex-basis: 100%;
+  }
+
+  .header-content.advanced-row > select#chunkSize {
+    order: 11;
+    flex: 1;
+  }
+
+  /* Zeile 6 (Advanced): Block + Select (volle Breite) */
+  .header-content.advanced-row > label[for="blockSize"] {
+    order: 20;
+    flex-basis: 100%;
+  }
+
+  .header-content.advanced-row > select#blockSize {
+    order: 21;
+    flex: 1;
+  }
+
+  /* Zeile 7 (Advanced): MaxInFlight + Select (volle Breite) */
+  .header-content.advanced-row > label[for="maxInFlight"] {
+    order: 30;
+    flex-basis: 100%;
+  }
+
+  .header-content.advanced-row > select#maxInFlight {
+    order: 31;
+    flex: 1;
   }
 
   .header-content > label {
@@ -1195,14 +1311,8 @@ div.clear {
     right: 1px;
   }
 
-  /* Adjust main content padding */
-  .main {
-    padding-top: 170px;
-  }
-  
-  .main.advanced-active {
-    padding-top: 260px;
-  }
+  /* Adjust main content padding - now handled dynamically by JavaScript */
+  /* Removed fixed padding-top values */
 
   /* Compact commands section */
   #commands {
@@ -1860,13 +1970,8 @@ div.clear {
     height: 30px;
   }
 
-  .main {
-    padding-top: 110px;
-  }
-
-  .main.advanced-active {
-    padding-top: 180px;
-  }
+  /* Main padding now handled dynamically by JavaScript */
+  /* Removed fixed padding-top values */
 
   #commands {
     padding: 0 4px;

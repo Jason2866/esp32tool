@@ -344,6 +344,12 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAllSettings();
   updateTheme();
   logMsg("ESP32Tool loaded.");
+  
+  // Set initial main padding based on header height
+  updateMainPadding();
+  
+  // Update padding on window resize
+  window.addEventListener('resize', updateMainPadding);
 });
 
 function initBaudRate() {
@@ -1181,6 +1187,24 @@ function updateAdvancedVisibility() {
     advancedRow.style.display = "none";
     main.classList.remove("advanced-active");
   }
+  // Update main padding based on header height
+  updateMainPadding();
+}
+
+/**
+ * @name updateMainPadding
+ * Dynamically adjust main content padding based on header height
+ */
+function updateMainPadding() {
+  // Use requestAnimationFrame to ensure DOM has updated
+  requestAnimationFrame(() => {
+    const header = document.querySelector('.header');
+    if (header) {
+      const headerHeight = header.offsetHeight;
+      // Add small buffer (10px) for better spacing
+      main.style.paddingTop = (headerHeight + 10) + 'px';
+    }
+  });
 }
 
 /**
