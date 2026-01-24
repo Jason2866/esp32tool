@@ -1,6 +1,6 @@
 {
   "name": "esp32tool",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "type": "module",
   "description": "Flash & Read ESP devices using WebSerial, Electron, and also Android mobile via WebUSB",
   "main": "electron/main.cjs",
@@ -21,7 +21,7 @@
   },
   "scripts": {
     "prebuild": "node -e \"const fs=require('fs'); fs.rmSync('dist',{recursive:true,force:true}); fs.rmSync('js/modules',{recursive:true,force:true}); fs.mkdirSync('js/modules',{recursive:true});\"",
-    "build": "npm run prebuild && tsc --skipLibCheck && rollup -c && node -e \"const fs=require('fs'); fs.readdirSync('dist/web').filter(f=>f.endsWith('.js')).forEach(f=>fs.copyFileSync('dist/web/'+f,'js/modules/'+f)); fs.renameSync('js/modules/index.js','js/modules/esptool.js');\" && node fix-cli-imports.cjs",
+    "build": "npm run prebuild && node update-sw-version.cjs && tsc --skipLibCheck && rollup -c && node -e \"const fs=require('fs'); fs.readdirSync('dist/web').filter(f=>f.endsWith('.js')).forEach(f=>fs.copyFileSync('dist/web/'+f,'js/modules/'+f)); fs.renameSync('js/modules/index.js','js/modules/esptool.js');\" && node fix-cli-imports.cjs",
     "build:binary": "node build-single-binary.cjs",
     "build:cli-electron": "node build-electron-cli.cjs",
     "format": "npm exec -- prettier --write src",
@@ -54,7 +54,7 @@
     "@types/serialport": "^10.2.0",
     "@types/w3c-web-serial": "^1.0.7",
     "archiver": "^7.0.1",
-    "electron": "^39.2.5",
+    "electron": "^40.0.0",
     "electron-squirrel-startup": "^1.0.1",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",

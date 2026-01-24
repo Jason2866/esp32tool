@@ -96,6 +96,44 @@ body {
   margin: 0;
 }
 
+/* Mobile-specific optimizations */
+body.mobile-device {
+  -webkit-tap-highlight-color: rgba(0, 167, 233, 0.3);
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body.mobile-device input,
+body.mobile-device textarea,
+body.mobile-device select {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Re-enable text selection for log/file viewers and code blocks */
+body.mobile-device #log,
+body.mobile-device .log-viewer,
+body.mobile-device .file-viewer,
+body.mobile-device .file-viewer-body,
+body.mobile-device .code-block,
+body.mobile-device pre,
+body.mobile-device code,
+body.mobile-device .console-container {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Disable hover effects on mobile - reset all hover properties */
+body.no-hover *:hover {
+  background-color: inherit !important;
+  color: inherit !important;
+  border-color: inherit !important;
+  opacity: inherit !important;
+  transform: none !important;
+  box-shadow: inherit !important;
+}
+
 p {
   margin: 0;
 }
@@ -155,6 +193,21 @@ div.clear {
   height: 0;
   visibility: hidden;
   max-height: 0;
+}
+
+/* Mobile console optimization */
+@media (max-width: 768px) {
+  .console-container {
+    height: 350px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .console-container {
+    height: 300px;
+    font-size: 12px;
+  }
 }
 
 .notSupported {
@@ -632,12 +685,14 @@ div.clear {
 
 /* LittleFS Manager Styles */
 .littlefs-manager {
-  width: 900px;
+  max-width: 900px;
+  width: 100%;
   margin: 30px auto;
   padding: 25px;
   border: 2px solid #71ae1e;
   border-radius: 10px;
   background-color: rgba(113, 174, 30, 0.05);
+  box-sizing: border-box;
 }
 
 .littlefs-manager h3 {
@@ -753,9 +808,11 @@ div.clear {
 
 .littlefs-file-upload input[type="file"] {
   flex: 1;
-  padding: 5px;
+  padding: 8px;
   border: 2px solid #ccc;
   border-radius: 8px;
+  font-size: 14px;
+  min-height: 38px;
 }
 
 .littlefs-file-upload button {
@@ -1076,69 +1133,311 @@ div.clear {
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
+  /* Larger touch targets and better readability */
+  body {
+    font-size: 13px;
+    -webkit-text-size-adjust: 100%;
+  }
+
   .header {
     height: auto;
-    min-height: 60px;
-    padding: 10px 15px;
+    min-height: auto;
+    padding: 6px 8px;
+    border-bottom: 2px solid #00a7e9;
   }
 
   .header-content {
-    gap: 8px;
+    gap: 5px;
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  /* Row 1: Connect, Baud + Select */
+  .header-content > button#butConnect {
+    order: 1;
+  }
+
+  .header-content > label[for="baudRate"] {
+    order: 2;
+  }
+
+  .header-content > select#baudRate {
+    order: 3;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* Zeile 2: Show Log, Show Log Switch, Clear, Dark Label, Dark Switch */
+  .header-content > label[for="showlog"] {
+    order: 10;
+    flex-basis: 100%;
+  }
+
+  .header-content > label[for="showlog"] + .onoffswitch {
+    order: 11;
+  }
+
+  .header-content > .log-controls {
+    order: 12;
+  }
+
+  .header-content > label[for="darkmode"] {
+    order: 13;
+  }
+
+  .header-content > label[for="darkmode"] + .onoffswitch {
+    order: 14;
+  }
+
+  /* Zeile 3: Advanced Label + Switch + Autoscroll (eigene Zeile) */
+  .header-content > label[for="advanced"] {
+    order: 20;
+    flex-basis: 100%;
+    width: auto;
+  }
+
+  .header-content > label[for="advanced"] + .onoffswitch {
+    order: 21;
+  }
+
+  /* Autoscroll direkt nach Advanced Switch in derselben Zeile */
+  .header-content > label[for="autoscroll"] {
+    order: 22;
+  }
+
+  .header-content > label[for="autoscroll"] + .onoffswitch {
+    order: 23;
+  }
+
+  /* Advanced Row - separate container for advanced options */
+  .header-content.advanced-row {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+  }
+
+  /* Zeile 4 (Advanced): Console + Debug in einer Zeile */
+  .header-content.advanced-row > label[for="console"] {
+    order: 1;
+  }
+
+  .header-content.advanced-row > label[for="console"] + .onoffswitch {
+    order: 2;
+  }
+
+  .header-content.advanced-row > label[for="debugmode"] {
+    order: 3;
+  }
+
+  .header-content.advanced-row > label[for="debugmode"] + .onoffswitch {
+    order: 4;
+  }
+
+  /* Zeile 5 (Advanced): Chunk + Select (volle Breite) */
+  .header-content.advanced-row > label[for="chunkSize"] {
+    order: 10;
+    flex-basis: 100%;
+  }
+
+  .header-content.advanced-row > select#chunkSize {
+    order: 11;
+    flex: 1;
+  }
+
+  /* Zeile 6 (Advanced): Block + Select (volle Breite) */
+  .header-content.advanced-row > label[for="blockSize"] {
+    order: 20;
+    flex-basis: 100%;
+  }
+
+  .header-content.advanced-row > select#blockSize {
+    order: 21;
+    flex: 1;
+  }
+
+  /* Zeile 7 (Advanced): MaxInFlight + Select (volle Breite) */
+  .header-content.advanced-row > label[for="maxInFlight"] {
+    order: 30;
+    flex-basis: 100%;
+  }
+
+  .header-content.advanced-row > select#maxInFlight {
+    order: 31;
+    flex: 1;
   }
 
   .header-content > label {
-    font-size: 12px;
-    margin-left: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 0;
     white-space: nowrap;
+    min-width: auto;
   }
 
+  /* Compact buttons for mobile */
+  .header button {
+    height: 32px;
+    min-width: 32px;
+    font-size: 13px;
+    padding: 0 10px;
+    border-width: 2px;
+    touch-action: manipulation;
+  }
+
+  .header select {
+    height: 32px;
+    font-size: 13px;
+    min-width: 90px;
+    max-width: 160px;
+    padding: 4px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+  }
+
+  /* Compact on/off switches */
   .onoffswitch {
-    width: 50px;
+    width: 44px;
+    height: 22px;
+    margin: 0 3px;
   }
 
-  .main {
-    padding-top: 80px;
-  }
-  .main.advanced-active {
-    padding-top: 130px;
+  .onoffswitch-label {
+    border-radius: 11px;
+    border-width: 2px;
   }
 
+  .onoffswitch-inner:before,
+  .onoffswitch-inner:after {
+    height: 22px;
+    line-height: 22px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .onoffswitch-switch {
+    width: 16px;
+    height: 16px;
+    margin: 1px;
+    border-radius: 8px;
+  }
+
+  .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
+    right: 1px;
+  }
+
+  /* Adjust main content padding - now handled dynamically by JavaScript */
+  /* Removed fixed padding-top values */
+
+  /* Compact commands section */
   #commands {
     min-width: unset;
-    padding: 0 15px;
+    padding: 0 4px;
   }
 
+  /* Card layout for file uploads on mobile - 2-COLUMN GRID wie Partition Table */
   #commands .upload {
     max-width: 100%;
-    padding-left: 0;
+    padding: 5px;
+    margin: 3px 0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.02);
+    display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 4px;
+    align-items: center;
   }
 
-  #commands .upload label {
-    width: 100%;
+  #commands .upload label:first-child {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #666;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  #commands .upload .offset {
+    width: 70px;
+    height: 26px;
+    font-size: 11px;
+    padding: 2px 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    box-sizing: border-box;
   }
 
   #commands .upload .firmware {
-    width: 100%;
-    margin-left: 0;
-    margin-right: 0;
+    flex: 1;
+    min-width: 140px;
+    height: 26px;
+    margin: 0;
+    display: flex;
     justify-content: center;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 0 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-sizing: border-box;
   }
 
+  #commands .upload .firmware input[type="file"] {
+    display: none;
+  }
+
+  #commands .upload .firmware svg {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    margin-right: 3px;
+  }
+
+  #commands .upload .firmware span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #commands .upload .progress-bar {
+    width: 100%;
+    margin: 0;
+    height: 18px;
+  }
+
+  /* Action buttons as cards */
   #commands .buttons {
     width: 100%;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  #commands .buttons button {
+    width: 100%;
+    min-width: unset;
+    height: 34px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 3px;
   }
 
   #commands .partition-table,
   #commands .read-flash {
     width: 100%;
     padding: 15px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   #commands .partition-table .progress-bar,
@@ -1146,73 +1445,455 @@ div.clear {
     width: 100%;
   }
 
+  /* Partition table scrollable on mobile */
+  .partition-table-display {
+    min-width: 500px;
+    font-size: 12px;
+  }
+
+  .partition-table-display th,
+  .partition-table-display td {
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
+
+  .partition-download-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+
+  /* Card layout for partition table on mobile */
+  .partition-table-display {
+    display: block;
+    min-width: 100%;
+    border: none;
+  }
+
+  .partition-table-display thead {
+    display: none;
+  }
+
+  .partition-table-display tbody {
+    display: block;
+  }
+
+  .partition-table-display tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 4px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  .partition-table-display td {
+    display: flex;
+    flex-direction: column;
+    padding: 2px 0;
+    border: none;
+    white-space: normal;
+    font-size: 11px;
+  }
+
+  .partition-table-display td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 8px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 1px;
+  }
+
+  /* Name spans full width */
+  .partition-table-display td:nth-child(1) {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    font-weight: 700;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  /* Action buttons span full width */
+  .partition-table-display td:nth-child(6) {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    gap: 4px;
+    padding-top: 4px;
+  }
+
+  .partition-table-display td:nth-child(6)::before {
+    display: none;
+  }
+
+  .partition-download-btn,
+  .littlefs-fs-button {
+    flex: 1;
+    padding: 5px 8px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Read Flash as 2-column grid card wie Partition Table */
+  #commands .read-flash {
+    margin: 3px 0;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
   #commands .read-flash-inputs {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
     width: 100%;
+  }
+
+  #commands .read-flash label {
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #666;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   #commands .read-flash input {
-    width: 80px;
+    width: 100%;
+    height: 26px;
+    font-size: 11px;
+    padding: 2px 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
   }
 
+  #commands .read-flash button {
+    grid-column: 1 / -1;
+    height: 34px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 12px;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  #commands .read-flash .progress-bar {
+    grid-column: 1 / -1;
+    height: 18px;
+  }
+
+  #commands .partition-table button {
+    height: 34px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 12px;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 4px;
+  }
+
+  #commands .partition-table .progress-bar {
+    height: 18px;
+  }
+
+  /* Partition table section as card */
+  #commands .partition-table {
+    width: 100%;
+    padding: 4px;
+    margin: 3px 0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  /* Larger, more readable log */
   #log {
-    padding: 0 15px;
-    border: 10px solid #000;
-    font-size: 14px;
+    padding: 10px;
+    border: 6px solid #000;
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   .footer {
-    padding: 10px 15px;
+    padding: 10px;
+    font-size: 12px;
   }
 
+  /* Better filesystem manager on mobile - 2-COLUMN GRID */
   .littlefs-manager {
     width: 100%;
-    margin: 15px auto;
-    padding: 15px;
+    max-width: 100%;
+    margin: 3px 0;
+    padding: 5px;
+    border-radius: 3px;
+    border-width: 1px;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
+  .littlefs-manager h3 {
+    font-size: 14px;
+    margin: 0 0 6px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Info section as 2-column grid */
+  .littlefs-info {
+    padding: 5px;
+    margin-bottom: 4px;
+    border-radius: 3px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    overflow: hidden;
+  }
+
+  .littlefs-partition-info {
+    grid-column: 1 / -1;
+    font-size: 10px;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #ddd;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .littlefs-size {
+    display: inline;
+    margin-left: 4px;
+    font-size: 9px;
+  }
+
+  .littlefs-usage {
+    grid-column: 1 / -1;
+    overflow: hidden;
+  }
+
+  .usage-bar {
+    height: 14px;
+    margin-bottom: 4px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .usage-text {
+    font-size: 9px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .usage-text > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .disk-version {
+    font-size: 9px;
+    padding: 1px 4px;
+    flex-shrink: 0;
+  }
+
+  /* Controls as 2x2 grid */
   .littlefs-controls {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 4px;
   }
 
   .littlefs-controls button {
     width: 100%;
+    height: 30px;
+    font-size: 11px;
+    padding: 0 6px;
   }
 
+  /* Breadcrumb as card */
+  .littlefs-breadcrumb {
+    padding: 4px;
+    margin-bottom: 4px;
+    gap: 4px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+  }
+
+  .littlefs-breadcrumb button {
+    height: 26px;
+    font-size: 11px;
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+
+  .littlefs-breadcrumb span {
+    font-size: 10px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* File upload as 2-column grid */
   .littlefs-file-upload {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 4px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.02);
+    box-sizing: border-box;
+    width: 100%;
+    overflow: hidden;
   }
 
-  .littlefs-file-upload input[type="file"],
+  .littlefs-file-upload input[type="file"] {
+    grid-column: 1 / -1;
+    width: 100%;
+    height: 36px;
+    font-size: 13px;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 8px;
+    border: 2px solid #ccc;
+  }
+
   .littlefs-file-upload button {
     width: 100%;
+    height: 34px;
+    font-size: 13px;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* File table as 2-column grid cards */
+  .littlefs-files {
+    max-height: 250px;
+    border: none;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .file-table {
-    font-size: 13px;
-  }
-
-  .file-table th,
-  .file-table td {
-    padding: 6px 8px;
-  }
-
-  .file-actions {
-    flex-direction: column;
-  }
-
-  .file-actions button {
+    display: block;
     width: 100%;
   }
 
+  .file-table thead {
+    display: none;
+  }
+
+  .file-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .file-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 4px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.02);
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .file-table td {
+    display: flex;
+    flex-direction: column;
+    padding: 2px 0;
+    border: none;
+    font-size: 10px;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .file-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 8px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 1px;
+    flex-shrink: 0;
+  }
+
+  .file-table td > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-table td:first-child {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    font-weight: 700;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 3px;
+  }
+
+  .file-table td:first-child::before {
+    display: none;
+  }
+
+  .file-table td:last-child {
+    grid-column: 1 / -1;
+    overflow: visible;
+  }
+
+  .file-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 3px;
+    margin-top: 4px;
+    overflow: visible;
+  }
+
+  .file-actions button {
+    flex: 1;
+    height: 28px;
+    font-size: 10px;
+    padding: 0 5px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Better modals on mobile */
   .modal-content {
-    padding: 25px;
-    max-width: 90%;
+    padding: 16px;
+    max-width: 94%;
+  }
+
+  .modal-button {
+    height: 40px;
+    font-size: 16px;
+    padding: 0 20px;
   }
 
   .file-viewer-content {
-    width: 95vw;
-    max-height: 95vh;
+    width: 96vw;
+    max-height: 96vh;
   }
 
   .file-viewer-header,
@@ -1220,70 +1901,359 @@ div.clear {
   .file-viewer-tabs,
   .file-viewer-body,
   .file-viewer-footer {
-    padding-left: 15px;
-    padding-right: 15px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   .file-viewer-body pre {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .hex-bytes {
-    min-width: 250px;
+    min-width: 220px;
   }
 }
 
 @media (max-width: 480px) {
+  /* Extra small screens - Galaxy S8 and similar */
+  body {
+    font-size: 12px;
+  }
+
   .header {
-    padding: 8px 10px;
+    padding: 6px;
   }
 
   .header-content {
-    gap: 6px;
+    gap: 5px;
   }
 
   .header-content > label {
-    display: none;
+    font-size: 11px;
+    min-width: auto;
   }
 
   .header-content select {
-    min-width: 90px;
+    min-width: 85px;
+    max-width: 140px;
     height: 30px;
-    font-size: 13px;
+    font-size: 12px;
+    padding: 3px;
+  }
+
+  .header button {
+    height: 30px;
+    font-size: 12px;
+    padding: 0 8px;
+    min-width: 30px;
   }
 
   .onoffswitch {
-    width: 50px;
-    margin-left: 2px;
-    margin-right: 2px;
+    width: 40px;
+    height: 20px;
+    margin: 0 2px;
+  }
+
+  .onoffswitch-label {
+    border-radius: 10px;
+  }
+
+  .onoffswitch-inner:before,
+  .onoffswitch-inner:after {
+    height: 20px;
+    line-height: 20px;
+    font-size: 9px;
+  }
+
+  .onoffswitch-switch {
+    width: 14px;
+    height: 14px;
+    margin: 1px;
+    border-radius: 7px;
+  }
+
+  .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
+    right: 1px;
   }
 
   .log-controls {
-    padding-left: 8px;
+    padding-left: 0;
   }
 
   .small-btn {
     padding: 4px 8px;
-    font-size: 11px;
+    font-size: 12px;
+    height: 30px;
   }
 
+  /* Main padding now handled dynamically by JavaScript */
+  /* Removed fixed padding-top values */
+
   #commands {
+    padding: 0 4px;
+  }
+
+  /* Smaller upload cards for Galaxy S8 */
+  #commands .upload {
+    padding: 3px;
+    margin: 2px 0;
+    gap: 2px;
+  }
+
+  #commands .upload .offset {
+    width: 55px;
+    height: 24px;
+    font-size: 10px;
+  }
+
+  #commands .upload .firmware {
+    height: 28px;
+    font-size: 9px;
     padding: 0 10px;
+    max-width: 180px;
+  }
+
+  #commands .upload .firmware svg {
+    width: 10px;
+    height: 10px;
+    margin-right: 2px;
+  }
+
+  /* Smaller action buttons */
+  #commands .buttons {
+    gap: 3px;
+    margin-top: 3px;
+  }
+
+  #commands .buttons button {
+    height: 32px;
+    font-size: 12px;
+  }
+
+  /* Smaller partition table card */
+  #commands .partition-table {
+    padding: 3px;
+    margin: 2px 0;
+  }
+
+  #commands .partition-table button {
+    height: 32px;
+    font-size: 12px;
+  }
+
+  /* Smaller read flash card */
+  #commands .read-flash {
+    padding: 3px;
+    margin: 2px 0;
+  }
+
+  #commands .read-flash input {
+    height: 24px;
+    font-size: 10px;
+  }
+
+  #commands .read-flash button {
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .partition-table-display tr {
+    padding: 4px;
+    margin-bottom: 3px;
+    gap: 3px;
+  }
+
+  .partition-table-display td {
+    font-size: 10px;
+  }
+
+  .partition-table-display td::before {
+    font-size: 7px;
+  }
+
+  .partition-table-display td:nth-child(1) {
+    font-size: 11px;
+    padding-bottom: 3px;
+  }
+
+  .partition-download-btn,
+  .littlefs-fs-button {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  /* Filesystem manager for Galaxy S8 */
+  .littlefs-manager h3 {
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  .littlefs-info {
+    padding: 3px;
+    margin-bottom: 3px;
+  }
+
+  .littlefs-partition-info {
+    font-size: 9px;
+  }
+
+  .usage-bar {
+    height: 12px;
+  }
+
+  .usage-text {
+    font-size: 8px;
+  }
+
+  .disk-version {
+    font-size: 8px;
+    padding: 1px 3px;
+  }
+
+  .littlefs-controls {
+    gap: 3px;
+    margin-bottom: 3px;
+  }
+
+  .littlefs-breadcrumb {
+    padding: 3px;
+    margin-bottom: 3px;
+  }
+
+  .littlefs-breadcrumb button {
+    height: 24px;
+    font-size: 10px;
+    padding: 0 6px;
+  }
+
+  .littlefs-breadcrumb span {
+    font-size: 9px;
+  }
+
+  .littlefs-file-upload {
+    padding: 3px;
+    margin-bottom: 3px;
+    gap: 3px;
+  }
+
+  .littlefs-file-upload input[type="file"] {
+    height: 32px;
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  .littlefs-files {
+    max-height: 200px;
+  }
+
+  .file-table tr {
+    padding: 3px;
+    margin-bottom: 3px;
+  }
+
+  .file-table td {
+    padding: 1px 0;
+    font-size: 9px;
+  }
+
+  .file-table td::before {
+    font-size: 7px;
+  }
+
+  .file-table td:first-child {
+    font-size: 11px;
+    padding-bottom: 3px;
+  }
+
+  .file-actions {
+    gap: 2px;
+    margin-top: 3px;
   }
 
   #log {
-    padding: 0 10px;
+    padding: 8px;
+    border: 4px solid #000;
     font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .footer {
+    padding: 8px;
+    font-size: 11px;
   }
 
   button,
   .firmware {
-    font-size: 14px;
-    padding-left: 15px;
-    padding-right: 15px;
+    font-size: 13px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
-  .main.advanced-active {
-    padding-top: 120px;
+  /* Console optimization for small screens */
+  .console-container {
+    height: 300px;
+    font-size: 12px;
+  }
+
+  /* Filesystem manager for small screens */
+  .littlefs-manager {
+    padding: 8px;
+    margin: 8px auto;
+  }
+
+  .littlefs-controls button,
+  .littlefs-file-upload button {
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .file-table {
+    font-size: 12px;
+  }
+
+  .file-table th,
+  .file-table td {
+    padding: 6px 4px;
+  }
+
+  .file-actions button {
+    height: 32px;
+    font-size: 13px;
+  }
+
+  /* Modals for small screens */
+  .modal-content {
+    padding: 12px;
+    max-width: 96%;
+  }
+
+  .modal-button {
+    height: 36px;
+    font-size: 15px;
+    padding: 0 16px;
+  }
+
+  .file-viewer-header,
+  .file-viewer-info,
+  .file-viewer-tabs,
+  .file-viewer-body,
+  .file-viewer-footer {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .file-viewer-body pre {
+    font-size: 9px;
+  }
+
+  /* Prevent text selection on interactive elements */
+  button,
+  .onoffswitch-label,
+  .firmware {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 }

@@ -221,6 +221,62 @@ const tabHex = document.getElementById("tabHex");
 let currentViewedFile = null;
 let currentViewedFileData = null;
 
+// Mobile detection
+function isMobileDevice() {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  
+  // Check for mobile user agents
+  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+  const isMobileUA = mobileRegex.test(userAgent);
+  
+  // Check for touch support
+  const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  
+  // Check screen size
+  const isSmallScreen = window.innerWidth <= 768;
+  
+  return isMobileUA || (hasTouch && isSmallScreen);
+}
+
+// Update mobile classes and padding
+function updateMobileClasses() {
+  const isMobile = isMobileDevice();
+  
+  if (isMobile) {
+    document.body.classList.add('mobile-device');
+    document.body.classList.add('no-hover');
+  } else {
+    document.body.classList.remove('mobile-device');
+    document.body.classList.remove('no-hover');
+  }
+  
+  // Update main padding to match header height
+  updateMainPadding();
+}
+
+// Debounce helper
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Debounced resize handler
+const debouncedUpdateMobileClasses = debounce(updateMobileClasses, 250);
+
+// Apply mobile class on load
+updateMobileClasses();
+
+// Update on resize and orientation change
+window.addEventListener('resize', debouncedUpdateMobileClasses);
+window.addEventListener('orientationchange', debouncedUpdateMobileClasses);
+
 document.addEventListener("DOMContentLoaded", () => {
   butConnect.addEventListener("click", () => {
     clickConnect().catch(async (e) => {
@@ -320,6 +376,9 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAllSettings();
   updateTheme();
   logMsg("ESP32Tool loaded.");
+  
+  // Set initial main padding based on header height
+  updateMainPadding();
 });
 
 function initBaudRate() {
@@ -1157,6 +1216,29 @@ function updateAdvancedVisibility() {
     advancedRow.style.display = "none";
     main.classList.remove("advanced-active");
   }
+  // Update main padding based on header height
+  updateMainPadding();
+}
+
+/**
+ * @name updateMainPadding
+ * Dynamically adjust main content padding based on header height
+ */
+function updateMainPadding() {
+  // Use requestAnimationFrame to ensure DOM has updated
+  requestAnimationFrame(() => {
+    const header = document.querySelector('.header');
+    const main = document.querySelector('.main');
+    
+    // Guard against missing elements
+    if (!header || !main) {
+      return;
+    }
+    
+    const headerHeight = header.offsetHeight;
+    // Add small buffer (10px) for better spacing
+    main.style.paddingTop = (headerHeight + 10) + 'px';
+  });
 }
 
 /**
@@ -1810,31 +1892,37 @@ function displayPartitions(partitions) {
     
     // Name
     const nameCell = document.createElement("td");
+    nameCell.setAttribute("data-label", "Name");
     nameCell.textContent = partition.name;
     row.appendChild(nameCell);
     
     // Type
     const typeCell = document.createElement("td");
+    typeCell.setAttribute("data-label", "Type");
     typeCell.textContent = partition.typeName;
     row.appendChild(typeCell);
     
     // SubType
     const subtypeCell = document.createElement("td");
+    subtypeCell.setAttribute("data-label", "SubType");
     subtypeCell.textContent = partition.subtypeName;
     row.appendChild(subtypeCell);
     
     // Offset
     const offsetCell = document.createElement("td");
+    offsetCell.setAttribute("data-label", "Offset");
     offsetCell.textContent = `0x${partition.offset.toString(16)}`;
     row.appendChild(offsetCell);
     
     // Size
     const sizeCell = document.createElement("td");
+    sizeCell.setAttribute("data-label", "Size");
     sizeCell.textContent = formatSize(partition.size);
     row.appendChild(sizeCell);
     
     // Action
     const actionCell = document.createElement("td");
+    actionCell.setAttribute("data-label", "Action");
     const downloadBtn = document.createElement("button");
     downloadBtn.textContent = "Download";
     downloadBtn.className = "partition-download-btn";
@@ -2860,6 +2948,7 @@ function refreshLittleFS() {
       
       // Name
       const nameCell = document.createElement('td');
+      nameCell.setAttribute('data-label', 'Name');
       const nameDiv = document.createElement('div');
       nameDiv.className = 'file-name' + (entry.type === 'dir' ? ' clickable' : '');
       
@@ -2884,16 +2973,19 @@ function refreshLittleFS() {
       
       // Type
       const typeCell = document.createElement('td');
+      typeCell.setAttribute('data-label', 'Type');
       typeCell.textContent = entry.type === 'dir' ? 'Directory' : 'File';
       row.appendChild(typeCell);
       
       // Size
       const sizeCell = document.createElement('td');
+      sizeCell.setAttribute('data-label', 'Size');
       sizeCell.textContent = entry.type === 'file' ? formatSize(entry.size) : '-';
       row.appendChild(sizeCell);
       
       // Actions
       const actionsCell = document.createElement('td');
+      actionsCell.setAttribute('data-label', 'Actions');
       const actionsDiv = document.createElement('div');
       actionsDiv.className = 'file-actions';
       
