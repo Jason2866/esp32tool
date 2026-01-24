@@ -97,6 +97,22 @@ import {
   ESP32C5_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
   ESP32C6_UARTDEV_BUF_NO,
   ESP32C6_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
+  ESP32P4_RTC_CNTL_WDTWPROTECT_REG,
+  ESP32P4_RTC_CNTL_WDTCONFIG0_REG,
+  ESP32P4_RTC_CNTL_WDTCONFIG1_REG,
+  ESP32P4_RTC_CNTL_WDT_WKEY,
+  ESP32P4_UARTDEV_BUF_NO_REV0,
+  ESP32P4_UARTDEV_BUF_NO_REV300,
+  ESP32P4_UARTDEV_BUF_NO_USB_OTG,
+  ESP32P4_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
+  ESP32P4_RTC_CNTL_OPTION1_REG,
+  ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+  ESP32H2_RTC_CNTL_WDTWPROTECT_REG,
+  ESP32H2_RTC_CNTL_WDTCONFIG0_REG,
+  ESP32H2_RTC_CNTL_WDTCONFIG1_REG,
+  ESP32H2_RTC_CNTL_WDT_WKEY,
+  ESP32H2_UARTDEV_BUF_NO,
+  ESP32H2_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
 } from "./const";
 import { getStubCode } from "./stubs";
 import { hexFormatter, sleep, slipEncode, toHex } from "./util";
@@ -520,10 +536,15 @@ export class ESPLoader extends EventTarget {
       } else if (
         this.chipFamily === CHIP_FAMILY_ESP32C3 ||
         this.chipFamily === CHIP_FAMILY_ESP32C5 ||
-        this.chipFamily === CHIP_FAMILY_ESP32C6
+        this.chipFamily === CHIP_FAMILY_ESP32C6 ||
+        this.chipFamily === CHIP_FAMILY_ESP32H2
       ) {
         const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
         this._isUsbJtagOrOtg = isUsingUsbJtagSerial;
+      } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+        const isUsingUsbOtg = await this.usingUsbOtg();
+        const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
+        this._isUsbJtagOrOtg = isUsingUsbOtg || isUsingUsbJtagSerial;
       } else {
         // Other chips don't have USB-JTAG/OTG
         this._isUsbJtagOrOtg = false;
@@ -1518,6 +1539,18 @@ export class ESPLoader extends EventTarget {
     } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
       uartDevBufNo = ESP32S3_UARTDEV_BUF_NO;
       usbOtgValue = ESP32S3_UARTDEV_BUF_NO_USB_OTG;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+      // P4: UARTDEV_BUF_NO depends on chip revision
+      if (this.chipRevision === null) {
+        this.chipRevision = await this.getChipRevision();
+      }
+
+      if (this.chipRevision < 300) {
+        uartDevBufNo = ESP32P4_UARTDEV_BUF_NO_REV0;
+      } else {
+        uartDevBufNo = ESP32P4_UARTDEV_BUF_NO_REV300;
+      }
+      usbOtgValue = ESP32P4_UARTDEV_BUF_NO_USB_OTG;
     } else {
       return false;
     }
@@ -1562,6 +1595,23 @@ export class ESPLoader extends EventTarget {
     } else if (this.chipFamily === CHIP_FAMILY_ESP32C6) {
       uartDevBufNo = ESP32C6_UARTDEV_BUF_NO;
       usbJtagSerialValue = ESP32C6_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+      // P4: UARTDEV_BUF_NO depends on chip revision
+      // Revision < 300: 0x4FF3FEC8
+      // Revision >= 300: 0x4FFBFEC8
+      if (this.chipRevision === null) {
+        this.chipRevision = await this.getChipRevision();
+      }
+
+      if (this.chipRevision < 300) {
+        uartDevBufNo = ESP32P4_UARTDEV_BUF_NO_REV0;
+      } else {
+        uartDevBufNo = ESP32P4_UARTDEV_BUF_NO_REV300;
+      }
+      usbJtagSerialValue = ESP32P4_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32H2) {
+      uartDevBufNo = ESP32H2_UARTDEV_BUF_NO;
+      usbJtagSerialValue = ESP32H2_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
     } else {
       return false;
     }
@@ -1596,7 +1646,7 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * RTC watchdog timer reset for ESP32-S2, ESP32-S3, or ESP32-C3
+   * RTC watchdog timer reset for ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-P4, and ESP32-H2
    * Uses specific registers for each chip family
    */
   public async rtcWdtResetChipSpecific(): Promise<void> {
@@ -1631,6 +1681,19 @@ export class ESPLoader extends EventTarget {
       WDTCONFIG0_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG;
       WDTCONFIG1_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG;
       WDT_WKEY = ESP32C5_C6_RTC_CNTL_WDT_WKEY;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+      // P4 uses LP_WDT (Low Power Watchdog Timer)
+      WDTWPROTECT_REG = ESP32P4_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32P4_RTC_CNTL_WDTCONFIG0_REG;
+      WDTCONFIG1_REG = ESP32P4_RTC_CNTL_WDTCONFIG1_REG;
+      WDT_WKEY = ESP32P4_RTC_CNTL_WDT_WKEY;
+      // WDT does not work with ESP32H2 ?
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32H2) {
+      // H2 uses LP_WDT (Low Power Watchdog Timer)
+      WDTWPROTECT_REG = ESP32H2_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32H2_RTC_CNTL_WDTCONFIG0_REG;
+      WDTCONFIG1_REG = ESP32H2_RTC_CNTL_WDTCONFIG1_REG;
+      WDT_WKEY = ESP32H2_RTC_CNTL_WDT_WKEY;
     } else {
       throw new Error(
         `rtcWdtResetChipSpecific() is not supported for ${this.chipFamily}`,
@@ -1639,6 +1702,52 @@ export class ESPLoader extends EventTarget {
 
     // Unlock watchdog registers
     await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
+
+    // Clear force download boot register (if applicable) BEFORE triggering WDT reset
+    // This ensures the chip boots into firmware mode after reset
+    if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+      try {
+        await this.writeRegister(
+          ESP32S2_RTC_CNTL_OPTION1_REG,
+          0,
+          ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+          0,
+        );
+        this.logger.log("Cleared force download boot mask");
+      } catch (err) {
+        this.logger.log(
+          `Expected error clearing force download boot mask: ${err}`,
+        );
+      }
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+      try {
+        await this.writeRegister(
+          ESP32S3_RTC_CNTL_OPTION1_REG,
+          0,
+          ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+          0,
+        );
+        this.logger.log("Cleared force download boot mask");
+      } catch (err) {
+        this.logger.log(
+          `Expected error clearing force download boot mask: ${err}`,
+        );
+      }
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+      try {
+        await this.writeRegister(
+          ESP32P4_RTC_CNTL_OPTION1_REG,
+          0,
+          ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+          0,
+        );
+        this.logger.log("Cleared force download boot mask");
+      } catch (err) {
+        this.logger.log(
+          `Expected error clearing force download boot mask: ${err}`,
+        );
+      }
+    }
 
     // Set WDT timeout to 2000ms (matches Python esptool)
     await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);

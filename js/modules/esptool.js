@@ -181,15 +181,6 @@ const ESP32C3_BUF_UART_NO_OFFSET = 24;
 // ESP32-C3 EFUSE registers for chip revision detection
 const ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG = 0x60008850;
 const ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG = 0x60008858;
-// ESP32-C5/C6 LP Watchdog Timer registers (Low Power WDT)
-const ESP32C5_C6_DR_REG_LP_WDT_BASE = 0x600b1c00;
-const ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG = ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0000; // LP_WDT_RWDT_CONFIG0_REG
-const ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG = ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_RWDT_CONFIG1_REG
-const ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG = ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0018; // LP_WDT_RWDT_WPROTECT_REG
-const ESP32C5_C6_RTC_CNTL_WDT_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY
-// ESP32-C5 USB-JTAG/Serial detection
-const ESP32C5_UARTDEV_BUF_NO = 0x4085f514; // Variable in ROM .bss which indicates the port in use
-const ESP32C5_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
 const ESP32C5_SPI_REG_BASE = 0x60003000;
 const ESP32C5_BASEFUSEADDR = 0x600b4800;
 const ESP32C5_MACFUSEADDR = 0x600b4800 + 0x044;
@@ -201,9 +192,9 @@ const ESP32C5_SPI_MISO_DLEN_OFFS = 0x28;
 const ESP32C5_SPI_W0_OFFS = 0x58;
 const ESP32C5_UART_DATE_REG_ADDR = 0x6000007c;
 const ESP32C5_BOOTLOADER_FLASH_OFFSET = 0x2000;
-// ESP32-C6 USB-JTAG/Serial detection
-const ESP32C6_UARTDEV_BUF_NO = 0x4087f580; // Variable in ROM .bss which indicates the port in use
-const ESP32C6_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
+// ESP32-C5 USB-JTAG/Serial detection
+const ESP32C5_UARTDEV_BUF_NO = 0x4085f514; // Variable in ROM .bss which indicates the port in use
+const ESP32C5_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
 const ESP32C6_SPI_REG_BASE = 0x60003000;
 const ESP32C6_BASEFUSEADDR = 0x600b0800;
 const ESP32C6_MACFUSEADDR = 0x600b0800 + 0x044;
@@ -215,6 +206,15 @@ const ESP32C6_SPI_MISO_DLEN_OFFS = 0x28;
 const ESP32C6_SPI_W0_OFFS = 0x58;
 const ESP32C6_UART_DATE_REG_ADDR = 0x6000007c;
 const ESP32C6_BOOTLOADER_FLASH_OFFSET = 0x0000;
+// ESP32-C6 USB-JTAG/Serial detection
+const ESP32C6_UARTDEV_BUF_NO = 0x4087f580; // Variable in ROM .bss which indicates the port in use
+const ESP32C6_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
+// ESP32-C5/C6 LP Watchdog Timer registers (Low Power WDT)
+const ESP32C5_C6_DR_REG_LP_WDT_BASE = 0x600b1c00;
+const ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG = ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0000; // LP_WDT_RWDT_CONFIG0_REG
+const ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG = ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_RWDT_CONFIG1_REG
+const ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG = ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0018; // LP_WDT_RWDT_WPROTECT_REG
+const ESP32C5_C6_RTC_CNTL_WDT_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY
 const ESP32C61_SPI_REG_BASE = 0x60003000;
 const ESP32C61_BASEFUSEADDR = 0x600b4800;
 const ESP32C61_MACFUSEADDR = 0x600b4800 + 0x044;
@@ -237,6 +237,15 @@ const ESP32H2_SPI_MISO_DLEN_OFFS = 0x28;
 const ESP32H2_SPI_W0_OFFS = 0x58;
 const ESP32H2_UART_DATE_REG_ADDR = 0x6000007c;
 const ESP32H2_BOOTLOADER_FLASH_OFFSET = 0x0000;
+// ESP32-H2 RTC Watchdog Timer registers (LP_WDT)
+const ESP32H2_DR_REG_LP_WDT_BASE = 0x600b1c00;
+const ESP32H2_RTC_CNTL_WDTWPROTECT_REG = ESP32H2_DR_REG_LP_WDT_BASE + 0x001c; // LP_WDT_RWDT_WPROTECT_REG
+const ESP32H2_RTC_CNTL_WDTCONFIG0_REG = ESP32H2_DR_REG_LP_WDT_BASE + 0x0000; // LP_WDT_RWDT_CONFIG0_REG
+const ESP32H2_RTC_CNTL_WDTCONFIG1_REG = ESP32H2_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_RWDT_CONFIG1_REG
+const ESP32H2_RTC_CNTL_WDT_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY, same as WDT key in this case
+// ESP32-H2 USB-JTAG/Serial detection
+const ESP32H2_UARTDEV_BUF_NO = 0x4084fefc; // Variable in ROM .bss which indicates the port in use
+const ESP32H2_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used
 const ESP32H4_SPI_REG_BASE = 0x60099000;
 const ESP32H4_BASEFUSEADDR = 0x600b1800;
 const ESP32H4_MACFUSEADDR = 0x600b1800 + 0x044;
@@ -271,6 +280,22 @@ const ESP32P4_SPI_MISO_DLEN_OFFS = 0x28;
 const ESP32P4_SPI_W0_OFFS = 0x58;
 const ESP32P4_UART_DATE_REG_ADDR = 0x500ca000 + 0x8c;
 const ESP32P4_BOOTLOADER_FLASH_OFFSET = 0x2000;
+// ESP32-P4 RTC Watchdog Timer registers
+const ESP32P4_DR_REG_LP_WDT_BASE = 0x50116000;
+const ESP32P4_RTC_CNTL_WDTWPROTECT_REG = ESP32P4_DR_REG_LP_WDT_BASE + 0x0018; // LP_WDT_WPROTECT_REG
+const ESP32P4_RTC_CNTL_WDTCONFIG0_REG = ESP32P4_DR_REG_LP_WDT_BASE + 0x0000; // LP_WDT_CONFIG0_REG
+const ESP32P4_RTC_CNTL_WDTCONFIG1_REG = ESP32P4_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_CONFIG1_REG
+const ESP32P4_RTC_CNTL_WDT_WKEY = 0x50d83aa1;
+// ESP32-P4 USB-JTAG/Serial and USB-OTG detection
+// Note: UARTDEV_BUF_NO is dynamic based on chip revision
+// Revision < 300: 0x4FF3FEB0 + 24 = 0x4FF3FEC8
+// Revision >= 300: 0x4FFBFEB0 + 24 = 0x4FFBFEC8
+const ESP32P4_UARTDEV_BUF_NO_REV0 = 0x4ff3fec8; // Variable in ROM .bss (revision < 300)
+const ESP32P4_UARTDEV_BUF_NO_REV300 = 0x4ffbfec8; // Variable in ROM .bss (revision >= 300)
+const ESP32P4_UARTDEV_BUF_NO_USB_OTG = 5; // The above var when USB-OTG is used
+const ESP32P4_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 6; // The above var when USB-JTAG/Serial is used
+const ESP32P4_RTC_CNTL_OPTION1_REG = 0x50110008;
+const ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK = 0x4; // Is download mode forced over USB?
 const ESP32S31_SPI_REG_BASE = 0x20500000;
 const ESP32S31_BASEFUSEADDR = 0x20715000;
 const ESP32S31_MACFUSEADDR = 0x20715000 + 0x044;
@@ -5142,9 +5167,15 @@ class ESPLoader extends EventTarget {
             }
             else if (this.chipFamily === CHIP_FAMILY_ESP32C3 ||
                 this.chipFamily === CHIP_FAMILY_ESP32C5 ||
-                this.chipFamily === CHIP_FAMILY_ESP32C6) {
+                this.chipFamily === CHIP_FAMILY_ESP32C6 ||
+                this.chipFamily === CHIP_FAMILY_ESP32H2) {
                 const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
                 this._isUsbJtagOrOtg = isUsingUsbJtagSerial;
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+                const isUsingUsbOtg = await this.usingUsbOtg();
+                const isUsingUsbJtagSerial = await this.usingUsbJtagSerial();
+                this._isUsbJtagOrOtg = isUsingUsbOtg || isUsingUsbJtagSerial;
             }
             else {
                 // Other chips don't have USB-JTAG/OTG
@@ -5987,6 +6018,19 @@ class ESPLoader extends EventTarget {
             uartDevBufNo = ESP32S3_UARTDEV_BUF_NO;
             usbOtgValue = ESP32S3_UARTDEV_BUF_NO_USB_OTG;
         }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+            // P4: UARTDEV_BUF_NO depends on chip revision
+            if (this.chipRevision === null) {
+                this.chipRevision = await this.getChipRevision();
+            }
+            if (this.chipRevision < 300) {
+                uartDevBufNo = ESP32P4_UARTDEV_BUF_NO_REV0;
+            }
+            else {
+                uartDevBufNo = ESP32P4_UARTDEV_BUF_NO_REV300;
+            }
+            usbOtgValue = ESP32P4_UARTDEV_BUF_NO_USB_OTG;
+        }
         else {
             return false;
         }
@@ -6030,6 +6074,25 @@ class ESPLoader extends EventTarget {
             uartDevBufNo = ESP32C6_UARTDEV_BUF_NO;
             usbJtagSerialValue = ESP32C6_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
         }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+            // P4: UARTDEV_BUF_NO depends on chip revision
+            // Revision < 300: 0x4FF3FEC8
+            // Revision >= 300: 0x4FFBFEC8
+            if (this.chipRevision === null) {
+                this.chipRevision = await this.getChipRevision();
+            }
+            if (this.chipRevision < 300) {
+                uartDevBufNo = ESP32P4_UARTDEV_BUF_NO_REV0;
+            }
+            else {
+                uartDevBufNo = ESP32P4_UARTDEV_BUF_NO_REV300;
+            }
+            usbJtagSerialValue = ESP32P4_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+        }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32H2) {
+            uartDevBufNo = ESP32H2_UARTDEV_BUF_NO;
+            usbJtagSerialValue = ESP32H2_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
+        }
         else {
             return false;
         }
@@ -6056,7 +6119,7 @@ class ESPLoader extends EventTarget {
         return revision;
     }
     /**
-     * RTC watchdog timer reset for ESP32-S2, ESP32-S3, or ESP32-C3
+     * RTC watchdog timer reset for ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-P4, and ESP32-H2
      * Uses specific registers for each chip family
      */
     async rtcWdtResetChipSpecific() {
@@ -6091,11 +6154,55 @@ class ESPLoader extends EventTarget {
             WDTCONFIG1_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG;
             WDT_WKEY = ESP32C5_C6_RTC_CNTL_WDT_WKEY;
         }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+            // P4 uses LP_WDT (Low Power Watchdog Timer)
+            WDTWPROTECT_REG = ESP32P4_RTC_CNTL_WDTWPROTECT_REG;
+            WDTCONFIG0_REG = ESP32P4_RTC_CNTL_WDTCONFIG0_REG;
+            WDTCONFIG1_REG = ESP32P4_RTC_CNTL_WDTCONFIG1_REG;
+            WDT_WKEY = ESP32P4_RTC_CNTL_WDT_WKEY;
+            // WDT does not work with ESP32H2 ?
+        }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32H2) {
+            // H2 uses LP_WDT (Low Power Watchdog Timer)
+            WDTWPROTECT_REG = ESP32H2_RTC_CNTL_WDTWPROTECT_REG;
+            WDTCONFIG0_REG = ESP32H2_RTC_CNTL_WDTCONFIG0_REG;
+            WDTCONFIG1_REG = ESP32H2_RTC_CNTL_WDTCONFIG1_REG;
+            WDT_WKEY = ESP32H2_RTC_CNTL_WDT_WKEY;
+        }
         else {
             throw new Error(`rtcWdtResetChipSpecific() is not supported for ${this.chipFamily}`);
         }
         // Unlock watchdog registers
         await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
+        // Clear force download boot register (if applicable) BEFORE triggering WDT reset
+        // This ensures the chip boots into firmware mode after reset
+        if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+            try {
+                await this.writeRegister(ESP32S2_RTC_CNTL_OPTION1_REG, 0, ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK, 0);
+                this.logger.log("Cleared force download boot mask");
+            }
+            catch (err) {
+                this.logger.log(`Expected error clearing force download boot mask: ${err}`);
+            }
+        }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+            try {
+                await this.writeRegister(ESP32S3_RTC_CNTL_OPTION1_REG, 0, ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK, 0);
+                this.logger.log("Cleared force download boot mask");
+            }
+            catch (err) {
+                this.logger.log(`Expected error clearing force download boot mask: ${err}`);
+            }
+        }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+            try {
+                await this.writeRegister(ESP32P4_RTC_CNTL_OPTION1_REG, 0, ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK, 0);
+                this.logger.log("Cleared force download boot mask");
+            }
+            catch (err) {
+                this.logger.log(`Expected error clearing force download boot mask: ${err}`);
+            }
+        }
         // Set WDT timeout to 2000ms (matches Python esptool)
         await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);
         // Enable WDT: bit 31 = enable, bits 28-30 = stage, bit 8 = sys reset, bits 0-2 = prescaler
