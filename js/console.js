@@ -205,9 +205,12 @@ export class ESP32ToolConsole {
         this.console.addLine("Terminal disconnected");
       }
     } catch (e) {
-      this.console.addLine("");
-      this.console.addLine("");
-      this.console.addLine(`Terminal disconnected: ${e}`);
+      // Only log disconnect errors if the abort was NOT intentional
+      if (!abortSignal.aborted && !(e instanceof DOMException && e.name === 'AbortError')) {
+        this.console.addLine("");
+        this.console.addLine("");
+        this.console.addLine(`Terminal disconnected: ${e}`);
+      }
     } finally {
       await new Promise((resolve) => setTimeout(resolve, 100));
       console.log("Finished console read loop");
