@@ -736,7 +736,7 @@ async function clickDarkMode() {
  */
 async function clickDebugMode() {
   saveSetting("debugmode", debugMode.checked);
-  logMsg("Debug mode " + (debugMode.checked ? "enabled" : "disabled")); 
+  logMsg("Debug mode " + (debugMode.checked ? "enabled" : "disabled"));
 }
 
 /**
