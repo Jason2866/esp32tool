@@ -736,14 +736,7 @@ async function clickDarkMode() {
  */
 async function clickDebugMode() {
   saveSetting("debugmode", debugMode.checked);
-  logMsg("Debug mode " + (debugMode.checked ? "enabled" : "disabled"));
-  
-  // Test debug message - this should appear in the log window when debug is ON
-  if (debugMode.checked) {
-    logMsg("TEST: Debug is checked, calling debugMsg now...");
-    debugMsg("TEST: This is a debug message - you should see this!");
-    logMsg("TEST: debugMsg was called");
-  }
+  logMsg("Debug mode " + (debugMode.checked ? "enabled" : "disabled")); 
 }
 
 /**
