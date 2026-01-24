@@ -130,8 +130,7 @@ const blockSizes = [
   { label: "1024 B", value: 1024 },
   { label: "1984 B", value: 1984 },
   { label: "2024 B", value: 2024 },
-  { label: "3968 B (Desktop)", value: 3968 },
-  { label: "4096 B (Maximum)", value: 4096 }
+  { label: "3968 B (Desktop)", value: 3968 }
 ];
 
 // maxInFlight: Maximum unacknowledged bytes (in bytes)
@@ -151,7 +150,9 @@ const maxInFlights = [
   { label: "8192 B", value: 8192 },
   { label: "15872 B", value: 15872 },
   { label: "31744 B", value: 31744 },
-  { label: "63488 B", value: 63488 }
+  { label: "63488 B", value: 63488 },
+  { label: "126976 B", value: 126976 },
+  { label: "253952 B", value: 253952 }
 ];
 
 const bufferSize = 512;
