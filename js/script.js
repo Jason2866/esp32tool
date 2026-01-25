@@ -729,12 +729,12 @@ async function clickConnect() {
           return;
         }
         // For Desktop Web Serial: Use the modal dialog approach
-        if (!isAndroid && esploader.port.forget) {
-          await esploader.port.forget();
+        if (!isAndroid && espStub.port && espStub.port.readable) {
+          await espStub.port.close();
         }
-      } catch (disconnectErr) {
-        // Ignore disconnect errors
-//        debugMsg("Error during disconnect: " + disconnectErr);
+      } catch (closeErr) {
+        // Ignore port close errors
+        debugMsg(`Port close error (ignored): ${closeErr.message}`);
       }
       
       // Show modal dialog ONLY for Desktop
