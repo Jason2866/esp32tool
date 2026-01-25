@@ -764,10 +764,7 @@ export class ESPLoader extends EventTarget {
         this._totalBytesRead += value.length;
       }
     } catch {
-      // Don't log error if this is an expected disconnect during console mode transition
-      if (!this._consoleMode) {
-        this.logger.error("Read loop got disconnected");
-      }
+      //      this.logger.error("Read loop got disconnected");
     } finally {
       // Always reset reconfiguring flag when read loop ends
       // This prevents "Cannot write during port reconfiguration" errors
@@ -1462,9 +1459,9 @@ export class ESPLoader extends EventTarget {
         }
       } catch (error) {
         lastError = error as Error;
-        this.logger.debug(
-          `${strategy.name} reset failed: ${(error as Error).message}`,
-        );
+        //        this.logger.debug(
+        //          `${strategy.name} reset failed: ${(error as Error).message}`,
+        //        );
 
         // Set abandon flag to stop any in-flight operations
         this._abandonCurrentOperation = true;
@@ -2429,8 +2426,8 @@ export class ESPLoader extends EventTarget {
       // Restart Readloop
       this.readLoop();
     } catch (e) {
-      this.logger.error(`Reconfigure port error: ${e}`);
-      throw new Error(`Unable to change the baud rate to ${baud}: ${e}`);
+      //      this.logger.error(`Reconfigure port error: ${e}`);
+      //      throw new Error(`Unable to change the baud rate to ${baud}: ${e}`);
     } finally {
       // Always reset flag, even on error or early return
       this._isReconfiguring = false;
@@ -3203,7 +3200,7 @@ export class ESPLoader extends EventTarget {
       return;
     }
     if (!this.port.writable) {
-      this.logger.debug("Port already closed, skipping disconnect");
+      //      this.logger.debug("Port already closed, skipping disconnect");
       return;
     }
 
@@ -3211,7 +3208,7 @@ export class ESPLoader extends EventTarget {
     try {
       await this._writeChain;
     } catch (err) {
-      this.logger.debug(`Pending write error during disconnect: ${err}`);
+      //      this.logger.debug(`Pending write error during disconnect: ${err}`);
     }
 
     // Release persistent writer before closing
@@ -3220,7 +3217,7 @@ export class ESPLoader extends EventTarget {
         await this._writer.close();
         this._writer.releaseLock();
       } catch (err) {
-        this.logger.debug(`Writer close/release error: ${err}`);
+        //        this.logger.debug(`Writer close/release error: ${err}`);
       }
       this._writer = undefined;
     } else {
@@ -3231,7 +3228,7 @@ export class ESPLoader extends EventTarget {
         await writer.close();
         writer.releaseLock();
       } catch (err) {
-        this.logger.debug(`Direct writer close error: ${err}`);
+        //        this.logger.debug(`Direct writer close error: ${err}`);
       }
     }
 
@@ -3260,7 +3257,7 @@ export class ESPLoader extends EventTarget {
       try {
         this._reader.cancel();
       } catch (err) {
-        this.logger.debug(`Reader cancel error: ${err}`);
+        //        this.logger.debug(`Reader cancel error: ${err}`);
         // Reader already released, resolve immediately
         clearTimeout(timeout);
         resolve(undefined);
@@ -3300,7 +3297,7 @@ export class ESPLoader extends EventTarget {
     try {
       await this._writeChain;
     } catch (err) {
-      this.logger.debug(`Pending write error during release: ${err}`);
+      //      this.logger.debug(`Pending write error during release: ${err}`);
     }
 
     // Release writer
@@ -3460,7 +3457,7 @@ export class ESPLoader extends EventTarget {
             : "USB-JTAG/Serial";
 
         this.logger.log(
-          `Resetting ${this.chipFamily} (${resetMethod}) to boot into firmware...`,
+          `Resetting ${this.chipName || "device"} (${resetMethod}) to boot into firmware...`,
         );
 
         // Set console mode flag before reset to prevent subsequent hardReset calls
@@ -3773,6 +3770,115 @@ export class ESPLoader extends EventTarget {
     } catch (err) {
       // Ensure flag is reset on error
       this._isReconfiguring = false;
+      throw err;
+    }
+  }
+
+  /**
+   * @name exitConsoleMode
+   * Exit console mode and return to bootloader
+   * For ESP32-S2, uses reconnectToBootloader which will trigger port change
+   * @returns true if manual reconnection is needed (ESP32-S2), false otherwise
+   */
+  async exitConsoleMode(): Promise<boolean> {
+    if (this._parent) {
+      return await this._parent.exitConsoleMode();
+    }
+
+    // Clear console mode flag
+    this._consoleMode = false;
+
+    // Check if this is ESP32-S2 with USB-JTAG/OTG
+    const isESP32S2 = this.chipFamily === CHIP_FAMILY_ESP32S2;
+
+    // For ESP32-S2: if _isUsbJtagOrOtg is undefined, try to detect it
+    // If detection fails or is undefined, assume USB-JTAG/OTG (conservative/safe path)
+    let isUsbJtagOrOtg = this._isUsbJtagOrOtg;
+    if (isESP32S2 && isUsbJtagOrOtg === undefined) {
+      try {
+        isUsbJtagOrOtg = await this.detectUsbConnectionType();
+      } catch (err) {
+        this.logger.debug(
+          `USB detection failed, assuming USB-JTAG/OTG for ESP32-S2: ${err}`,
+        );
+        isUsbJtagOrOtg = true; // Conservative fallback for ESP32-S2
+      }
+    }
+
+    if (isESP32S2 && isUsbJtagOrOtg) {
+      // ESP32-S2 USB: Use reconnectToBootloader which handles the mode switch
+      // This will close the port and the device will reboot to bootloader
+      this.logger.log("ESP32-S2 USB detected - reconnecting to bootloader");
+
+      try {
+        await this.reconnectToBootloader();
+      } catch (err) {
+        this.logger.debug(`Reconnect error (expected for ESP32-S2): ${err}`);
+      }
+
+      // For ESP32-S2, port will change, so return true to indicate manual reconnection needed
+      return true;
+    }
+
+    // For other devices, use standard reconnectToBootloader
+    await this.reconnectToBootloader();
+    return false; // No manual reconnection needed
+  }
+
+  /**
+   * @name isConsoleResetSupported
+   * Check if console reset is supported for this device
+   * ESP32-S2 USB-JTAG/CDC does not support reset in console mode
+   * because any reset causes USB port to be lost (hardware limitation)
+   */
+  isConsoleResetSupported(): boolean {
+    if (this._parent) {
+      return this._parent.isConsoleResetSupported();
+    }
+
+    // For ESP32-S2: if _isUsbJtagOrOtg is undefined, assume USB-JTAG/OTG (conservative)
+    // This means console reset is NOT supported (safer default)
+    const isS2UsbJtag =
+      this.chipFamily === CHIP_FAMILY_ESP32S2 &&
+      (this._isUsbJtagOrOtg === true || this._isUsbJtagOrOtg === undefined);
+    return !isS2UsbJtag; // Not supported for ESP32-S2 USB-JTAG/CDC
+  }
+
+  /**
+   * @name resetInConsoleMode
+   * Reset device while in console mode (firmware mode)
+   *
+   * NOTE: For ESP32-S2 USB-JTAG/CDC, ANY reset (hardware or software) causes
+   * the USB port to be lost because the device switches USB modes during reset.
+   * This is a hardware limitation - use isConsoleResetSupported() to check first.
+   */
+  async resetInConsoleMode(): Promise<void> {
+    if (this._parent) {
+      return await this._parent.resetInConsoleMode();
+    }
+
+    if (!this.isConsoleResetSupported()) {
+      this.logger.debug(
+        "Console reset not supported for ESP32-S2 USB-JTAG/CDC",
+      );
+      return; // Do nothing
+    }
+
+    // For other devices: Use standard firmware reset
+    const isWebUSB = (this.port as any).isWebUSB === true;
+
+    try {
+      this.logger.debug("Resetting device in console mode");
+
+      if (isWebUSB) {
+        await this.hardResetToFirmwareWebUSB();
+      } else {
+        await this.hardResetToFirmware();
+      }
+
+      this.logger.debug("Device reset complete");
+    } catch (err) {
+      this.logger.error(`Reset failed: ${err}`);
       throw err;
     }
   }

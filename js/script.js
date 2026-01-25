@@ -703,8 +703,8 @@ async function clickConnect() {
   let isESP32S2 = portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x0002;
   
   // Handle ESP32-S2 Native USB reconnection requirement for BROWSER
-  // Only add listener if not already in reconnect mode and not in Electron
-  if (!esp32s2ReconnectInProgress && !isElectron) {
+  // Only add listener if not already in reconnect mode
+  if (!esp32s2ReconnectInProgress) {
     esploader.addEventListener("esp32s2-usb-reconnect", async () => {
       // Prevent recursive calls
       if (esp32s2ReconnectInProgress) {
@@ -714,6 +714,7 @@ async function clickConnect() {
       esp32s2ReconnectInProgress = true;
       logMsg("ESP32-S2 Native USB detected!");
       toggleUIConnected(false);
+      const previousStubPort = espStub?.port;
       espStub = undefined;
       
       try {
@@ -729,12 +730,12 @@ async function clickConnect() {
           return;
         }
         // For Desktop Web Serial: Use the modal dialog approach
-        if (!isAndroid && esploader.port.forget) {
-          await esploader.port.forget();
+        if (!isAndroid && previousStubPort && previousStubPort.readable) {
+          await previousStubPort.close();
         }
-      } catch (disconnectErr) {
-        // Ignore disconnect errors
-        debugMsg("Error during disconnect: " + disconnectErr);
+      } catch (closeErr) {
+        // Ignore port close errors
+        debugMsg(`Port close error (ignored): ${closeErr.message}`);
       }
       
       // Show modal dialog ONLY for Desktop
@@ -854,11 +855,6 @@ async function clickConnect() {
 async function changeBaudRate() {
   saveSetting("baudrate", baudRateSelect.value);
   if (espStub) {
-    // Skip for ESP8266 as it only supports 115200 baud in stub mode
-    if (espStub.chipName === "ESP8266") {
-      logMsg("ESP8266 stub only supports 115200 baud");
-      return;
-    }
     let baud = parseInt(baudRateSelect.value);
     if (baudRates.includes(baud)) {
       await espStub.setBaudrate(baud);
@@ -919,15 +915,29 @@ async function initConsoleUI() {
   consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
   await consoleInstance.init();
   
+  // Check if console reset is supported and hide button if not
+  if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.isConsoleResetSupported === 'function') {
+    const resetSupported = espLoaderBeforeConsole.isConsoleResetSupported();
+    const resetBtn = consoleContainer.querySelector("#console-reset-btn");
+    if (resetBtn) {
+      if (resetSupported) {
+        resetBtn.style.display = "";
+      } else {
+        resetBtn.style.display = "none";
+        debugMsg("Console reset disabled for ESP32-S2 USB-JTAG/CDC (hardware limitation)");
+      }
+    }
+  }
+  
   // Listen for console reset events
   if (consoleResetHandler) {
     consoleContainer.removeEventListener('console-reset', consoleResetHandler);
   }
   consoleResetHandler = async () => {
-    if (espStub && typeof espStub.hardReset === 'function') {
+    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
       try {
         debugMsg("Resetting device from console...");
-        await espStub.hardReset();
+        await espLoaderBeforeConsole.resetInConsoleMode();
         debugMsg("Device reset successful");
       } catch (err) {
         errorMsg("Failed to reset device: " + err.message);
@@ -961,34 +971,6 @@ async function clickConsole() {
   
   if (shouldEnable) {
     // After WDT reset, everything is gone - start fresh with port selection
-    if (isConnected && espStub && !espStub.connected) {
-      // Port was closed after WDT reset - select new port
-      try {
-        logMsg("Please select the serial port for console mode...");
-        const newPort = await navigator.serial.requestPort();
-        
-        // Open the new port at 115200 for console
-        await newPort.open({ baudRate: 115200 });
-        
-        // Update espStub to use the new port
-        espStub.port = newPort;
-        espStub.connected = true;
-        if (espStub._parent) {
-          espStub._parent.port = newPort;
-        }
-        if (espLoaderBeforeConsole) {
-          espLoaderBeforeConsole.port = newPort;
-        }
-        
-        logMsg("Port opened for console at 115200 baud");
-      } catch (openErr) {
-        errorMsg(`Failed to open port for console: ${openErr.message}`);
-        consoleSwitch.checked = false;
-        saveSetting("console", false);
-        return;
-      }
-    }
-    
     // Initialize console if connected and not already created
     if (isConnected && espStub && espStub.port && !consoleInstance) {
       try {
@@ -1029,20 +1011,25 @@ async function clickConsole() {
             const isS2 = chipFamilyBeforeConsole === 0x3252; // CHIP_FAMILY_ESP32S2 = 0x3252
             
             if (isS2) {
-              // ESP32-S2: Forget old port and show modal for port selection
-              if (espStub.port && espStub.port.forget) {
-                try {
-                  await espStub.port.forget();
-                  logMsg("Forgot old port");
-                } catch (forgetErr) {
-                  logMsg(`Port forget error (ignored): ${forgetErr.message}`);
+              // ESP32-S2: Port may change after reset
+              // Browser needs modal for user gesture
+              // Electron may work without so do no port forget
+              
+              // Close old port if still open
+              try {
+                if (espStub.port && espStub.port.readable) {
+                  await espStub.port.close();
+                  debugMsg("Old port closed");
                 }
+              } catch (closeErr) {
+                debugMsg(`Port close error (ignored): ${closeErr.message}`);
               }
               
               // Wait a bit for browser to process
               await sleep(100);
               
               // Show modal for port selection (requires user gesture)
+              // Will only pop up on Electron when port changed
               const modal = document.getElementById("esp32s2Modal");
               const reconnectBtn = document.getElementById("butReconnectS2");
               
@@ -1062,7 +1049,10 @@ async function clickConsole() {
                 try {
                   // Request the NEW port (user gesture from button click)
                   debugMsg("Please select the serial port for console mode...");
-                  const newPort = await navigator.serial.requestPort();
+                  const isWebUSB = isUsingWebUSB();
+                  const newPort = isWebUSB
+                    ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
+                    : await navigator.serial.requestPort();
                   
                   // Open the NEW port at 115200 for console
                   await newPort.open({ baudRate: 115200 });
@@ -1179,77 +1169,57 @@ async function closeConsole() {
   const commands = document.getElementById("commands");
   if (commands) commands.classList.remove("hidden");
   
-  if (consoleInstance) {
-    try {
-      await consoleInstance.disconnect();
-    } catch (err) {
-      debugMsg("Error disconnecting console: " + err);
-    }
-    consoleInstance = null;
-  }
-  
   // Restore original state (bootloader + stub + baudrate)
   if (espLoaderBeforeConsole && Number.isFinite(baudRateBeforeConsole)) {
-    // Check if this is a USB-JTAG/OTG device
-    const isUsbJtag = espLoaderBeforeConsole._isUsbJtagOrOtg === true;
+    // Disconnect console first to release locks
+    if (consoleInstance) {
+      try {
+        await consoleInstance.disconnect();
+      } catch (err) {
+        debugMsg("Error disconnecting console: " + err);
+      }
+      consoleInstance = null;
+    }
     
+    // Use esp_loader's exitConsoleMode function
     try {
-      if (isUsbJtag) {
-        // USB-JTAG/OTG devices: Port was lost, need to request new port
-        debugMsg("Please select the serial port again to reconnect...");
+      const needsManualReconnect = await espLoaderBeforeConsole.exitConsoleMode();
+      
+      if (needsManualReconnect) {
+        // ESP32-S2: Port has changed, need to select new port
+        logMsg("ESP32-S2: Port changed - please select the new port");
+        toggleUIConnected(false);
+        espStub = undefined;
         
+        // Wait a moment for port to stabilize
+        await sleep(1000);
+        
+        // Trigger port selection
         try {
-          // Request port selection from user
-          const newPort = await navigator.serial.requestPort();
-          
-          // Update the loader to use the new port
-          espLoaderBeforeConsole.port = newPort;
-          
-          debugMsg("Port selected, reconnecting to bootloader...");
-        } catch (portErr) {
-          errorMsg(`Failed to select port: ${portErr.message}`);
-          // Reset connection state to allow fresh connect
-          espStub = undefined;
-          toggleUIConnected(false);
+          await clickConnect();
           espLoaderBeforeConsole = null;
           baudRateBeforeConsole = null;
           chipFamilyBeforeConsole = null;
-          return;
+        } catch (err) {
+          errorMsg("Failed to reconnect: " + err);
         }
-      }
-      
-      // Use reconnectToBootloader() - it handles everything:
-      // - Releases locks
-      // - Resets to bootloader
-      // - Reopens port at 115200
-      // - Syncs with bootloader using correct reset strategy
-      // NOTE: Call on original loader (before console), not on stub
-      await espLoaderBeforeConsole.reconnectToBootloader();
-      
-      // Now espLoaderBeforeConsole is in bootloader state (IS_STUB = false)
-      // Reload stub using the reconnected bootloader
-      const newStub = await espLoaderBeforeConsole.runStub();
-      espStub = newStub;
+      } else {
+        // Other devices: reconnectToBootloader was called successfully
+        // Reload stub
+        const newStub = await espLoaderBeforeConsole.runStub();
+        espStub = newStub;
 
-      // Restore original baudrate
-      if (baudRateBeforeConsole !== 115200) {
-        await espStub.setBaudrate(baudRateBeforeConsole);
-      }
+        // Restore baudrate
+        if (baudRateBeforeConsole !== 115200) {
+          await espStub.setBaudrate(baudRateBeforeConsole);
+        }
 
-      espLoaderBeforeConsole = null;
-      baudRateBeforeConsole = null;
-      chipFamilyBeforeConsole = null;
+        espLoaderBeforeConsole = null;
+        baudRateBeforeConsole = null;
+        chipFamilyBeforeConsole = null;
+      }
     } catch (err) {
-      errorMsg("Failed to restore state after console: " + err.message);
-      // Attempt to disconnect cleanly to allow reconnection
-      try {
-        if (espLoaderBeforeConsole?.port) {
-          await espLoaderBeforeConsole.port.close();
-        }
-      } catch (closeErr) {
-        debugMsg("Failed to close port: " + closeErr);
-      }
-      // Reset connection state to allow fresh connect
+      errorMsg("Failed to exit console mode: " + err.message);
       espStub = undefined;
       toggleUIConnected(false);
       espLoaderBeforeConsole = null;
