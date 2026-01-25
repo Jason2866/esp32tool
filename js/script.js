@@ -148,7 +148,7 @@ const maxInFlights = [
   { label: "4096 B", value: 4096 },
   { label: "7936 B", value: 7936 },
   { label: "8192 B", value: 8192 },
-  { label: "15872 B", value: 15872 },
+  { label: "15872 B (Desktop)", value: 15872 },
   { label: "31744 B", value: 31744 },
   { label: "63488 B", value: 63488 },
   { label: "126976 B", value: 126976 },
@@ -239,6 +239,46 @@ function isMobileDevice() {
   const isSmallScreen = window.innerWidth <= 768;
   
   return isMobileUA || (hasTouch && isSmallScreen);
+}
+
+/**
+ * Detect if we're using WebUSB (mobile/Android) or Web Serial (desktop)
+ * WebUSB is typically used on Android devices
+ * Web Serial is used on desktop browsers
+ */
+function isUsingWebUSB() {
+  // If we have an active connection, check the port's isWebUSB property
+  if (espStub && espStub.port && typeof espStub.port.isWebUSB !== 'undefined') {
+    return espStub.port.isWebUSB === true;
+  }
+  
+  // Fallback: Check if we're on a mobile device (likely using WebUSB)
+  if (isMobileDevice()) {
+    return true;
+  }
+  
+  // Check if Web Serial is NOT available but USB is (WebUSB only)
+  if (!("serial" in navigator) && "usb" in navigator) {
+    return true;
+  }
+  
+  // Default to Web Serial (desktop)
+  return false;
+}
+
+/**
+ * Get default advanced parameters based on environment
+ * Desktop (Web Serial): Higher values for better performance
+ * Mobile/WebUSB: Lower values for compatibility
+ */
+function getDefaultAdvancedParams() {
+  const isWebUSB = isUsingWebUSB();
+  
+  return {
+    chunkSize: isWebUSB ? 0x4000 : 0x40000,  // 16 KB for WebUSB, 256 KB for Desktop
+    blockSize: isWebUSB ? 248 : 3968,         // 248 B for WebUSB, 3968 B for Desktop
+    maxInFlight: isWebUSB ? 248 : 15872       // 248 B for WebUSB, 15872 B for Desktop
+  };
 }
 
 // Update mobile classes and padding
@@ -394,6 +434,9 @@ function initBaudRate() {
 }
 
 function initAdvancedParams() {
+  // Get default values based on environment (Desktop vs WebUSB)
+  const defaults = getDefaultAdvancedParams();
+  
   // Initialize chunkSize dropdown
   for (let item of chunkSizes) {
     const option = document.createElement("option");
@@ -402,7 +445,7 @@ function initAdvancedParams() {
     chunkSizeSelect.add(option);
   }
   // Set default: 16 KB for WebUSB, 256 KB for Desktop
-  chunkSizeSelect.value = 0x4000; // 16 KB default
+  chunkSizeSelect.value = defaults.chunkSize;
 
   // Initialize blockSize dropdown
   for (let item of blockSizes) {
@@ -411,8 +454,8 @@ function initAdvancedParams() {
     option.value = item.value;
     blockSizeSelect.add(option);
   }
-  // Set default: 4095 B for Desktop
-  blockSizeSelect.value = 4095;
+  // Set default: 248 B for WebUSB, 3968 B for Desktop
+  blockSizeSelect.value = defaults.blockSize;
 
   // Initialize maxInFlight dropdown
   for (let item of maxInFlights) {
@@ -421,8 +464,51 @@ function initAdvancedParams() {
     option.value = item.value;
     maxInFlightSelect.add(option);
   }
-  // Set default: 8190 B for Desktop
-  maxInFlightSelect.value = 8190;
+  // Set default: 248 B for WebUSB, 15872 B for Desktop
+  maxInFlightSelect.value = defaults.maxInFlight;
+}
+
+/**
+ * Update advanced parameters after connection based on actual port type
+ * This ensures we use optimal values for WebUSB vs Web Serial
+ */
+function updateAdvancedParamsForConnection() {
+  // Get the correct defaults based on actual connection
+  const defaults = getDefaultAdvancedParams();
+  
+  // Get current values
+  const currentChunkSize = parseInt(chunkSizeSelect.value);
+  const currentBlockSize = parseInt(blockSizeSelect.value);
+  const currentMaxInFlight = parseInt(maxInFlightSelect.value);
+  
+  // Check if values are at old defaults (need updating)
+  const oldWebUSBDefaults = { chunkSize: 0x4000, blockSize: 248, maxInFlight: 248 };
+  const oldDesktopDefaults = { chunkSize: 0x40000, blockSize: 3968, maxInFlight: 15872 };
+  
+  const isAtWebUSBDefaults = 
+    currentChunkSize === oldWebUSBDefaults.chunkSize &&
+    currentBlockSize === oldWebUSBDefaults.blockSize &&
+    currentMaxInFlight === oldWebUSBDefaults.maxInFlight;
+    
+  const isAtDesktopDefaults = 
+    currentChunkSize === oldDesktopDefaults.chunkSize &&
+    currentBlockSize === oldDesktopDefaults.blockSize &&
+    currentMaxInFlight === oldDesktopDefaults.maxInFlight;
+  
+  // Only update if at defaults (user hasn't customized)
+  if (isAtWebUSBDefaults || isAtDesktopDefaults) {
+    chunkSizeSelect.value = defaults.chunkSize;
+    blockSizeSelect.value = defaults.blockSize;
+    maxInFlightSelect.value = defaults.maxInFlight;
+    
+    // Save the new values
+    saveSetting("chunkSize", defaults.chunkSize);
+    saveSetting("blockSize", defaults.blockSize);
+    saveSetting("maxInFlight", defaults.maxInFlight);
+    
+    const connectionType = isUsingWebUSB() ? "WebUSB" : "Web Serial";
+    debugMsg(`Advanced parameters updated for ${connectionType} connection`);
+  }
 }
 
 function logMsg(text) {
@@ -708,6 +794,10 @@ async function clickConnect() {
   currentMacAddr = formatMacAddr(esploader.macAddr());
 
   espStub = await esploader.runStub();
+  
+  // Update advanced parameters based on actual connection type (WebUSB vs Web Serial)
+  // Only update if user hasn't manually changed them (still at defaults)
+  updateAdvancedParamsForConnection();
   
   toggleUIConnected(true);
   toggleUIToolbar(true);
@@ -2086,6 +2176,9 @@ function toggleUIConnected(connected) {
 }
 
 function loadAllSettings() {
+  // Get default values based on environment (Desktop vs WebUSB)
+  const defaults = getDefaultAdvancedParams();
+  
   // Load all saved settings or defaults
   autoscroll.checked = loadSetting("autoscroll", true);
   baudRateSelect.value = loadSetting("baudrate", 2000000);
@@ -2095,10 +2188,10 @@ function loadAllSettings() {
   consoleSwitch.checked = loadSetting("console", false);
   advancedMode.checked = loadSetting("advanced", false);
   
-  // Load advanced parameters
-  chunkSizeSelect.value = loadSetting("chunkSize", 0x4000); // 16 KB default
-  blockSizeSelect.value = loadSetting("blockSize", 4095); // 4095 B default
-  maxInFlightSelect.value = loadSetting("maxInFlight", 8190); // 8190 B default
+  // Load advanced parameters with environment-specific defaults
+  chunkSizeSelect.value = loadSetting("chunkSize", defaults.chunkSize);
+  blockSizeSelect.value = loadSetting("blockSize", defaults.blockSize);
+  maxInFlightSelect.value = loadSetting("maxInFlight", defaults.maxInFlight);
   
   // Apply show log setting
   updateLogVisibility();
