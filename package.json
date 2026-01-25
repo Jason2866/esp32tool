@@ -35,7 +35,7 @@
     "lintAndFix": "eslint src/ --fix",
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make",
+    "make": "node -e \"const fs=require('fs'); fs.rmSync('out',{recursive:true,force:true});\" && electron-forge make",
     "publish": "electron-forge publish",
     "generate-icons": "./generate-icons.sh",
     "test-pwa": "npx serve . -p 5004"
