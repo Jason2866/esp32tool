@@ -3780,7 +3780,7 @@ export class ESPLoader extends EventTarget {
   /**
    * @name exitConsoleMode
    * Exit console mode and return to bootloader
-   * For ESP32-S2, this triggers the esp32s2-usb-reconnect event for UI handling
+   * For ESP32-S2, uses reconnectToBootloader which will trigger port change
    * @returns true if manual reconnection is needed (ESP32-S2), false otherwise
    */
   async exitConsoleMode(): Promise<boolean> {
@@ -3796,21 +3796,18 @@ export class ESPLoader extends EventTarget {
     const isUsbJtagOrOtg = this._isUsbJtagOrOtg === true;
 
     if (isESP32S2 && isUsbJtagOrOtg) {
-      // ESP32-S2 USB: Device is in firmware mode, port will change when entering bootloader
-      // Trigger the same event that's used during initial connection
-      this.logger.log("ESP32-S2 USB detected - triggering reconnection event");
+      // ESP32-S2 USB: Use reconnectToBootloader which handles the mode switch
+      // This will close the port and the device will reboot to bootloader
+      this.logger.log("ESP32-S2 USB detected - reconnecting to bootloader");
 
-      // Dispatch the esp32s2-usb-reconnect event
-      // This will be handled by the existing event listener in script.js
-      this.dispatchEvent(
-        new CustomEvent("esp32s2-usb-reconnect", {
-          detail: {
-            message: "ESP32-S2 requires port reselection after console exit",
-          },
-        }),
-      );
+      try {
+        await this.reconnectToBootloader();
+      } catch (err) {
+        this.logger.debug(`Reconnect error (expected for ESP32-S2): ${err}`);
+      }
 
-      return true; // Indicates manual reconnection needed
+      // For ESP32-S2, port will change, so return true to indicate manual reconnection needed
+      return true;
     }
 
     // For other devices, use standard reconnectToBootloader
