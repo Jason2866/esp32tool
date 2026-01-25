@@ -703,8 +703,8 @@ async function clickConnect() {
   let isESP32S2 = portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x0002;
   
   // Handle ESP32-S2 Native USB reconnection requirement for BROWSER
-  // Only add listener if not already in reconnect mode and not in Electron
-  if (!esp32s2ReconnectInProgress && !isElectron) {
+  // Only add listener if not already in reconnect mode
+  if (!esp32s2ReconnectInProgress) {
     esploader.addEventListener("esp32s2-usb-reconnect", async () => {
       // Prevent recursive calls
       if (esp32s2ReconnectInProgress) {
@@ -720,16 +720,8 @@ async function clickConnect() {
         // Close the port first
         await esploader.port.close();
         
-        // For Android WebUSB: ESP32-S2 automatic reconnection doesn't work
-        // Show message and let user reconnect manually with BOOT button
-        if (isAndroid) {
-          logMsg("ESP32-S2 has switched to CDC mode");
-          logMsg("Please press and HOLD the BOOT button on your ESP32-S2, then click Connect");
-          esp32s2ReconnectInProgress = false;
-          return;
-        }
-        // For Desktop Web Serial: Use the modal dialog approach
-        if (!isAndroid && esploader.port.forget) {
+        // Forget the port if supported (Web Serial API)
+        if (esploader.port.forget) {
           await esploader.port.forget();
         }
       } catch (disconnectErr) {
@@ -737,34 +729,32 @@ async function clickConnect() {
         debugMsg("Error during disconnect: " + disconnectErr);
       }
       
-      // Show modal dialog ONLY for Desktop
-      if (!isAndroid) {
-        const modal = document.getElementById("esp32s2Modal");
-        const reconnectBtn = document.getElementById("butReconnectS2");
+      // Show modal dialog for port reselection
+      const modal = document.getElementById("esp32s2Modal");
+      const reconnectBtn = document.getElementById("butReconnectS2");
+      
+      modal.classList.remove("hidden");
+      
+      // Handle reconnect button click
+      const handleReconnect = async () => {
+        modal.classList.add("hidden");
+        reconnectBtn.removeEventListener("click", handleReconnect);
         
-        modal.classList.remove("hidden");
+        logMsg("Requesting new device selection...");
         
-        // Handle reconnect button click
-        const handleReconnect = async () => {
-          modal.classList.add("hidden");
-          reconnectBtn.removeEventListener("click", handleReconnect);
-          
-          logMsg("Requesting new device selection...");
-          
-          // Trigger port selection
-          try {
-            await clickConnect();
-            // Reset flag on successful connection
-            esp32s2ReconnectInProgress = false;
-          } catch (err) {
-            errorMsg("Failed to reconnect: " + err);
-            // Reset flag on error so user can try again
-            esp32s2ReconnectInProgress = false;
-          }
-        };
-        
-        reconnectBtn.addEventListener("click", handleReconnect);
-      }
+        // Trigger port selection
+        try {
+          await clickConnect();
+          // Reset flag on successful connection
+          esp32s2ReconnectInProgress = false;
+        } catch (err) {
+          errorMsg("Failed to reconnect: " + err);
+          // Reset flag on error so user can try again
+          esp32s2ReconnectInProgress = false;
+        }
+      };
+      
+      reconnectBtn.addEventListener("click", handleReconnect);
     });
   }
   
@@ -1146,79 +1136,106 @@ async function closeConsole() {
   const commands = document.getElementById("commands");
   if (commands) commands.classList.remove("hidden");
   
-  if (consoleInstance) {
-    try {
-      await consoleInstance.disconnect();
-    } catch (err) {
-      debugMsg("Error disconnecting console: " + err);
-    }
-    consoleInstance = null;
-  }
-  
   // Restore original state (bootloader + stub + baudrate)
   if (espLoaderBeforeConsole && Number.isFinite(baudRateBeforeConsole)) {
-    // Check if this is a USB-JTAG/OTG device
-    const isUsbJtag = espLoaderBeforeConsole._isUsbJtagOrOtg === true;
+    // Disconnect console first to release locks
+    if (consoleInstance) {
+      try {
+        await consoleInstance.disconnect();
+      } catch (err) {
+        debugMsg("Error disconnecting console: " + err);
+      }
+      consoleInstance = null;
+    }
     
-    try {
-      if (isUsbJtag) {
-        // USB-JTAG/OTG devices: Port was lost, need to request new port
-        debugMsg("Please select the serial port again to reconnect...");
+    // Register ESP32-S2 reconnection event listener on the parent loader
+    // This ensures the event dispatched by exitConsoleMode() is caught
+    const handleESP32S2Reconnect = async () => {
+      // Prevent recursive calls
+      if (esp32s2ReconnectInProgress) {
+        return;
+      }
+      
+      esp32s2ReconnectInProgress = true;
+      logMsg("ESP32-S2 Native USB detected - port reselection required");
+      toggleUIConnected(false);
+      espStub = undefined;
+      
+      try {
+        // Close the port first
+        await espLoaderBeforeConsole.port.close();
         
+        // Forget the port if supported (Web Serial API)
+        if (espLoaderBeforeConsole.port.forget) {
+          await espLoaderBeforeConsole.port.forget();
+        }
+      } catch (disconnectErr) {
+        debugMsg("Error during disconnect: " + disconnectErr);
+      }
+      
+      // Show modal dialog for port reselection
+      const modal = document.getElementById("esp32s2Modal");
+      const reconnectBtn = document.getElementById("butReconnectS2");
+      
+      modal.classList.remove("hidden");
+      
+      // Handle reconnect button click
+      const handleReconnect = async () => {
+        modal.classList.add("hidden");
+        reconnectBtn.removeEventListener("click", handleReconnect);
+        
+        logMsg("Requesting new device selection...");
+        
+        // Trigger port selection
         try {
-          // Request port selection from user
-          const newPort = await navigator.serial.requestPort();
-          
-          // Update the loader to use the new port
-          espLoaderBeforeConsole.port = newPort;
-          
-          debugMsg("Port selected, reconnecting to bootloader...");
-        } catch (portErr) {
-          errorMsg(`Failed to select port: ${portErr.message}`);
-          // Reset connection state to allow fresh connect
-          espStub = undefined;
-          toggleUIConnected(false);
+          await clickConnect();
+          // Reset flag on successful connection
+          esp32s2ReconnectInProgress = false;
           espLoaderBeforeConsole = null;
           baudRateBeforeConsole = null;
           chipFamilyBeforeConsole = null;
-          return;
+        } catch (err) {
+          errorMsg("Failed to reconnect: " + err);
+          // Reset flag on error so user can try again
+          esp32s2ReconnectInProgress = false;
         }
-      }
+      };
       
-      // Use reconnectToBootloader() - it handles everything:
-      // - Releases locks
-      // - Resets to bootloader
-      // - Reopens port at 115200
-      // - Syncs with bootloader using correct reset strategy
-      // NOTE: Call on original loader (before console), not on stub
-      await espLoaderBeforeConsole.reconnectToBootloader();
+      reconnectBtn.addEventListener("click", handleReconnect);
+    };
+    
+    // Add the event listener before calling exitConsoleMode
+    espLoaderBeforeConsole.addEventListener("esp32s2-usb-reconnect", handleESP32S2Reconnect, { once: true });
+    
+    // Use esp_loader's exitConsoleMode function
+    // For ESP32-S2, this will trigger the "esp32s2-usb-reconnect" event
+    try {
+      const needsManualReconnect = await espLoaderBeforeConsole.exitConsoleMode();
       
-      // Now espLoaderBeforeConsole is in bootloader state (IS_STUB = false)
-      // Reload stub using the reconnected bootloader
-      const newStub = await espLoaderBeforeConsole.runStub();
-      espStub = newStub;
+      if (!needsManualReconnect) {
+        // Other devices: reconnectToBootloader was called successfully
+        // Remove the event listener since it wasn't needed
+        espLoaderBeforeConsole.removeEventListener("esp32s2-usb-reconnect", handleESP32S2Reconnect);
+        
+        // Reload stub
+        const newStub = await espLoaderBeforeConsole.runStub();
+        espStub = newStub;
 
-      // Restore original baudrate
-      if (baudRateBeforeConsole !== 115200) {
-        await espStub.setBaudrate(baudRateBeforeConsole);
+        // Restore baudrate
+        if (baudRateBeforeConsole !== 115200) {
+          await espStub.setBaudrate(baudRateBeforeConsole);
+        }
+
+        espLoaderBeforeConsole = null;
+        baudRateBeforeConsole = null;
+        chipFamilyBeforeConsole = null;
       }
-
-      espLoaderBeforeConsole = null;
-      baudRateBeforeConsole = null;
-      chipFamilyBeforeConsole = null;
+      // For ESP32-S2, the event listener will handle the reconnection
     } catch (err) {
-      errorMsg("Failed to restore state after console: " + err.message);
-      // Attempt to disconnect cleanly to allow reconnection
-      try {
-        if (espLoaderBeforeConsole?.port) {
-          await espLoaderBeforeConsole.port.close();
-        }
-      } catch (closeErr) {
-        debugMsg("Failed to close port: " + closeErr);
-      }
-      // Reset connection state to allow fresh connect
+      errorMsg("Failed to exit console mode: " + err.message);
       espStub = undefined;
       toggleUIConnected(false);
+      espLoaderBeforeConsole.removeEventListener("esp32s2-usb-reconnect", handleESP32S2Reconnect);
       espLoaderBeforeConsole = null;
       baudRateBeforeConsole = null;
       chipFamilyBeforeConsole = null;
