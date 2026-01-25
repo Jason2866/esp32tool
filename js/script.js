@@ -714,6 +714,7 @@ async function clickConnect() {
       esp32s2ReconnectInProgress = true;
       logMsg("ESP32-S2 Native USB detected!");
       toggleUIConnected(false);
+      const previousStubPort = espStub?.port;
       espStub = undefined;
       
       try {
@@ -729,8 +730,8 @@ async function clickConnect() {
           return;
         }
         // For Desktop Web Serial: Use the modal dialog approach
-        if (!isAndroid && espStub.port && espStub.port.readable) {
-          await espStub.port.close();
+        if (!isAndroid && previousStubPort && previousStubPort.readable) {
+          await previousStubPort.close();
         }
       } catch (closeErr) {
         // Ignore port close errors
@@ -1048,7 +1049,10 @@ async function clickConsole() {
                 try {
                   // Request the NEW port (user gesture from button click)
                   debugMsg("Please select the serial port for console mode...");
-                  const newPort = await navigator.serial.requestPort();
+                  const isWebUSB = isUsingWebUSB();
+                  const newPort = isWebUSB
+                    ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
+                    : await navigator.serial.requestPort();
                   
                   // Open the NEW port at 115200 for console
                   await newPort.open({ baudRate: 115200 });

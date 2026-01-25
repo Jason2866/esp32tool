@@ -3790,7 +3790,20 @@ export class ESPLoader extends EventTarget {
 
     // Check if this is ESP32-S2 with USB-JTAG/OTG
     const isESP32S2 = this.chipFamily === CHIP_FAMILY_ESP32S2;
-    const isUsbJtagOrOtg = this._isUsbJtagOrOtg === true;
+
+    // For ESP32-S2: if _isUsbJtagOrOtg is undefined, try to detect it
+    // If detection fails or is undefined, assume USB-JTAG/OTG (conservative/safe path)
+    let isUsbJtagOrOtg = this._isUsbJtagOrOtg;
+    if (isESP32S2 && isUsbJtagOrOtg === undefined) {
+      try {
+        isUsbJtagOrOtg = await this.detectUsbConnectionType();
+      } catch (err) {
+        this.logger.debug(
+          `USB detection failed, assuming USB-JTAG/OTG for ESP32-S2: ${err}`,
+        );
+        isUsbJtagOrOtg = true; // Conservative fallback for ESP32-S2
+      }
+    }
 
     if (isESP32S2 && isUsbJtagOrOtg) {
       // ESP32-S2 USB: Use reconnectToBootloader which handles the mode switch
@@ -3823,8 +3836,11 @@ export class ESPLoader extends EventTarget {
       return this._parent.isConsoleResetSupported();
     }
 
+    // For ESP32-S2: if _isUsbJtagOrOtg is undefined, assume USB-JTAG/OTG (conservative)
+    // This means console reset is NOT supported (safer default)
     const isS2UsbJtag =
-      this.chipFamily === CHIP_FAMILY_ESP32S2 && this._isUsbJtagOrOtg === true;
+      this.chipFamily === CHIP_FAMILY_ESP32S2 &&
+      (this._isUsbJtagOrOtg === true || this._isUsbJtagOrOtg === undefined);
     return !isS2UsbJtag; // Not supported for ESP32-S2 USB-JTAG/CDC
   }
 
