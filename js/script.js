@@ -904,6 +904,20 @@ async function initConsoleUI() {
   consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
   await consoleInstance.init();
   
+  // Check if console reset is supported and hide button if not
+  if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.isConsoleResetSupported === 'function') {
+    const resetSupported = espLoaderBeforeConsole.isConsoleResetSupported();
+    const resetBtn = consoleContainer.querySelector("#console-reset-btn");
+    if (resetBtn) {
+      if (resetSupported) {
+        resetBtn.style.display = "";
+      } else {
+        resetBtn.style.display = "none";
+        debugMsg("Console reset disabled for ESP32-S2 USB-JTAG/CDC (hardware limitation)");
+      }
+    }
+  }
+  
   // Listen for console reset events
   if (consoleResetHandler) {
     consoleContainer.removeEventListener('console-reset', consoleResetHandler);

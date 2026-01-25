@@ -3816,32 +3816,58 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
+   * @name isConsoleResetSupported
+   * Check if console reset is supported for this device
+   * ESP32-S2 USB-JTAG/CDC does not support reset in console mode
+   * because any reset causes USB port to be lost (hardware limitation)
+   */
+  isConsoleResetSupported(): boolean {
+    if (this._parent) {
+      return this._parent.isConsoleResetSupported();
+    }
+
+    const isS2UsbJtag =
+      this.chipFamily === CHIP_FAMILY_ESP32S2 && this._isUsbJtagOrOtg === true;
+    return !isS2UsbJtag; // Not supported for ESP32-S2 USB-JTAG/CDC
+  }
+
+  /**
    * @name resetInConsoleMode
    * Reset device while in console mode (firmware mode)
-   * Uses appropriate reset sequence based on connection type
-   * Device stays in firmware mode after reset
+   *
+   * NOTE: For ESP32-S2 USB-JTAG/CDC, ANY reset (hardware or software) causes
+   * the USB port to be lost because the device switches USB modes during reset.
+   * This is a hardware limitation - use isConsoleResetSupported() to check first.
    */
   async resetInConsoleMode(): Promise<void> {
     if (this._parent) {
       return await this._parent.resetInConsoleMode();
     }
 
-    this.logger.log("Resetting device in console mode");
-
-    // Check if this is WebUSB or Web Serial
-    const isWebUSB = (this.port as any).isWebUSB === true;
-
-    if (isWebUSB) {
-      // WebUSB: Use existing WebUSB firmware reset method
-      this.logger.debug("Using WebUSB firmware reset");
-      await this.hardResetToFirmwareWebUSB();
-    } else {
-      // Web Serial: Use existing Web Serial firmware reset method
-      this.logger.debug("Using Web Serial firmware reset");
-      await this.hardResetToFirmware();
+    if (!this.isConsoleResetSupported()) {
+      this.logger.debug(
+        "Console reset not supported for ESP32-S2 USB-JTAG/CDC",
+      );
+      return; // Do nothing
     }
 
-    this.logger.log("Device reset complete");
+    // For other devices: Use standard firmware reset
+    const isWebUSB = (this.port as any).isWebUSB === true;
+
+    try {
+      this.logger.debug("Resetting device in console mode");
+
+      if (isWebUSB) {
+        await this.hardResetToFirmwareWebUSB();
+      } else {
+        await this.hardResetToFirmware();
+      }
+
+      this.logger.debug("Device reset complete");
+    } catch (err) {
+      this.logger.error(`Reset failed: ${err}`);
+      throw err;
+    }
   }
 
   /**
