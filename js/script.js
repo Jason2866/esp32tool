@@ -8,6 +8,16 @@ if (!globalThis.requestSerialPort) {
   globalThis.requestSerialPort = requestSerialPort;
 }
 
+// Utility functions imported from esptool module
+let toHex, formatMacAddr, sleep;
+
+// Load utilities from esptool package
+window.esptoolPackage.then((esptoolMod) => {
+  toHex = esptoolMod.toHex;
+  formatMacAddr = esptoolMod.formatMacAddr;
+  sleep = esptoolMod.sleep;
+});
+
 let espStub;
 let esp32s2ReconnectInProgress = false;
 let currentLittleFS = null;
@@ -587,16 +597,6 @@ function updateTheme() {
 
 function enableStyleSheet(node, enabled) {
   node.disabled = !enabled;
-}
-
-function formatMacAddr(macAddr) {
-  return macAddr
-    .map((value) => value.toString(16).toUpperCase().padStart(2, "0"))
-    .join(":");
-}
-
-function toHex(value) {
-  return "0x" + value.toString(16).padStart(2, "0");
 }
 
 /**
@@ -2221,10 +2221,6 @@ function ucWords(text) {
     .replace("_", " ")
     .toLowerCase()
     .replace(/(?<= )[^\s]|^./g, (a) => a.toUpperCase());
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

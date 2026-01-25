@@ -107,6 +107,9 @@ export {
 } from "./partition";
 export type { Partition } from "./partition";
 
+// Export utility functions for use in UI code
+export { toHex, sleep, hexFormatter, formatMacAddr } from "./util";
+
 export {
   FilesystemType,
   detectFilesystemType,
