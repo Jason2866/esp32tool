@@ -720,8 +720,16 @@ async function clickConnect() {
         // Close the port first
         await esploader.port.close();
         
-        // Forget the port if supported (Web Serial API)
-        if (esploader.port.forget) {
+        // For Android WebUSB: ESP32-S2 automatic reconnection doesn't work
+        // Show message and let user reconnect manually with BOOT button
+        if (isAndroid) {
+          logMsg("ESP32-S2 has switched to CDC mode");
+          logMsg("Please press and HOLD the BOOT button on your ESP32-S2, then click Connect");
+          esp32s2ReconnectInProgress = false;
+          return;
+        }
+        // For Desktop Web Serial: Use the modal dialog approach
+        if (!isAndroid && esploader.port.forget) {
           await esploader.port.forget();
         }
       } catch (disconnectErr) {
@@ -729,32 +737,34 @@ async function clickConnect() {
 //        debugMsg("Error during disconnect: " + disconnectErr);
       }
       
-      // Show modal dialog for port reselection
-      const modal = document.getElementById("esp32s2Modal");
-      const reconnectBtn = document.getElementById("butReconnectS2");
-      
-      modal.classList.remove("hidden");
-      
-      // Handle reconnect button click
-      const handleReconnect = async () => {
-        modal.classList.add("hidden");
-        reconnectBtn.removeEventListener("click", handleReconnect);
+      // Show modal dialog ONLY for Desktop
+      if (!isAndroid) {
+        const modal = document.getElementById("esp32s2Modal");
+        const reconnectBtn = document.getElementById("butReconnectS2");
         
-        logMsg("Requesting new device selection...");
+        modal.classList.remove("hidden");
         
-        // Trigger port selection
-        try {
-          await clickConnect();
-          // Reset flag on successful connection
-          esp32s2ReconnectInProgress = false;
-        } catch (err) {
-          errorMsg("Failed to reconnect: " + err);
-          // Reset flag on error so user can try again
-          esp32s2ReconnectInProgress = false;
-        }
-      };
-      
-      reconnectBtn.addEventListener("click", handleReconnect);
+        // Handle reconnect button click
+        const handleReconnect = async () => {
+          modal.classList.add("hidden");
+          reconnectBtn.removeEventListener("click", handleReconnect);
+          
+          logMsg("Requesting new device selection...");
+          
+          // Trigger port selection
+          try {
+            await clickConnect();
+            // Reset flag on successful connection
+            esp32s2ReconnectInProgress = false;
+          } catch (err) {
+            errorMsg("Failed to reconnect: " + err);
+            // Reset flag on error so user can try again
+            esp32s2ReconnectInProgress = false;
+          }
+        };
+        
+        reconnectBtn.addEventListener("click", handleReconnect);
+      }
     });
   }
   
@@ -1000,20 +1010,25 @@ async function clickConsole() {
             const isS2 = chipFamilyBeforeConsole === 0x3252; // CHIP_FAMILY_ESP32S2 = 0x3252
             
             if (isS2) {
-              // ESP32-S2: Forget old port and show modal for port selection
-              if (espStub.port && espStub.port.forget) {
-                try {
-                  await espStub.port.forget();
-                  debugMsg("Forgot old port");
-                } catch (forgetErr) {
-                  debugMsg(`Port forget error (ignored): ${forgetErr.message}`);
+              // ESP32-S2: Port may change after reset
+              // Browser needs modal for user gesture
+              // Electron may work without so do no port forget
+              
+              // Close old port if still open
+              try {
+                if (espStub.port && espStub.port.readable) {
+                  await espStub.port.close();
+                  debugMsg("Old port closed");
                 }
+              } catch (closeErr) {
+                debugMsg(`Port close error (ignored): ${closeErr.message}`);
               }
               
               // Wait a bit for browser to process
               await sleep(100);
               
               // Show modal for port selection (requires user gesture)
+              // Will only pop up on Electron when port changed
               const modal = document.getElementById("esp32s2Modal");
               const reconnectBtn = document.getElementById("butReconnectS2");
               
