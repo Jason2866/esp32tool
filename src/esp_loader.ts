@@ -3816,6 +3816,35 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
+   * @name resetInConsoleMode
+   * Reset device while in console mode (firmware mode)
+   * Uses appropriate reset sequence based on connection type
+   * Device stays in firmware mode after reset
+   */
+  async resetInConsoleMode(): Promise<void> {
+    if (this._parent) {
+      return await this._parent.resetInConsoleMode();
+    }
+
+    this.logger.log("Resetting device in console mode");
+
+    // Check if this is WebUSB or Web Serial
+    const isWebUSB = (this.port as any).isWebUSB === true;
+
+    if (isWebUSB) {
+      // WebUSB: Use existing WebUSB firmware reset method
+      this.logger.debug("Using WebUSB firmware reset");
+      await this.hardResetToFirmwareWebUSB();
+    } else {
+      // Web Serial: Use existing Web Serial firmware reset method
+      this.logger.debug("Using Web Serial firmware reset");
+      await this.hardResetToFirmware();
+    }
+
+    this.logger.log("Device reset complete");
+  }
+
+  /**
    * @name drainInputBuffer
    * Actively drain the input buffer by reading data for a specified time.
    * Simple approach for some drivers (especially CP210x on Windows) that have

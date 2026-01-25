@@ -909,10 +909,10 @@ async function initConsoleUI() {
     consoleContainer.removeEventListener('console-reset', consoleResetHandler);
   }
   consoleResetHandler = async () => {
-    if (espStub && typeof espStub.hardReset === 'function') {
+    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
       try {
         debugMsg("Resetting device from console...");
-        await espStub.hardReset();
+        await espLoaderBeforeConsole.resetInConsoleMode();
         debugMsg("Device reset successful");
       } catch (err) {
         errorMsg("Failed to reset device: " + err.message);
