@@ -726,7 +726,7 @@ async function clickConnect() {
         }
       } catch (disconnectErr) {
         // Ignore disconnect errors
-        debugMsg("Error during disconnect: " + disconnectErr);
+//        debugMsg("Error during disconnect: " + disconnectErr);
       }
       
       // Show modal dialog for port reselection
@@ -1004,9 +1004,9 @@ async function clickConsole() {
               if (espStub.port && espStub.port.forget) {
                 try {
                   await espStub.port.forget();
-                  logMsg("Forgot old port");
+                  debugMsg("Forgot old port");
                 } catch (forgetErr) {
-                  logMsg(`Port forget error (ignored): ${forgetErr.message}`);
+                  debugMsg(`Port forget error (ignored): ${forgetErr.message}`);
                 }
               }
               
