@@ -854,11 +854,6 @@ async function clickConnect() {
 async function changeBaudRate() {
   saveSetting("baudrate", baudRateSelect.value);
   if (espStub) {
-    // Skip for ESP8266 as it only supports 115200 baud in stub mode
-    if (espStub.chipName === "ESP8266") {
-      logMsg("ESP8266 stub only supports 115200 baud");
-      return;
-    }
     let baud = parseInt(baudRateSelect.value);
     if (baudRates.includes(baud)) {
       await espStub.setBaudrate(baud);
@@ -961,34 +956,6 @@ async function clickConsole() {
   
   if (shouldEnable) {
     // After WDT reset, everything is gone - start fresh with port selection
-    if (isConnected && espStub && !espStub.connected) {
-      // Port was closed after WDT reset - select new port
-      try {
-        logMsg("Please select the serial port for console mode...");
-        const newPort = await navigator.serial.requestPort();
-        
-        // Open the new port at 115200 for console
-        await newPort.open({ baudRate: 115200 });
-        
-        // Update espStub to use the new port
-        espStub.port = newPort;
-        espStub.connected = true;
-        if (espStub._parent) {
-          espStub._parent.port = newPort;
-        }
-        if (espLoaderBeforeConsole) {
-          espLoaderBeforeConsole.port = newPort;
-        }
-        
-        logMsg("Port opened for console at 115200 baud");
-      } catch (openErr) {
-        errorMsg(`Failed to open port for console: ${openErr.message}`);
-        consoleSwitch.checked = false;
-        saveSetting("console", false);
-        return;
-      }
-    }
-    
     // Initialize console if connected and not already created
     if (isConnected && espStub && espStub.port && !consoleInstance) {
       try {
