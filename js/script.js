@@ -113,8 +113,8 @@ const chunkSizes = [
   { label: "8 KB", value: 0x2000 },
   { label: "16 KB (WebUSB)", value: 0x4000 },
   { label: "64 KB", value: 0x10000 },
-  { label: "128 KB", value: 0x20000 },
-  { label: "256 KB (Desktop)", value: 0x40000 }
+  { label: "128 KB (Desktop)", value: 0x20000 },
+  { label: "256 KB", value: 0x40000 }
 ];
 
 // blockSize: Size of each data block sent by ESP (in bytes)
@@ -275,7 +275,7 @@ function getDefaultAdvancedParams() {
   const isWebUSB = isUsingWebUSB();
   
   return {
-    chunkSize: isWebUSB ? 0x4000 : 0x40000,  // 16 KB for WebUSB, 256 KB for Desktop
+    chunkSize: isWebUSB ? 0x4000 : 0x20000,  // 16 KB for WebUSB, 128 KB for Desktop
     blockSize: isWebUSB ? 248 : 3968,         // 248 B for WebUSB, 3968 B for Desktop
     maxInFlight: isWebUSB ? 248 : 15872       // 248 B for WebUSB, 15872 B for Desktop
   };
@@ -444,7 +444,7 @@ function initAdvancedParams() {
     option.value = item.value;
     chunkSizeSelect.add(option);
   }
-  // Set default: 16 KB for WebUSB, 256 KB for Desktop
+  // Set default: 16 KB for WebUSB, 128 KB for Desktop
   chunkSizeSelect.value = defaults.chunkSize;
 
   // Initialize blockSize dropdown
