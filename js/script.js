@@ -165,10 +165,6 @@ const maxInFlights = [
   { label: "253952 B", value: 253952 }
 ];
 
-const bufferSize = 512;
-const colors = ["#00a7e9", "#f89521", "#be1e2d"];
-const measurementPeriodId = "0001";
-
 // Check if running in Electron
 const isElectron = window.electronAPI && window.electronAPI.isElectron;
 
@@ -385,39 +381,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("error", function (event) {
     console.log("Got an uncaught error: ", event.error);
   });
-  
-  // Header auto-hide functionality - DISABLED
-  const header = document.querySelector(".header");
-  const main = document.querySelector(".main");
-  
-  /* DISABLED: Auto-hide header
-  // Show header on mouse enter at top of page
-  main.addEventListener("mousemove", (e) => {
-    if (e.clientY < 5 && header.classList.contains("header-hidden")) {
-      header.classList.remove("header-hidden");
-      main.classList.remove("no-header-padding");
-    }
-  });
-  
-  // Keep header visible when mouse is over it
-  header.addEventListener("mouseenter", () => {
-    header.classList.remove("header-hidden");
-    main.classList.remove("no-header-padding");
-  });
-  
-  // Hide header when mouse leaves (only if connected)
-  header.addEventListener("mouseleave", () => {
-    if (espStub && header.classList.contains("header-hidden") === false) {
-      setTimeout(() => {
-        if (!header.matches(":hover")) {
-          header.classList.add("header-hidden");
-          main.classList.add("no-header-padding");
-        }
-      }, 1000);
-    }
-  });
-  */
-  
+
   // Check for Web Serial or WebUSB support
   if ("serial" in navigator || "usb" in navigator) {
     const notSupported = document.getElementById("notSupported");
@@ -697,10 +661,6 @@ async function clickConnect() {
       error: (...args) => errorMsg(...args),
     });
   }
-  
-  // Store port info for ESP32-S2 detection
-  let portInfo = esploader.port?.getInfo ? esploader.port.getInfo() : {};
-  let isESP32S2 = portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x0002;
   
   // Handle ESP32-S2 Native USB reconnection requirement for BROWSER
   // Only add listener if not already in reconnect mode
@@ -1013,7 +973,6 @@ async function clickConsole() {
         const loaderToSave = espStub._parent || espStub;
         const currentBaudrate = loaderToSave.currentBaudRate;
         const currentChipFamily = espStub.chipFamily;
-        const currentIsStub = espStub.IS_STUB;
 
         // CRITICAL: Save the PARENT loader (not the stub child!)
         espLoaderBeforeConsole = loaderToSave;
@@ -2117,13 +2076,7 @@ function toggleUIConnected(connected) {
   if (connected) {
     lbl = "Disconnect";
     isConnected = true;
-    
-    /* DISABLED: Auto-hide header after connection
-    setTimeout(() => {
-      header.classList.add("header-hidden");
-      main.classList.add("no-header-padding");
-    }, 2000); // Hide after 2 seconds
-    */
+
   } else {
     isConnected = false;
     toggleUIToolbar(false);
@@ -2142,11 +2095,6 @@ function toggleUIConnected(connected) {
     if (commands) commands.classList.remove("hidden");
     consoleSwitch.checked = false;
     saveSetting("console", false);
-    
-    /* DISABLED: Show header when disconnected
-    header.classList.remove("header-hidden");
-    main.classList.remove("no-header-padding");
-    */
   }
   butConnect.textContent = lbl;
 }
