@@ -26,8 +26,8 @@ export class ESP32ToolConsole {
           line-height: 1.45;
           display: flex;
           flex-direction: column;
-          height: 100vh;
-          width: 100vw;
+          height: 100%;
+          width: 100%;
           border: none;
           border-radius: 0;
           margin: 0;
@@ -74,6 +74,9 @@ export class ESP32ToolConsole {
           border-top: 1px solid #333;
           flex-shrink: 0;
           min-height: 40px;
+          position: sticky;
+          bottom: 0;
+          z-index: 10;
         }
         .esp32tool-console-input {
           flex: 1;
