@@ -1040,17 +1040,17 @@ async function clickConsole() {
             // Wait for device to boot and USB port to become available
             // Android/WebUSB needs more time than Desktop for USB enumeration
             const isWebUSB = isUsingWebUSB();
-            const waitTime = isWebUSB ? 2000 : 500; // 2s for Android, 500ms for Desktop
+            const waitTime = isWebUSB ? 1000 : 500; // 1s for Android, 500ms for Desktop
             debugMsg(`Waiting ${waitTime}ms for device to boot and USB to enumerate...`);
             await sleep(waitTime);
             
-            // Check if this is ESP32-S2 (needs port forget and modal) or ESP32-S3 (direct requestPort)
+            // Check if this is ESP32-S2 or if we're on Android (WebUSB)
+            // Both need modal for user gesture
             const isS2 = chipFamilyBeforeConsole === 0x3252; // CHIP_FAMILY_ESP32S2 = 0x3252
+            const needsModal = isS2 || isWebUSB;
             
-            if (isS2) {
-              // ESP32-S2: Port may change after reset
-              // Browser needs modal for user gesture
-              // Electron may work without so do no port forget
+            if (needsModal) {
+              // ESP32-S2 (all platforms) or Android (all chips): Use modal for user gesture
               
               // Close old port if still open
               try {
@@ -1066,7 +1066,6 @@ async function clickConsole() {
               await sleep(100);
               
               // Show modal for port selection (requires user gesture)
-              // Will only pop up on Electron when port changed
               const modal = document.getElementById("esp32s2Modal");
               const reconnectBtn = document.getElementById("butReconnectS2");
               
@@ -1074,7 +1073,11 @@ async function clickConsole() {
               const modalTitle = modal.querySelector("h2");
               const modalText = modal.querySelector("p");
               if (modalTitle) modalTitle.textContent = "Device has been reset to firmware mode";
-              if (modalText) modalText.textContent = "Please click the button below to select the serial port for console.";
+              if (modalText) {
+                modalText.textContent = isWebUSB 
+                  ? "Please click the button below to select the USB device for console."
+                  : "Please click the button below to select the serial port for console.";
+              }
               
               modal.classList.remove("hidden");
               
@@ -1084,8 +1087,7 @@ async function clickConsole() {
                 
                 try {
                   // Request the NEW port (user gesture from button click)
-                  debugMsg("Please select the serial port for console mode...");
-                  const isWebUSB = isUsingWebUSB();
+                  debugMsg("Please select the port for console mode...");
                   const newPort = isWebUSB
                     ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
                     : await navigator.serial.requestPort();
@@ -1102,14 +1104,11 @@ async function clickConsole() {
               // Use { once: true } to ensure single-fire and automatic cleanup
               reconnectBtn.addEventListener("click", handleReconnect, { once: true });
             } else {
-              // ESP32-S3/C3/C5/C6/H2/P4: Direct requestPort (no modal)
+              // Desktop (Web Serial) with ESP32-S3/C3/C5/C6/H2/P4: Direct requestPort
               try {
                 // Request port selection from user (direct)
                 debugMsg("Please select the serial port again for console mode...");
-                const isWebUSB = isUsingWebUSB();
-                const newPort = isWebUSB
-                  ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
-                  : await navigator.serial.requestPort();
+                const newPort = await navigator.serial.requestPort();
                 
                 // Use helper to open port and initialize console
                 await openConsolePortAndInit(newPort);
