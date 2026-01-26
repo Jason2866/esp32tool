@@ -898,6 +898,36 @@ async function clickShowLog() {
 }
 
 /**
+ * @name openConsolePortAndInit
+ * Helper to open port for console and initialize console UI
+ * Avoids code duplication across different console init flows
+ */
+async function openConsolePortAndInit(newPort) {
+  // Open the port at 115200 for console
+  await newPort.open({ baudRate: 115200 });
+  espStub.port = newPort;
+  espStub.connected = true;
+  
+  // Keep parent/loader in sync (used by closeConsole)
+  if (espStub._parent) {
+    espStub._parent.port = newPort;
+  }
+  if (espLoaderBeforeConsole) {
+    espLoaderBeforeConsole.port = newPort;
+  }
+  
+  debugMsg("Port opened for console at 115200 baud");
+  
+  // Device is already in firmware mode, port is open at 115200
+  // Initialize console directly
+  consoleSwitch.checked = true;
+  saveSetting("console", true);
+  
+  // Initialize console UI and handlers
+  await initConsoleUI();
+}
+
+/**
  * @name initConsoleUI
  * Initialize console UI, event handlers, and start console instance
  * Extracted helper to avoid duplication across different console init flows
@@ -1041,10 +1071,9 @@ async function clickConsole() {
               
               modal.classList.remove("hidden");
               
-              // Handle reconnect button click
+              // Handle reconnect button click (single-fire to prevent multiple prompts)
               const handleReconnect = async () => {
                 modal.classList.add("hidden");
-                reconnectBtn.removeEventListener("click", handleReconnect);
                 
                 try {
                   // Request the NEW port (user gesture from button click)
@@ -1054,28 +1083,8 @@ async function clickConsole() {
                     ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
                     : await navigator.serial.requestPort();
                   
-                  // Open the NEW port at 115200 for console
-                  await newPort.open({ baudRate: 115200 });
-                  espStub.port = newPort;
-                  espStub.connected = true;
-                  
-                  // Keep parent/loader in sync (used by closeConsole)
-                  if (espStub._parent) {
-                    espStub._parent.port = newPort;
-                  }
-                  if (espLoaderBeforeConsole) {
-                    espLoaderBeforeConsole.port = newPort;
-                  }
-                  
-                  debugMsg("Port opened for console at 115200 baud");
-                  
-                  // Device is already in firmware mode, port is open at 115200
-                  // Initialize console directly
-                  consoleSwitch.checked = true;
-                  saveSetting("console", true);
-                  
-                  // Initialize console UI and handlers
-                  await initConsoleUI();
+                  // Use helper to open port and initialize console
+                  await openConsolePortAndInit(newPort);
                 } catch (err) {
                   errorMsg(`Failed to open port for console: ${err.message}`);
                   consoleSwitch.checked = false;
@@ -1083,7 +1092,8 @@ async function clickConsole() {
                 }
               };
               
-              reconnectBtn.addEventListener("click", handleReconnect);
+              // Use { once: true } to ensure single-fire and automatic cleanup
+              reconnectBtn.addEventListener("click", handleReconnect, { once: true });
             } else {
               // ESP32-S3/C3/C5/C6/H2/P4: Direct requestPort (no modal)
               try {
@@ -1094,28 +1104,8 @@ async function clickConsole() {
                   ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
                   : await navigator.serial.requestPort();
                 
-                // Open the new port at 115200 for console
-                await newPort.open({ baudRate: 115200 });
-                espStub.port = newPort;
-                espStub.connected = true;
-                
-                // Keep parent/loader in sync (used by closeConsole)
-                if (espStub._parent) {
-                  espStub._parent.port = newPort;
-                }
-                if (espLoaderBeforeConsole) {
-                  espLoaderBeforeConsole.port = newPort;
-                }
-                
-                debugMsg("Port opened for console at 115200 baud");
-                
-                // Device is already in firmware mode, port is open at 115200
-                // Initialize console directly
-                consoleSwitch.checked = true;
-                saveSetting("console", true);
-                
-                // Initialize console UI and handlers
-                await initConsoleUI();
+                // Use helper to open port and initialize console
+                await openConsolePortAndInit(newPort);
               } catch (err) {
                 errorMsg(`Failed to open port for console: ${err.message}`);
                 consoleSwitch.checked = false;
