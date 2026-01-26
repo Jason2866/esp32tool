@@ -3434,15 +3434,13 @@ export class ESPLoader extends EventTarget {
         this.logger.debug(`Could not reset device: ${err}`);
       }
 
-      // For WebUSB (Android), force stream recreation by stopping read loop and reopening
+      // For WebUSB (Android), recreate streams after hardware reset
       const isWebUSB = (this.port as any).isWebUSB === true;
       if (isWebUSB) {
         try {
-          // Stop the read loop so streams will be recreated on next open()
-          (this.port as any)._readLoopRunning = false;
-
-          // Reopen the port to recreate streams
-          await this.port.open({ baudRate: this.currentBaudRate });
+          // Use the public recreateStreams() method to safely recreate streams
+          // without closing the port (important after hardware reset)
+          await (this.port as any).recreateStreams();
           this.logger.debug("WebUSB streams recreated for console mode");
         } catch (err) {
           this.logger.debug(`Failed to recreate WebUSB streams: ${err}`);
