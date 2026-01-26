@@ -1163,13 +1163,17 @@ async function clickConsole() {
  * Close console and restore device to bootloader state
  */
 async function closeConsole() {
+  // Remove console-active class from body FIRST to restore visibility
+  document.body.classList.remove("console-active");
+  
   // Hide console and show commands again
   consoleContainer.classList.add("hidden");
   const commands = document.getElementById("commands");
-  if (commands) commands.classList.remove("hidden");
-  
-  // Remove console-active class from body to restore header on mobile
-  document.body.classList.remove("console-active");
+  if (commands) {
+    commands.classList.remove("hidden");
+    // Force display to ensure it's visible
+    commands.style.display = "";
+  }
   
   // Restore original state (bootloader + stub + baudrate)
   if (espLoaderBeforeConsole && Number.isFinite(baudRateBeforeConsole)) {
