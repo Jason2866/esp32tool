@@ -26,9 +26,12 @@ export class ESP32ToolConsole {
           line-height: 1.45;
           display: flex;
           flex-direction: column;
-          height: 100%;
-          border: 1px solid #333;
-          border-radius: 4px;
+          height: 100vh;
+          width: 100vw;
+          border: none;
+          border-radius: 0;
+          margin: 0;
+          padding: 0;
         }
         .esp32tool-console-header {
           display: flex;
@@ -37,6 +40,8 @@ export class ESP32ToolConsole {
           padding: 8px 12px;
           background-color: #2a2a2a;
           border-bottom: 1px solid #333;
+          flex-shrink: 0;
+          min-height: 40px;
         }
         .esp32tool-console-header h3 {
           margin: 0;
@@ -67,6 +72,8 @@ export class ESP32ToolConsole {
           padding: 0 8px 0 16px;
           background-color: #1c1c1c;
           border-top: 1px solid #333;
+          flex-shrink: 0;
+          min-height: 40px;
         }
         .esp32tool-console-input {
           flex: 1;
