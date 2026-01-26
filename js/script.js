@@ -1034,8 +1034,12 @@ async function clickConsole() {
             // USB-JTAG/OTG device: Port was closed after WDT reset
             debugMsg("Device reset to firmware mode (port closed)");
             
-            // Wait a bit for device to boot
-            await sleep(500);
+            // Wait for device to boot and USB port to become available
+            // Android/WebUSB needs more time than Desktop for USB enumeration
+            const isWebUSB = isUsingWebUSB();
+            const waitTime = isWebUSB ? 2000 : 500; // 2s for Android, 500ms for Desktop
+            debugMsg(`Waiting ${waitTime}ms for device to boot and USB to enumerate...`);
+            await sleep(waitTime);
             
             // Check if this is ESP32-S2 (needs port forget and modal) or ESP32-S3 (direct requestPort)
             const isS2 = chipFamilyBeforeConsole === 0x3252; // CHIP_FAMILY_ESP32S2 = 0x3252
