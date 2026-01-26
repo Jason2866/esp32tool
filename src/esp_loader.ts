@@ -3411,6 +3411,8 @@ export class ESPLoader extends EventTarget {
       isUsbJtag = this.isUsbJtagOrOtg;
     }
 
+    // Release reader/writer so console can create new ones
+    // This is needed for Desktop (Web Serial) to unlock streams
     if (isUsbJtag) {
       // USB-JTAG/OTG devices: Use watchdog reset which closes port
       const wasReset = await this._resetToFirmwareIfNeeded();
@@ -3430,6 +3432,21 @@ export class ESPLoader extends EventTarget {
         this.logger.log("Device reset to firmware mode");
       } catch (err) {
         this.logger.debug(`Could not reset device: ${err}`);
+      }
+
+      // For WebUSB (Android), force stream recreation by stopping read loop and reopening
+      const isWebUSB = (this.port as any).isWebUSB === true;
+      if (isWebUSB) {
+        try {
+          // Stop the read loop so streams will be recreated on next open()
+          (this.port as any)._readLoopRunning = false;
+
+          // Reopen the port to recreate streams
+          await this.port.open({ baudRate: this.currentBaudRate });
+          this.logger.debug("WebUSB streams recreated for console mode");
+        } catch (err) {
+          this.logger.debug(`Failed to recreate WebUSB streams: ${err}`);
+        }
       }
 
       return false; // Port stays open
