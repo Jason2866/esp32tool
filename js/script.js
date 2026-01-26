@@ -1085,11 +1085,14 @@ async function clickConsole() {
               
               reconnectBtn.addEventListener("click", handleReconnect);
             } else {
-              // ESP32-S3/C3/C5/C6/H2/P4: Direct requestPort (no modal, no forget)
+              // ESP32-S3/C3/C5/C6/H2/P4: Direct requestPort (no modal)
               try {
-                // Request port selection from user (direct, like console branch)
+                // Request port selection from user (direct)
                 debugMsg("Please select the serial port again for console mode...");
-                const newPort = await navigator.serial.requestPort();
+                const isWebUSB = isUsingWebUSB();
+                const newPort = isWebUSB
+                  ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
+                  : await navigator.serial.requestPort();
                 
                 // Open the new port at 115200 for console
                 await newPort.open({ baudRate: 115200 });
