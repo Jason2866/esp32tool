@@ -2257,3 +2257,31 @@ div.clear {
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+/* Console Container Styling */
+.console-container {
+  position: fixed;
+  top: 85px; /* Below header by default */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  background-color: #1c1c1c;
+}
+
+.console-container.hidden {
+  display: none;
+}
+
+/* Mobile: Console covers header */
+@media (max-width: 768px) {
+  .console-container {
+    top: 0; /* Cover header on mobile */
+    z-index: 1001; /* Above header (header is z-index: 1000) */
+  }
+  
+  /* Hide header when console is active on mobile */
+  body.console-active .header {
+    display: none;
+  }
+}

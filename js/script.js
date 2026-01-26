@@ -938,6 +938,9 @@ async function initConsoleUI() {
   
   // Show console container and hide commands
   consoleContainer.classList.remove("hidden");
+  
+  // Add console-active class to body for mobile styling
+  document.body.classList.add("console-active");
   const commands = document.getElementById("commands");
   if (commands) commands.classList.add("hidden");
   
@@ -1165,6 +1168,9 @@ async function closeConsole() {
   consoleContainer.classList.add("hidden");
   const commands = document.getElementById("commands");
   if (commands) commands.classList.remove("hidden");
+  
+  // Remove console-active class from body to restore header on mobile
+  document.body.classList.remove("console-active");
   
   // Restore original state (bootloader + stub + baudrate)
   if (espLoaderBeforeConsole && Number.isFinite(baudRateBeforeConsole)) {
