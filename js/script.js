@@ -680,17 +680,9 @@ async function clickConnect() {
       try {
         // Close the port first
         await esploader.port.close();
-        
-        // For Android WebUSB: ESP32-S2 automatic reconnection doesn't work
-        // Show message and let user reconnect manually with BOOT button
-        if (isAndroid) {
-          logMsg("ESP32-S2 has switched to CDC mode");
-          logMsg("Please press and HOLD the BOOT button on your ESP32-S2, then click Connect");
-          esp32s2ReconnectInProgress = false;
-          return;
-        }
-        // For Desktop Web Serial: Use the modal dialog approach
-        if (!isAndroid && previousStubPort && previousStubPort.readable) {
+
+        // Use the modal dialog approach
+        if (previousStubPort && previousStubPort.readable) {
           await previousStubPort.close();
         }
       } catch (closeErr) {
@@ -698,34 +690,31 @@ async function clickConnect() {
         debugMsg(`Port close error (ignored): ${closeErr.message}`);
       }
       
-      // Show modal dialog ONLY for Desktop
-      if (!isAndroid) {
-        const modal = document.getElementById("esp32s2Modal");
-        const reconnectBtn = document.getElementById("butReconnectS2");
+      // Show modal dialog
+      const modal = document.getElementById("esp32s2Modal");
+      const reconnectBtn = document.getElementById("butReconnectS2");
         
-        modal.classList.remove("hidden");
+      modal.classList.remove("hidden");
         
-        // Handle reconnect button click
-        const handleReconnect = async () => {
-          modal.classList.add("hidden");
-          reconnectBtn.removeEventListener("click", handleReconnect);
+      // Handle reconnect button click
+      const handleReconnect = async () => {
+        modal.classList.add("hidden");
+        reconnectBtn.removeEventListener("click", handleReconnect);
           
-          logMsg("Requesting new device selection...");
+        logMsg("Requesting new device selection...");
           
-          // Trigger port selection
-          try {
-            await clickConnect();
-            // Reset flag on successful connection
-            esp32s2ReconnectInProgress = false;
-          } catch (err) {
-            errorMsg("Failed to reconnect: " + err);
-            // Reset flag on error so user can try again
-            esp32s2ReconnectInProgress = false;
-          }
-        };
-        
-        reconnectBtn.addEventListener("click", handleReconnect);
-      }
+        // Trigger port selection
+        try {
+          await clickConnect();
+          // Reset flag on successful connection
+          esp32s2ReconnectInProgress = false;
+        } catch (err) {
+          errorMsg("Failed to reconnect: " + err);
+          // Reset flag on error so user can try again
+          esp32s2ReconnectInProgress = false;
+        }
+      };
+      reconnectBtn.addEventListener("click", handleReconnect);
     });
   }
   
