@@ -179,36 +179,7 @@ div.clear {
   display: none;
 }
 
-/* Console Container */
-.console-container {
-  height: 500px;
-  overflow: hidden;
-  transition: height 0.3s ease-in-out, visibility 0.3s ease-in-out;
-  margin: 0;
-  padding: 0;
-  visibility: visible;
-}
-
-.console-container.hidden {
-  height: 0;
-  visibility: hidden;
-  max-height: 0;
-}
-
-/* Mobile console optimization */
-@media (max-width: 768px) {
-  .console-container {
-    height: 350px;
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 480px) {
-  .console-container {
-    height: 300px;
-    font-size: 12px;
-  }
-}
+/* Console Container - OLD DEFINITION REMOVED - See bottom of file for new fullscreen version */
 
 .notSupported {
   padding: 1em;
@@ -2189,11 +2160,7 @@ div.clear {
     padding-right: 10px;
   }
 
-  /* Console optimization for small screens */
-  .console-container {
-    height: 300px;
-    font-size: 12px;
-  }
+  /* Console optimization for small screens - REMOVED - Using fullscreen console now */
 
   /* Filesystem manager for small screens */
   .littlefs-manager {
@@ -2256,4 +2223,49 @@ div.clear {
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
+}
+
+/* Console Container Styling */
+.console-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1001; /* Above header and main content */
+  background-color: #1c1c1c;
+  margin: 0;
+  padding: 0;
+}
+
+.console-container.hidden {
+  display: none;
+}
+
+/* Ensure console wrapper fills the container */
+.console-container .esp32tool-console-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Hide header and commands when console is active */
+body.console-active .header {
+  display: none !important;
+}
+
+body.console-active #commands {
+  display: none !important;
+}
+
+body.console-active #notSupported {
+  display: none !important;
+}
+
+/* Remove padding from main when console is active */
+body.console-active .main {
+  padding-top: 0 !important;
+  overflow: hidden !important;
 }

@@ -199,10 +199,11 @@ export const coloredConsoleStyles = `
     padding: 16px;
     overflow: auto;
     line-height: 1.45;
-    border-radius: 3px;
+    border-radius: 0;
     white-space: pre-wrap;
     overflow-wrap: break-word;
     color: #ddd;
+    min-height: 0;
   }
 
   .log-bold {
