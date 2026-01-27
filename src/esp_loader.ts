@@ -144,6 +144,10 @@ export class ESPLoader extends EventTarget {
   public currentBaudRate: number = ESP_ROM_BAUD;
   private _maxUSBSerialBaudrate?: number;
   private _reader?: ReadableStreamDefaultReader<Uint8Array>;
+  private SLIP_END = 0xc0;
+  private SLIP_ESC = 0xdb;
+  private SLIP_ESC_END = 0xdc;
+  private SLIP_ESC_ESC = 0xdd;
   private _isESP32S2NativeUSB: boolean = false;
   private _initializationSucceeded: boolean = false;
   private __commandLock: Promise<[number, number[]]> = Promise.resolve([0, []]);
@@ -757,7 +761,7 @@ export class ESPLoader extends EventTarget {
 
         // Always read from browser's serial buffer immediately
         // to prevent browser buffer overflow. Don't apply back-pressure here.
-        const chunk = Array.from(value);
+        const chunk = Array.from(value as Uint8Array);
         Array.prototype.push.apply(this._inputBuffer, chunk);
 
         // Track total bytes read from serial port
@@ -2126,47 +2130,47 @@ export class ESPLoader extends EventTarget {
               "Timed out waiting for packet " + waitingFor,
             );
           }
-          const b = this._readByte()!;
+          const byte = this._readByte()!;
 
           if (partialPacket === null) {
             // waiting for packet header
-            if (b == 0xc0) {
+            if (byte == this.SLIP_END) {
               partialPacket = [];
             } else {
               if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(b));
+                this.logger.debug("Read invalid data: " + toHex(byte));
                 this.logger.debug(
                   "Remaining data in serial buffer: " +
                     hexFormatter(this._inputBuffer),
                 );
               }
               throw new SlipReadError(
-                "Invalid head of packet (" + toHex(b) + ")",
+                "Invalid head of packet (" + toHex(byte) + ")",
               );
             }
           } else if (inEscape) {
             // part-way through escape sequence
             inEscape = false;
-            if (b == 0xdc) {
-              partialPacket.push(0xc0);
-            } else if (b == 0xdd) {
-              partialPacket.push(0xdb);
+            if (byte == this.SLIP_ESC_END) {
+              partialPacket.push(this.SLIP_END);
+            } else if (byte == this.SLIP_ESC_ESC) {
+              partialPacket.push(this.SLIP_ESC);
             } else {
               if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(b));
+                this.logger.debug("Read invalid data: " + toHex(byte));
                 this.logger.debug(
                   "Remaining data in serial buffer: " +
                     hexFormatter(this._inputBuffer),
                 );
               }
               throw new SlipReadError(
-                "Invalid SLIP escape (0xdb, " + toHex(b) + ")",
+                "Invalid SLIP escape (0xdb, " + toHex(byte) + ")",
               );
             }
-          } else if (b == 0xdb) {
+          } else if (byte == this.SLIP_ESC) {
             // start of escape sequence
             inEscape = true;
-          } else if (b == 0xc0) {
+          } else if (byte == this.SLIP_END) {
             // end of packet
             if (this.debug)
               this.logger.debug(
@@ -2177,7 +2181,7 @@ export class ESPLoader extends EventTarget {
             return partialPacket;
           } else {
             // normal byte in packet
-            partialPacket.push(b);
+            partialPacket.push(byte);
           }
         }
       }
@@ -2211,46 +2215,46 @@ export class ESPLoader extends EventTarget {
           this.logger.debug(
             "Read " + readBytes.length + " bytes: " + hexFormatter(readBytes),
           );
-        for (const b of readBytes) {
+        for (const byte of readBytes) {
           if (partialPacket === null) {
             // waiting for packet header
-            if (b == 0xc0) {
+            if (byte == this.SLIP_END) {
               partialPacket = [];
             } else {
               if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(b));
+                this.logger.debug("Read invalid data: " + toHex(byte));
                 this.logger.debug(
                   "Remaining data in serial buffer: " +
                     hexFormatter(this._inputBuffer),
                 );
               }
               throw new SlipReadError(
-                "Invalid head of packet (" + toHex(b) + ")",
+                "Invalid head of packet (" + toHex(byte) + ")",
               );
             }
           } else if (inEscape) {
             // part-way through escape sequence
             inEscape = false;
-            if (b == 0xdc) {
-              partialPacket.push(0xc0);
-            } else if (b == 0xdd) {
-              partialPacket.push(0xdb);
+            if (byte == this.SLIP_ESC_END) {
+              partialPacket.push(this.SLIP_END);
+            } else if (byte == this.SLIP_ESC_ESC) {
+              partialPacket.push(this.SLIP_ESC);
             } else {
               if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(b));
+                this.logger.debug("Read invalid data: " + toHex(byte));
                 this.logger.debug(
                   "Remaining data in serial buffer: " +
                     hexFormatter(this._inputBuffer),
                 );
               }
               throw new SlipReadError(
-                "Invalid SLIP escape (0xdb, " + toHex(b) + ")",
+                "Invalid SLIP escape (0xdb, " + toHex(byte) + ")",
               );
             }
-          } else if (b == 0xdb) {
+          } else if (byte == this.SLIP_ESC) {
             // start of escape sequence
             inEscape = true;
-          } else if (b == 0xc0) {
+          } else if (byte == this.SLIP_END) {
             // end of packet
             if (this.debug)
               this.logger.debug(
@@ -2261,7 +2265,7 @@ export class ESPLoader extends EventTarget {
             return partialPacket;
           } else {
             // normal byte in packet
-            partialPacket.push(b);
+            partialPacket.push(byte);
           }
         }
       }
@@ -3913,7 +3917,7 @@ export class ESPLoader extends EventTarget {
     await sleep(bufferingTime);
 
     // Unsupported command response is sent 8 times and has
-    // 14 bytes length including delimiter 0xC0 bytes.
+    // 14 bytes length including delimiter SLIP_END (0xC0) bytes.
     // At least part of it is read as a command response,
     // but to be safe, read it all.
     const bytesToDrain = 14 * 8;
@@ -4133,7 +4137,7 @@ export class ESPLoader extends EventTarget {
                 // The stub expects 4 bytes (ACK), if we send less it will break out
                 try {
                   // Send SLIP frame with no data (just delimiters)
-                  const abortFrame = [0xc0, 0xc0]; // Empty SLIP frame
+                  const abortFrame = [this.SLIP_END, this.SLIP_END]; // Empty SLIP frame
                   await this.writeToStream(abortFrame);
                   this.logger.debug(`Sent abort frame to stub`);
 
