@@ -500,55 +500,9 @@ export class ESPLoader extends EventTarget {
     // Detect chip type
     await this.detectChip();
 
-    // Clear force download boot register IMMEDIATELY after chip detection (while on ROM)
-    // This is critical for ESP32-S2/S3/P4 USB-OTG devices to boot into firmware after WDT reset
-    // Must be done BEFORE loading any stub
-    if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
-      try {
-        this.logger.debug(
-          "Clearing ESP32-S2 force download boot register (initial connection)",
-        );
-        await this.writeRegister(
-          ESP32S2_RTC_CNTL_OPTION1_REG,
-          0,
-          ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-          0,
-        );
-        this.logger.debug("Force download boot register cleared");
-      } catch (err) {
-        this.logger.debug(`Error clearing force download register: ${err}`);
-      }
-    } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
-      try {
-        this.logger.debug(
-          "Clearing ESP32-S3 force download boot register (initial connection)",
-        );
-        await this.writeRegister(
-          ESP32S3_RTC_CNTL_OPTION1_REG,
-          0,
-          ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-          0,
-        );
-        this.logger.debug("Force download boot register cleared");
-      } catch (err) {
-        this.logger.debug(`Error clearing force download register: ${err}`);
-      }
-    } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-      try {
-        this.logger.debug(
-          "Clearing ESP32-P4 force download boot register (initial connection)",
-        );
-        await this.writeRegister(
-          ESP32P4_RTC_CNTL_OPTION1_REG,
-          0,
-          ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-          0,
-        );
-        this.logger.debug("Force download boot register cleared");
-      } catch (err) {
-        this.logger.debug(`Error clearing force download register: ${err}`);
-      }
-    }
+    // NOTE: We do NOT clear the force download register here anymore!
+    // It should only be cleared when entering console mode (before WDT reset)
+    // Clearing it on every connect causes issues with flash operations
 
     // Detect if device is using USB-JTAG/Serial or USB-OTG (not external serial chip)
     // This is needed to determine the correct reset strategy for console mode
@@ -3578,54 +3532,9 @@ export class ESPLoader extends EventTarget {
         throw new Error("Port not ready after reconnect");
       }
 
-      // Clear force download register BEFORE loading stub (while on ROM)
-      // This is critical for ESP32-S2/S3/P4 USB-OTG devices to boot into firmware after WDT reset
-      if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
-        try {
-          this.logger.debug(
-            "Clearing ESP32-S2 force download boot register (reconnect)",
-          );
-          await this.writeRegister(
-            ESP32S2_RTC_CNTL_OPTION1_REG,
-            0,
-            ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-            0,
-          );
-          this.logger.debug("Force download boot register cleared");
-        } catch (err) {
-          this.logger.debug(`Error clearing force download register: ${err}`);
-        }
-      } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
-        try {
-          this.logger.debug(
-            "Clearing ESP32-S3 force download boot register (reconnect)",
-          );
-          await this.writeRegister(
-            ESP32S3_RTC_CNTL_OPTION1_REG,
-            0,
-            ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-            0,
-          );
-          this.logger.debug("Force download boot register cleared");
-        } catch (err) {
-          this.logger.debug(`Error clearing force download register: ${err}`);
-        }
-      } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-        try {
-          this.logger.debug(
-            "Clearing ESP32-P4 force download boot register (reconnect)",
-          );
-          await this.writeRegister(
-            ESP32P4_RTC_CNTL_OPTION1_REG,
-            0,
-            ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-            0,
-          );
-          this.logger.debug("Force download boot register cleared");
-        } catch (err) {
-          this.logger.debug(`Error clearing force download register: ${err}`);
-        }
-      }
+      // NOTE: We do NOT clear the force download register here!
+      // It should ONLY be cleared when entering console mode (in _resetToFirmwareIfNeeded)
+      // Clearing it here causes flash read operations to fail after returning from console mode
 
       // Load stub
       const stubLoader = await this.runStub(true);
@@ -3781,35 +3690,61 @@ export class ESPLoader extends EventTarget {
     // Clear console mode flag
     this._consoleMode = false;
 
-    // Check if this is ESP32-S2 with USB-JTAG/OTG
-    const isESP32S2 = this.chipFamily === CHIP_FAMILY_ESP32S2;
+    // Check if this is a USB-OTG device (ESP32-S2 or ESP32-P4)
+    const isUsbOtgChip =
+      this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+      this.chipFamily === CHIP_FAMILY_ESP32P4;
 
-    // For ESP32-S2: if _isUsbJtagOrOtg is undefined, try to detect it
+    // For USB-OTG chips: if _isUsbJtagOrOtg is undefined, try to detect it
     // If detection fails or is undefined, assume USB-JTAG/OTG (conservative/safe path)
     let isUsbJtagOrOtg = this._isUsbJtagOrOtg;
-    if (isESP32S2 && isUsbJtagOrOtg === undefined) {
+    if (isUsbOtgChip && isUsbJtagOrOtg === undefined) {
       try {
         isUsbJtagOrOtg = await this.detectUsbConnectionType();
       } catch (err) {
         this.logger.debug(
-          `USB detection failed, assuming USB-JTAG/OTG for ESP32-S2: ${err}`,
+          `USB detection failed, assuming USB-JTAG/OTG for ${this.chipName}: ${err}`,
         );
-        isUsbJtagOrOtg = true; // Conservative fallback for ESP32-S2
+        isUsbJtagOrOtg = true; // Conservative fallback
       }
     }
 
-    if (isESP32S2 && isUsbJtagOrOtg) {
-      // ESP32-S2 USB: Use reconnectToBootloader which handles the mode switch
-      // This will close the port and the device will reboot to bootloader
-      this.logger.log("ESP32-S2 USB detected - reconnecting to bootloader");
+    if (isUsbOtgChip && isUsbJtagOrOtg) {
+      // USB-OTG devices: Need to reset to bootloader, which will cause port change
+      this.logger.log(`${this.chipName} USB: Resetting to bootloader mode`);
 
+      // Perform hardware reset to bootloader (GPIO0=LOW)
+      // This will cause the port to change from CDC (firmware) to JTAG (bootloader)
       try {
-        await this.reconnectToBootloader();
+        if (this.isWebUSB()) {
+          await this.hardResetClassicWebUSB();
+        } else {
+          await this.hardResetClassic();
+        }
+        this.logger.debug("Reset to bootloader initiated");
       } catch (err) {
-        this.logger.debug(`Reconnect error (expected for ESP32-S2): ${err}`);
+        this.logger.debug(`Reset error: ${err}`);
       }
 
-      // For ESP32-S2, port will change, so return true to indicate manual reconnection needed
+      // Wait for reset to complete and port to change
+      await sleep(500);
+
+      this.logger.log(
+        `${this.chipName}: Port changed. Please select the bootloader port.`,
+      );
+
+      // Dispatch event to signal port change
+      this.dispatchEvent(
+        new CustomEvent("usb-otg-port-change", {
+          detail: {
+            chipName: this.chipName,
+            message: `${this.chipName}: Port changed. Please select the bootloader port.`,
+            reason: "exit-console-to-bootloader",
+          },
+        }),
+      );
+
+      // Port will change, so return true to indicate manual reconnection needed
       return true;
     }
 
