@@ -1000,18 +1000,27 @@ async function clickConsole() {
             if (needsModal) {
               // ESP32-S2 (all platforms) or Android (all chips): Use modal for user gesture
               
-              // Close old port if still open
-              try {
-                if (espStub.port && espStub.port.readable) {
-                  await espStub.port.close();
-                  debugMsg("Old port closed");
-                }
-              } catch (closeErr) {
-                debugMsg(`Port close error (ignored): ${closeErr.message}`);
+              // After WDT reset, the USB device re-enumerates and creates a NEW port
+              // The old port is dead and will be garbage collected by the browser
+              // We just need to clear our references to it
+              espStub.port = null;
+              espStub.connected = false;
+              espStub._writer = undefined;
+              espStub._reader = undefined;
+              
+              if (espStub._parent) {
+                espStub._parent.port = null;
+                espStub._parent.connected = false;
+              }
+              if (espLoaderBeforeConsole) {
+                espLoaderBeforeConsole.port = null;
+                espLoaderBeforeConsole.connected = false;
               }
               
-              // Wait a bit for browser to process
-              await sleep(100);
+              debugMsg("Old port references cleared (USB device will re-enumerate)");
+              
+              // Wait for browser to process port closure and USB re-enumeration
+              await sleep(300);
               
               // Show modal for port selection (requires user gesture)
               const modal = document.getElementById("esp32s2Modal");
