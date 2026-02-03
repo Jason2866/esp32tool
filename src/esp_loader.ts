@@ -3434,18 +3434,24 @@ export class ESPLoader extends EventTarget {
         await this.hardReset(false);
 
         // After WDT reset, the device will reboot into firmware mode
-        // For ESP32-S2 USB-OTG, the port will change (from JTAG to CDC)
-        // We need to signal the UI to request port selection
-        if (this.chipFamily === CHIP_FAMILY_ESP32S2 && isUsingUsbOtg) {
-          this.logger.log("ESP32-S2 USB-OTG: Port will change after WDT reset");
+        // For USB-OTG devices (ESP32-S2, ESP32-P4), the port will change
+        // USB-JTAG/Serial devices (ESP32-S3, C3, C5, C6) keep the same port
+        const portWillChange =
+          (this.chipFamily === CHIP_FAMILY_ESP32S2 && isUsingUsbOtg) ||
+          (this.chipFamily === CHIP_FAMILY_ESP32P4 && isUsingUsbOtg);
+
+        if (portWillChange) {
+          this.logger.log(
+            `${this.chipName} USB-OTG: Port will change after WDT reset`,
+          );
           this.logger.log("Please select the new port for console mode");
 
           // Dispatch event to signal port change
           this.dispatchEvent(
-            new CustomEvent("esp32s2-port-change", {
+            new CustomEvent("usb-otg-port-change", {
               detail: {
-                message:
-                  "ESP32-S2 USB port changed after reset. Please select the new port.",
+                chipName: this.chipName,
+                message: `${this.chipName} USB port changed after reset. Please select the new port.`,
                 reason: "wdt-reset-to-firmware",
               },
             }),
