@@ -500,6 +500,56 @@ export class ESPLoader extends EventTarget {
     // Detect chip type
     await this.detectChip();
 
+    // Clear force download boot register IMMEDIATELY after chip detection (while on ROM)
+    // This is critical for ESP32-S2/S3/P4 USB-OTG devices to boot into firmware after WDT reset
+    // Must be done BEFORE loading any stub
+    if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+      try {
+        this.logger.debug(
+          "Clearing ESP32-S2 force download boot register (initial connection)",
+        );
+        await this.writeRegister(
+          ESP32S2_RTC_CNTL_OPTION1_REG,
+          0,
+          ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+          0,
+        );
+        this.logger.debug("Force download boot register cleared");
+      } catch (err) {
+        this.logger.debug(`Error clearing force download register: ${err}`);
+      }
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+      try {
+        this.logger.debug(
+          "Clearing ESP32-S3 force download boot register (initial connection)",
+        );
+        await this.writeRegister(
+          ESP32S3_RTC_CNTL_OPTION1_REG,
+          0,
+          ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+          0,
+        );
+        this.logger.debug("Force download boot register cleared");
+      } catch (err) {
+        this.logger.debug(`Error clearing force download register: ${err}`);
+      }
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+      try {
+        this.logger.debug(
+          "Clearing ESP32-P4 force download boot register (initial connection)",
+        );
+        await this.writeRegister(
+          ESP32P4_RTC_CNTL_OPTION1_REG,
+          0,
+          ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+          0,
+        );
+        this.logger.debug("Force download boot register cleared");
+      } catch (err) {
+        this.logger.debug(`Error clearing force download register: ${err}`);
+      }
+    }
+
     // Detect if device is using USB-JTAG/Serial or USB-OTG (not external serial chip)
     // This is needed to determine the correct reset strategy for console mode
     try {
@@ -1556,52 +1606,6 @@ export class ESPLoader extends EventTarget {
     // Unlock watchdog registers
     await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
 
-    // Clear force download boot register (if applicable) BEFORE triggering WDT reset
-    // This ensures the chip boots into firmware mode after reset
-    if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
-      try {
-        await this.writeRegister(
-          ESP32S2_RTC_CNTL_OPTION1_REG,
-          0,
-          ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-          0,
-        );
-        this.logger.debug("Cleared force download boot mask");
-      } catch (err) {
-        this.logger.debug(
-          `Expected error clearing force download boot mask: ${err}`,
-        );
-      }
-    } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
-      try {
-        await this.writeRegister(
-          ESP32S3_RTC_CNTL_OPTION1_REG,
-          0,
-          ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-          0,
-        );
-        this.logger.debug("Cleared force download boot mask");
-      } catch (err) {
-        this.logger.debug(
-          `Expected error clearing force download boot mask: ${err}`,
-        );
-      }
-    } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-      try {
-        await this.writeRegister(
-          ESP32P4_RTC_CNTL_OPTION1_REG,
-          0,
-          ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-          0,
-        );
-        this.logger.debug("Cleared force download boot mask");
-      } catch (err) {
-        this.logger.debug(
-          `Expected error clearing force download boot mask: ${err}`,
-        );
-      }
-    }
-
     // Set WDT timeout to 2000ms (matches Python esptool)
     await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);
 
@@ -1617,57 +1621,22 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * Helper: USB-based WDT reset for S2/S3/P4
+   * Helper: USB-based WDT reset
    * Returns true if WDT reset was performed, false otherwise
    */
-  private async tryUsbWdtReset(
-    chipName: string,
-    RTC_CNTL_OPTION1_REG: number,
-    RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK: number,
-  ): Promise<boolean> {
-    const forceDlReg = await this.readRegister(RTC_CNTL_OPTION1_REG);
-    const forceDownloadBootSet =
-      (forceDlReg & RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK) !== 0;
-
-    this.logger.debug(`**** ForceDownload=${forceDownloadBootSet}`);
-
-    // Use watchdog reset if:
-    // Force download boot bit is set (needs to be cleared by WDT reset)
-    if (forceDownloadBootSet) {
-      await this.rtcWdtResetChipSpecific();
-      this.logger.debug(
-        `${chipName}: RTC WDT reset (USB detected, ForceDownload=${forceDownloadBootSet})`,
-      );
-      return true;
-    } else {
-      // Use different reset strategy for WebUSB (Android) vs Web Serial (Desktop)
-      if (this.isWebUSB()) {
-        await this.hardResetClassicWebUSB();
-        this.logger.debug("Classic reset (WebUSB/Android).");
-      } else {
-        await this.hardResetClassic();
-        this.logger.debug("Classic reset.");
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Helper: USB-based WDT reset for C3/C5/C6
-   * Returns true if WDT reset was performed, false otherwise
-   */
-  private async tryUsbWdtResetSimple(chipName: string): Promise<boolean> {
+  private async tryUsbWdtReset(chipName: string): Promise<boolean> {
     const isUsingUsbOtg = await this.detectUsbConnectionType();
 
     if (isUsingUsbOtg) {
+      // Use WDT reset for USB-OTG devices
+      // The force download register was already cleared during reconnect (before stub load)
       await this.rtcWdtResetChipSpecific();
       this.logger.debug(
-        `${chipName}: RTC WDT reset (USB-JTAG/Serial detected)`,
+        `${chipName}: RTC WDT reset (USB-JTAG/Serial or USB-OTG detected)`,
       );
       return true;
     } else {
-      // Use different reset strategy for WebUSB (Android) vs Web Serial (Desktop)
+      // Use classic reset for non-USB devices
       if (this.isWebUSB()) {
         await this.hardResetClassicWebUSB();
         this.logger.debug("Classic reset (WebUSB/Android).");
@@ -1717,50 +1686,24 @@ export class ESPLoader extends EventTarget {
     } else {
       // just reset (no bootloader mode)
       // For ESP32-S2/S3/P4 with USB-OTG or USB-JTAG/Serial, check if watchdog reset is needed
-      if (this.chipFamily === CHIP_FAMILY_ESP32S2 && !this._consoleMode) {
-        const wdtResetUsed = await this.tryUsbWdtReset(
-          "ESP32-S2",
-          ESP32S2_RTC_CNTL_OPTION1_REG,
-          ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-        );
+      this.logger.debug("*** Performing WDT reset strategy ***");
+      if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+        const wdtResetUsed = await this.tryUsbWdtReset("ESP32-S2");
         if (wdtResetUsed) return;
-      } else if (
-        this.chipFamily === CHIP_FAMILY_ESP32S3 &&
-        !this._consoleMode
-      ) {
-        const wdtResetUsed = await this.tryUsbWdtReset(
-          "ESP32-S3",
-          ESP32S3_RTC_CNTL_OPTION1_REG,
-          ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-        );
+      } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+        const wdtResetUsed = await this.tryUsbWdtReset("ESP32-S3");
         if (wdtResetUsed) return;
-      } else if (
-        this.chipFamily === CHIP_FAMILY_ESP32P4 &&
-        !this._consoleMode
-      ) {
-        const wdtResetUsed = await this.tryUsbWdtReset(
-          "ESP32-P4",
-          ESP32P4_RTC_CNTL_OPTION1_REG,
-          ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-        );
+      } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+        const wdtResetUsed = await this.tryUsbWdtReset("ESP32-P4");
         if (wdtResetUsed) return;
-      } else if (
-        this.chipFamily === CHIP_FAMILY_ESP32C3 &&
-        !this._consoleMode
-      ) {
-        const wdtResetUsed = await this.tryUsbWdtResetSimple("ESP32-C3");
+      } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+        const wdtResetUsed = await this.tryUsbWdtReset("ESP32-C3");
         if (wdtResetUsed) return;
-      } else if (
-        this.chipFamily === CHIP_FAMILY_ESP32C5 &&
-        !this._consoleMode
-      ) {
-        const wdtResetUsed = await this.tryUsbWdtResetSimple("ESP32-C5");
+      } else if (this.chipFamily === CHIP_FAMILY_ESP32C5) {
+        const wdtResetUsed = await this.tryUsbWdtReset("ESP32-C5");
         if (wdtResetUsed) return;
-      } else if (
-        this.chipFamily === CHIP_FAMILY_ESP32C6 &&
-        !this._consoleMode
-      ) {
-        const wdtResetUsed = await this.tryUsbWdtResetSimple("ESP32-C6");
+      } else if (this.chipFamily === CHIP_FAMILY_ESP32C6) {
+        const wdtResetUsed = await this.tryUsbWdtReset("ESP32-C6");
         if (wdtResetUsed) return;
       }
 
@@ -3359,6 +3302,8 @@ export class ESPLoader extends EventTarget {
       const isUsingUsbOtg = await this.detectUsbConnectionType();
 
       if (isUsingUsbOtg) {
+        // For USB-OTG devices, perform hardware reset to firmware
+        // The force download register was already cleared during connect (before stub load)
         await this.hardReset(false);
       }
     } catch (err) {
