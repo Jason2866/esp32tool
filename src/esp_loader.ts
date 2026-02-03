@@ -500,10 +500,6 @@ export class ESPLoader extends EventTarget {
     // Detect chip type
     await this.detectChip();
 
-    // NOTE: We do NOT clear the force download register here anymore!
-    // It should only be cleared when entering console mode (before WDT reset)
-    // Clearing it on every connect causes issues with flash operations
-
     // Detect if device is using USB-JTAG/Serial or USB-OTG (not external serial chip)
     // This is needed to determine the correct reset strategy for console mode
     try {
@@ -1590,9 +1586,6 @@ export class ESPLoader extends EventTarget {
     // Unlock watchdog registers
     await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
 
-    // NOTE: Force download boot register should already be cleared by _clearForceDownloadBootIfNeeded()
-    // before this method is called. We don't clear it again here to avoid redundant operations.
-
     // Set WDT timeout to 2000ms (matches Python esptool)
     await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);
 
@@ -1616,7 +1609,6 @@ export class ESPLoader extends EventTarget {
 
     if (isUsingUsbOtg) {
       // Use WDT reset for USB-OTG devices
-      // The force download register was already cleared during reconnect (before stub load)
       await this.rtcWdtResetChipSpecific();
       this.logger.debug(
         `${chipName}: RTC WDT reset (USB-JTAG/Serial or USB-OTG detected)`,
@@ -3079,7 +3071,6 @@ export class ESPLoader extends EventTarget {
       try {
         this._reader.cancel();
       } catch (err) {
-        //        this.logger.debug(`Reader cancel error: ${err}`);
         // Reader already released, resolve immediately
         clearTimeout(timeout);
         resolve(undefined);
@@ -3288,6 +3279,7 @@ export class ESPLoader extends EventTarget {
    * @name _clearForceDownloadBootIfNeeded
    * Read and clear the force download boot flag if it is set
    * This should ONLY be called when on ROM (not stub) and before WDT reset
+   * Clearing it on every connect causes issues with flash operations
    * Returns true if the flag was cleared, false if it was already clear
    */
   private async _clearForceDownloadBootIfNeeded(): Promise<boolean> {
@@ -3573,10 +3565,6 @@ export class ESPLoader extends EventTarget {
       if (!this.port.writable || !this.port.readable) {
         throw new Error("Port not ready after reconnect");
       }
-
-      // NOTE: We do NOT clear the force download register here!
-      // It should ONLY be cleared when entering console mode (in _resetToFirmwareIfNeeded)
-      // Clearing it here causes flash read operations to fail after returning from console mode
 
       // Load stub
       const stubLoader = await this.runStub(true);

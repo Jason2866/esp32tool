@@ -1,1 +1,9880 @@
-const t=t=>{let e=[192];for(const i of t)219==i?e=e.concat([219,221]):192==i?e=e.concat([219,220]):e.push(i);return e.push(192),e},e=t=>{const e=[];for(let i=0;i<t.length;i++){const s=t.charCodeAt(i);s<=255&&e.push(s)}return e},i=t=>"["+t.map(t=>s(t)).join(", ")+"]",s=(t,e=2)=>{const i=t.toString(16).toUpperCase();return i.startsWith("-")?"-0x"+i.substring(1).padStart(e,"0"):"0x"+i.padStart(e,"0")},a=t=>t.map(t=>t.toString(16).toUpperCase().padStart(2,"0")).join(":"),r=t=>new Promise(e=>setTimeout(e,t)),n={18:"256KB",19:"512KB",20:"1MB",21:"2MB",22:"4MB",23:"8MB",24:"16MB",25:"32MB",26:"64MB",27:"128MB",28:"256MB",32:"64MB",33:"128MB",34:"256MB",50:"256KB",51:"512KB",52:"1MB",53:"2MB",54:"4MB",55:"8MB",56:"16MB",57:"32MB",58:"64MB"},h=4096,o=115200,l=1610647552,c=1343410176,d=e(" UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU"),u=33382,g=50,f=12882,_=12883,p=12994,b=12995,w=12997,m=12998,S=207969,y=12914,B=12916,R=12917,I=12928,v=12849,U={5:{name:"ESP32-C3",family:b},9:{name:"ESP32-S3",family:_},12:{name:"ESP32-C2",family:p},13:{name:"ESP32-C6",family:m},16:{name:"ESP32-H2",family:y},18:{name:"ESP32-P4",family:I},20:{name:"ESP32-C61",family:S},23:{name:"ESP32-C5",family:w},25:{name:"ESP32-H21",family:R},28:{name:"ESP32-H4",family:B},32:{name:"ESP32-S31",family:v}},C={4293968129:{name:"ESP8266",family:u},15736195:{name:"ESP32",family:g},1990:{name:"ESP32-S2",family:f}},E=2,k=3,D=4,T=5,x=6,O=7,A=8,P=9,z=10,F=208,L=209,W=210,M=11,N=13,$=15,j=19,G=20,J=239,H=16,V=17,Z=18,K=5,X=2048,q=6144,Y=3e3,Q=15e4,tt=3e5,et=100,it=3e4,st=500,at=100,rt=(t,e)=>{const i=Math.floor(t*(e/486));return i<Y?Y:i},nt=t=>{switch(t){case g:return{regBase:1072963584,baseFuse:1073061888,macFuse:1073061888,usrOffs:28,usr1Offs:32,usr2Offs:36,mosiDlenOffs:40,misoDlenOffs:44,w0Offs:128,uartDateReg:1610612856,flashOffs:4096};case f:return{regBase:1061167104,baseFuse:1061265408,macFuse:1061265476,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1610612856,flashOffs:4096};case _:return{regBase:1610620928,usrOffs:24,baseFuse:1610641408,macFuse:1610641476,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1610612864,flashOffs:0};case u:return{regBase:1610613248,usrOffs:28,baseFuse:1072693328,macFuse:1072693328,usr1Offs:32,usr2Offs:36,mosiDlenOffs:-1,misoDlenOffs:-1,w0Offs:64,uartDateReg:1610612856,flashOffs:0};case p:return{regBase:1610620928,baseFuse:l,macFuse:1610647616,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1610612860,flashOffs:0};case b:return{regBase:1610620928,baseFuse:1610647552,macFuse:1610647620,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1610612860,flashOffs:0};case w:return{regBase:1610625024,baseFuse:1611352064,macFuse:1611352132,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1610612860,flashOffs:8192};case m:return{regBase:1610625024,baseFuse:1611335680,macFuse:1611335748,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1610612860,flashOffs:0};case S:return{regBase:1610625024,baseFuse:1611352064,macFuse:1611352132,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1610612860,flashOffs:0};case y:return{regBase:1610625024,baseFuse:1611335680,macFuse:1611335748,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1610612860,flashOffs:0};case B:return{regBase:1611239424,baseFuse:1611339776,macFuse:1611339844,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1610686588,flashOffs:8192};case R:return{regBase:1610625024,baseFuse:1611350016,macFuse:1611350084,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1610612860,flashOffs:0};case I:return{regBase:1342754816,baseFuse:c,macFuse:1343410244,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:1343004812,flashOffs:8192};case v:return{regBase:542113792,baseFuse:544296960,macFuse:544297028,usrOffs:24,usr1Offs:28,usr2Offs:32,mosiDlenOffs:36,misoDlenOffs:40,w0Offs:88,uartDateReg:540582028,flashOffs:8192};default:return{regBase:-1,baseFuse:-1,macFuse:-1,usrOffs:-1,usr1Offs:-1,usr2Offs:-1,mosiDlenOffs:-1,misoDlenOffs:-1,w0Offs:-1,uartDateReg:-1,flashOffs:-1}}};class ht extends Error{constructor(t){super(t),this.name="SlipReadError"}}const ot=async(t,i)=>{let s;if(t==B||t==R||t==v)return null;if(t==g)s=await import("./esp32-BRKoi17y.js");else if(t==f)s=await import("./esp32s2-iX3WoDbg.js");else if(t==_)s=await import("./esp32s3-DGwDVIgz.js");else if(t==u)s=await import("./esp8266-CUwxJpGa.js");else if(t==p)s=await import("./esp32c2-Btgr_lwh.js");else if(t==b)s=await import("./esp32c3-CHKfoI8W.js");else if(t==w)s=await import("./esp32c5-BDW4KtLo.js");else if(t==m)s=await import("./esp32c6-il8tTxAG.js");else if(t==S)s=await import("./esp32c61-thKzxBGf.js");else if(t==y)s=await import("./esp32h2-CxoUHv_P.js");else{if(t!=I)return null;s=null!=i&&i>=300?await import("./esp32p4r3-CqI71ojR.js"):await import("./esp32p4-D3jLP-jY.js")}return{...s,text:e(atob(s.text)),data:e(atob(s.data))}};function lt(t){let e=t.length;for(;--e>=0;)t[e]=0}const ct=256,dt=286,ut=30,gt=15,ft=new Uint8Array([0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0]),_t=new Uint8Array([0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13]),pt=new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,7]),bt=new Uint8Array([16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15]),wt=new Array(576);lt(wt);const mt=new Array(60);lt(mt);const St=new Array(512);lt(St);const yt=new Array(256);lt(yt);const Bt=new Array(29);lt(Bt);const Rt=new Array(ut);function It(t,e,i,s,a){this.static_tree=t,this.extra_bits=e,this.extra_base=i,this.elems=s,this.max_length=a,this.has_stree=t&&t.length}let vt,Ut,Ct;function Et(t,e){this.dyn_tree=t,this.max_code=0,this.stat_desc=e}lt(Rt);const kt=t=>t<256?St[t]:St[256+(t>>>7)],Dt=(t,e)=>{t.pending_buf[t.pending++]=255&e,t.pending_buf[t.pending++]=e>>>8&255},Tt=(t,e,i)=>{t.bi_valid>16-i?(t.bi_buf|=e<<t.bi_valid&65535,Dt(t,t.bi_buf),t.bi_buf=e>>16-t.bi_valid,t.bi_valid+=i-16):(t.bi_buf|=e<<t.bi_valid&65535,t.bi_valid+=i)},xt=(t,e,i)=>{Tt(t,i[2*e],i[2*e+1])},Ot=(t,e)=>{let i=0;do{i|=1&t,t>>>=1,i<<=1}while(--e>0);return i>>>1},At=(t,e,i)=>{const s=new Array(16);let a,r,n=0;for(a=1;a<=gt;a++)n=n+i[a-1]<<1,s[a]=n;for(r=0;r<=e;r++){let e=t[2*r+1];0!==e&&(t[2*r]=Ot(s[e]++,e))}},Pt=t=>{let e;for(e=0;e<dt;e++)t.dyn_ltree[2*e]=0;for(e=0;e<ut;e++)t.dyn_dtree[2*e]=0;for(e=0;e<19;e++)t.bl_tree[2*e]=0;t.dyn_ltree[512]=1,t.opt_len=t.static_len=0,t.sym_next=t.matches=0},zt=t=>{t.bi_valid>8?Dt(t,t.bi_buf):t.bi_valid>0&&(t.pending_buf[t.pending++]=t.bi_buf),t.bi_buf=0,t.bi_valid=0},Ft=(t,e,i,s)=>{const a=2*e,r=2*i;return t[a]<t[r]||t[a]===t[r]&&s[e]<=s[i]},Lt=(t,e,i)=>{const s=t.heap[i];let a=i<<1;for(;a<=t.heap_len&&(a<t.heap_len&&Ft(e,t.heap[a+1],t.heap[a],t.depth)&&a++,!Ft(e,s,t.heap[a],t.depth));)t.heap[i]=t.heap[a],i=a,a<<=1;t.heap[i]=s},Wt=(t,e,i)=>{let s,a,r,n,h=0;if(0!==t.sym_next)do{s=255&t.pending_buf[t.sym_buf+h++],s+=(255&t.pending_buf[t.sym_buf+h++])<<8,a=t.pending_buf[t.sym_buf+h++],0===s?xt(t,a,e):(r=yt[a],xt(t,r+ct+1,e),n=ft[r],0!==n&&(a-=Bt[r],Tt(t,a,n)),s--,r=kt(s),xt(t,r,i),n=_t[r],0!==n&&(s-=Rt[r],Tt(t,s,n)))}while(h<t.sym_next);xt(t,256,e)},Mt=(t,e)=>{const i=e.dyn_tree,s=e.stat_desc.static_tree,a=e.stat_desc.has_stree,r=e.stat_desc.elems;let n,h,o,l=-1;for(t.heap_len=0,t.heap_max=573,n=0;n<r;n++)0!==i[2*n]?(t.heap[++t.heap_len]=l=n,t.depth[n]=0):i[2*n+1]=0;for(;t.heap_len<2;)o=t.heap[++t.heap_len]=l<2?++l:0,i[2*o]=1,t.depth[o]=0,t.opt_len--,a&&(t.static_len-=s[2*o+1]);for(e.max_code=l,n=t.heap_len>>1;n>=1;n--)Lt(t,i,n);o=r;do{n=t.heap[1],t.heap[1]=t.heap[t.heap_len--],Lt(t,i,1),h=t.heap[1],t.heap[--t.heap_max]=n,t.heap[--t.heap_max]=h,i[2*o]=i[2*n]+i[2*h],t.depth[o]=(t.depth[n]>=t.depth[h]?t.depth[n]:t.depth[h])+1,i[2*n+1]=i[2*h+1]=o,t.heap[1]=o++,Lt(t,i,1)}while(t.heap_len>=2);t.heap[--t.heap_max]=t.heap[1],((t,e)=>{const i=e.dyn_tree,s=e.max_code,a=e.stat_desc.static_tree,r=e.stat_desc.has_stree,n=e.stat_desc.extra_bits,h=e.stat_desc.extra_base,o=e.stat_desc.max_length;let l,c,d,u,g,f,_=0;for(u=0;u<=gt;u++)t.bl_count[u]=0;for(i[2*t.heap[t.heap_max]+1]=0,l=t.heap_max+1;l<573;l++)c=t.heap[l],u=i[2*i[2*c+1]+1]+1,u>o&&(u=o,_++),i[2*c+1]=u,c>s||(t.bl_count[u]++,g=0,c>=h&&(g=n[c-h]),f=i[2*c],t.opt_len+=f*(u+g),r&&(t.static_len+=f*(a[2*c+1]+g)));if(0!==_){do{for(u=o-1;0===t.bl_count[u];)u--;t.bl_count[u]--,t.bl_count[u+1]+=2,t.bl_count[o]--,_-=2}while(_>0);for(u=o;0!==u;u--)for(c=t.bl_count[u];0!==c;)d=t.heap[--l],d>s||(i[2*d+1]!==u&&(t.opt_len+=(u-i[2*d+1])*i[2*d],i[2*d+1]=u),c--)}})(t,e),At(i,l,t.bl_count)},Nt=(t,e,i)=>{let s,a,r=-1,n=e[1],h=0,o=7,l=4;for(0===n&&(o=138,l=3),e[2*(i+1)+1]=65535,s=0;s<=i;s++)a=n,n=e[2*(s+1)+1],++h<o&&a===n||(h<l?t.bl_tree[2*a]+=h:0!==a?(a!==r&&t.bl_tree[2*a]++,t.bl_tree[32]++):h<=10?t.bl_tree[34]++:t.bl_tree[36]++,h=0,r=a,0===n?(o=138,l=3):a===n?(o=6,l=3):(o=7,l=4))},$t=(t,e,i)=>{let s,a,r=-1,n=e[1],h=0,o=7,l=4;for(0===n&&(o=138,l=3),s=0;s<=i;s++)if(a=n,n=e[2*(s+1)+1],!(++h<o&&a===n)){if(h<l)do{xt(t,a,t.bl_tree)}while(0!==--h);else 0!==a?(a!==r&&(xt(t,a,t.bl_tree),h--),xt(t,16,t.bl_tree),Tt(t,h-3,2)):h<=10?(xt(t,17,t.bl_tree),Tt(t,h-3,3)):(xt(t,18,t.bl_tree),Tt(t,h-11,7));h=0,r=a,0===n?(o=138,l=3):a===n?(o=6,l=3):(o=7,l=4)}};let jt=!1;const Gt=(t,e,i,s)=>{Tt(t,0+(s?1:0),3),zt(t),Dt(t,i),Dt(t,~i),i&&t.pending_buf.set(t.window.subarray(e,e+i),t.pending),t.pending+=i};var Jt=(t,e,i,s)=>{let a,r,n=0;t.level>0?(2===t.strm.data_type&&(t.strm.data_type=(t=>{let e,i=4093624447;for(e=0;e<=31;e++,i>>>=1)if(1&i&&0!==t.dyn_ltree[2*e])return 0;if(0!==t.dyn_ltree[18]||0!==t.dyn_ltree[20]||0!==t.dyn_ltree[26])return 1;for(e=32;e<ct;e++)if(0!==t.dyn_ltree[2*e])return 1;return 0})(t)),Mt(t,t.l_desc),Mt(t,t.d_desc),n=(t=>{let e;for(Nt(t,t.dyn_ltree,t.l_desc.max_code),Nt(t,t.dyn_dtree,t.d_desc.max_code),Mt(t,t.bl_desc),e=18;e>=3&&0===t.bl_tree[2*bt[e]+1];e--);return t.opt_len+=3*(e+1)+5+5+4,e})(t),a=t.opt_len+3+7>>>3,r=t.static_len+3+7>>>3,r<=a&&(a=r)):a=r=i+5,i+4<=a&&-1!==e?Gt(t,e,i,s):4===t.strategy||r===a?(Tt(t,2+(s?1:0),3),Wt(t,wt,mt)):(Tt(t,4+(s?1:0),3),((t,e,i,s)=>{let a;for(Tt(t,e-257,5),Tt(t,i-1,5),Tt(t,s-4,4),a=0;a<s;a++)Tt(t,t.bl_tree[2*bt[a]+1],3);$t(t,t.dyn_ltree,e-1),$t(t,t.dyn_dtree,i-1)})(t,t.l_desc.max_code+1,t.d_desc.max_code+1,n+1),Wt(t,t.dyn_ltree,t.dyn_dtree)),Pt(t),s&&zt(t)},Ht={_tr_init:t=>{jt||((()=>{let t,e,i,s,a;const r=new Array(16);for(i=0,s=0;s<28;s++)for(Bt[s]=i,t=0;t<1<<ft[s];t++)yt[i++]=s;for(yt[i-1]=s,a=0,s=0;s<16;s++)for(Rt[s]=a,t=0;t<1<<_t[s];t++)St[a++]=s;for(a>>=7;s<ut;s++)for(Rt[s]=a<<7,t=0;t<1<<_t[s]-7;t++)St[256+a++]=s;for(e=0;e<=gt;e++)r[e]=0;for(t=0;t<=143;)wt[2*t+1]=8,t++,r[8]++;for(;t<=255;)wt[2*t+1]=9,t++,r[9]++;for(;t<=279;)wt[2*t+1]=7,t++,r[7]++;for(;t<=287;)wt[2*t+1]=8,t++,r[8]++;for(At(wt,287,r),t=0;t<ut;t++)mt[2*t+1]=5,mt[2*t]=Ot(t,5);vt=new It(wt,ft,257,dt,gt),Ut=new It(mt,_t,0,ut,gt),Ct=new It(new Array(0),pt,0,19,7)})(),jt=!0),t.l_desc=new Et(t.dyn_ltree,vt),t.d_desc=new Et(t.dyn_dtree,Ut),t.bl_desc=new Et(t.bl_tree,Ct),t.bi_buf=0,t.bi_valid=0,Pt(t)},_tr_stored_block:Gt,_tr_flush_block:Jt,_tr_tally:(t,e,i)=>(t.pending_buf[t.sym_buf+t.sym_next++]=e,t.pending_buf[t.sym_buf+t.sym_next++]=e>>8,t.pending_buf[t.sym_buf+t.sym_next++]=i,0===e?t.dyn_ltree[2*i]++:(t.matches++,e--,t.dyn_ltree[2*(yt[i]+ct+1)]++,t.dyn_dtree[2*kt(e)]++),t.sym_next===t.sym_end),_tr_align:t=>{Tt(t,2,3),xt(t,256,wt),(t=>{16===t.bi_valid?(Dt(t,t.bi_buf),t.bi_buf=0,t.bi_valid=0):t.bi_valid>=8&&(t.pending_buf[t.pending++]=255&t.bi_buf,t.bi_buf>>=8,t.bi_valid-=8)})(t)}};var Vt=(t,e,i,s)=>{let a=65535&t,r=t>>>16&65535,n=0;for(;0!==i;){n=i>2e3?2e3:i,i-=n;do{a=a+e[s++]|0,r=r+a|0}while(--n);a%=65521,r%=65521}return a|r<<16};const Zt=new Uint32Array((()=>{let t,e=[];for(var i=0;i<256;i++){t=i;for(var s=0;s<8;s++)t=1&t?3988292384^t>>>1:t>>>1;e[i]=t}return e})());var Kt=(t,e,i,s)=>{const a=Zt,r=s+i;t^=-1;for(let i=s;i<r;i++)t=t>>>8^a[255&(t^e[i])];return-1^t},Xt={2:"need dictionary",1:"stream end",0:"","-1":"file error","-2":"stream error","-3":"data error","-4":"insufficient memory","-5":"buffer error","-6":"incompatible version"},qt={Z_NO_FLUSH:0,Z_PARTIAL_FLUSH:1,Z_SYNC_FLUSH:2,Z_FULL_FLUSH:3,Z_FINISH:4,Z_BLOCK:5,Z_OK:0,Z_STREAM_END:1,Z_STREAM_ERROR:-2,Z_DATA_ERROR:-3,Z_BUF_ERROR:-5,Z_DEFAULT_COMPRESSION:-1,Z_FILTERED:1,Z_HUFFMAN_ONLY:2,Z_RLE:3,Z_FIXED:4,Z_DEFAULT_STRATEGY:0,Z_UNKNOWN:2,Z_DEFLATED:8};const{_tr_init:Yt,_tr_stored_block:Qt,_tr_flush_block:te,_tr_tally:ee,_tr_align:ie}=Ht,{Z_NO_FLUSH:se,Z_PARTIAL_FLUSH:ae,Z_FULL_FLUSH:re,Z_FINISH:ne,Z_BLOCK:he,Z_OK:oe,Z_STREAM_END:le,Z_STREAM_ERROR:ce,Z_DATA_ERROR:de,Z_BUF_ERROR:ue,Z_DEFAULT_COMPRESSION:ge,Z_FILTERED:fe,Z_HUFFMAN_ONLY:_e,Z_RLE:pe,Z_FIXED:be,Z_DEFAULT_STRATEGY:we,Z_UNKNOWN:me,Z_DEFLATED:Se}=qt,ye=258,Be=262,Re=42,Ie=113,ve=666,Ue=(t,e)=>(t.msg=Xt[e],e),Ce=t=>2*t-(t>4?9:0),Ee=t=>{let e=t.length;for(;--e>=0;)t[e]=0},ke=t=>{let e,i,s,a=t.w_size;e=t.hash_size,s=e;do{i=t.head[--s],t.head[s]=i>=a?i-a:0}while(--e);e=a,s=e;do{i=t.prev[--s],t.prev[s]=i>=a?i-a:0}while(--e)};let De=(t,e,i)=>(e<<t.hash_shift^i)&t.hash_mask;const Te=t=>{const e=t.state;let i=e.pending;i>t.avail_out&&(i=t.avail_out),0!==i&&(t.output.set(e.pending_buf.subarray(e.pending_out,e.pending_out+i),t.next_out),t.next_out+=i,e.pending_out+=i,t.total_out+=i,t.avail_out-=i,e.pending-=i,0===e.pending&&(e.pending_out=0))},xe=(t,e)=>{te(t,t.block_start>=0?t.block_start:-1,t.strstart-t.block_start,e),t.block_start=t.strstart,Te(t.strm)},Oe=(t,e)=>{t.pending_buf[t.pending++]=e},Ae=(t,e)=>{t.pending_buf[t.pending++]=e>>>8&255,t.pending_buf[t.pending++]=255&e},Pe=(t,e,i,s)=>{let a=t.avail_in;return a>s&&(a=s),0===a?0:(t.avail_in-=a,e.set(t.input.subarray(t.next_in,t.next_in+a),i),1===t.state.wrap?t.adler=Vt(t.adler,e,a,i):2===t.state.wrap&&(t.adler=Kt(t.adler,e,a,i)),t.next_in+=a,t.total_in+=a,a)},ze=(t,e)=>{let i,s,a=t.max_chain_length,r=t.strstart,n=t.prev_length,h=t.nice_match;const o=t.strstart>t.w_size-Be?t.strstart-(t.w_size-Be):0,l=t.window,c=t.w_mask,d=t.prev,u=t.strstart+ye;let g=l[r+n-1],f=l[r+n];t.prev_length>=t.good_match&&(a>>=2),h>t.lookahead&&(h=t.lookahead);do{if(i=e,l[i+n]===f&&l[i+n-1]===g&&l[i]===l[r]&&l[++i]===l[r+1]){r+=2,i++;do{}while(l[++r]===l[++i]&&l[++r]===l[++i]&&l[++r]===l[++i]&&l[++r]===l[++i]&&l[++r]===l[++i]&&l[++r]===l[++i]&&l[++r]===l[++i]&&l[++r]===l[++i]&&r<u);if(s=ye-(u-r),r=u-ye,s>n){if(t.match_start=e,n=s,s>=h)break;g=l[r+n-1],f=l[r+n]}}}while((e=d[e&c])>o&&0!==--a);return n<=t.lookahead?n:t.lookahead},Fe=t=>{const e=t.w_size;let i,s,a;do{if(s=t.window_size-t.lookahead-t.strstart,t.strstart>=e+(e-Be)&&(t.window.set(t.window.subarray(e,e+e-s),0),t.match_start-=e,t.strstart-=e,t.block_start-=e,t.insert>t.strstart&&(t.insert=t.strstart),ke(t),s+=e),0===t.strm.avail_in)break;if(i=Pe(t.strm,t.window,t.strstart+t.lookahead,s),t.lookahead+=i,t.lookahead+t.insert>=3)for(a=t.strstart-t.insert,t.ins_h=t.window[a],t.ins_h=De(t,t.ins_h,t.window[a+1]);t.insert&&(t.ins_h=De(t,t.ins_h,t.window[a+3-1]),t.prev[a&t.w_mask]=t.head[t.ins_h],t.head[t.ins_h]=a,a++,t.insert--,!(t.lookahead+t.insert<3)););}while(t.lookahead<Be&&0!==t.strm.avail_in)},Le=(t,e)=>{let i,s,a,r=t.pending_buf_size-5>t.w_size?t.w_size:t.pending_buf_size-5,n=0,h=t.strm.avail_in;do{if(i=65535,a=t.bi_valid+42>>3,t.strm.avail_out<a)break;if(a=t.strm.avail_out-a,s=t.strstart-t.block_start,i>s+t.strm.avail_in&&(i=s+t.strm.avail_in),i>a&&(i=a),i<r&&(0===i&&e!==ne||e===se||i!==s+t.strm.avail_in))break;n=e===ne&&i===s+t.strm.avail_in?1:0,Qt(t,0,0,n),t.pending_buf[t.pending-4]=i,t.pending_buf[t.pending-3]=i>>8,t.pending_buf[t.pending-2]=~i,t.pending_buf[t.pending-1]=~i>>8,Te(t.strm),s&&(s>i&&(s=i),t.strm.output.set(t.window.subarray(t.block_start,t.block_start+s),t.strm.next_out),t.strm.next_out+=s,t.strm.avail_out-=s,t.strm.total_out+=s,t.block_start+=s,i-=s),i&&(Pe(t.strm,t.strm.output,t.strm.next_out,i),t.strm.next_out+=i,t.strm.avail_out-=i,t.strm.total_out+=i)}while(0===n);return h-=t.strm.avail_in,h&&(h>=t.w_size?(t.matches=2,t.window.set(t.strm.input.subarray(t.strm.next_in-t.w_size,t.strm.next_in),0),t.strstart=t.w_size,t.insert=t.strstart):(t.window_size-t.strstart<=h&&(t.strstart-=t.w_size,t.window.set(t.window.subarray(t.w_size,t.w_size+t.strstart),0),t.matches<2&&t.matches++,t.insert>t.strstart&&(t.insert=t.strstart)),t.window.set(t.strm.input.subarray(t.strm.next_in-h,t.strm.next_in),t.strstart),t.strstart+=h,t.insert+=h>t.w_size-t.insert?t.w_size-t.insert:h),t.block_start=t.strstart),t.high_water<t.strstart&&(t.high_water=t.strstart),n?4:e!==se&&e!==ne&&0===t.strm.avail_in&&t.strstart===t.block_start?2:(a=t.window_size-t.strstart,t.strm.avail_in>a&&t.block_start>=t.w_size&&(t.block_start-=t.w_size,t.strstart-=t.w_size,t.window.set(t.window.subarray(t.w_size,t.w_size+t.strstart),0),t.matches<2&&t.matches++,a+=t.w_size,t.insert>t.strstart&&(t.insert=t.strstart)),a>t.strm.avail_in&&(a=t.strm.avail_in),a&&(Pe(t.strm,t.window,t.strstart,a),t.strstart+=a,t.insert+=a>t.w_size-t.insert?t.w_size-t.insert:a),t.high_water<t.strstart&&(t.high_water=t.strstart),a=t.bi_valid+42>>3,a=t.pending_buf_size-a>65535?65535:t.pending_buf_size-a,r=a>t.w_size?t.w_size:a,s=t.strstart-t.block_start,(s>=r||(s||e===ne)&&e!==se&&0===t.strm.avail_in&&s<=a)&&(i=s>a?a:s,n=e===ne&&0===t.strm.avail_in&&i===s?1:0,Qt(t,t.block_start,i,n),t.block_start+=i,Te(t.strm)),n?3:1)},We=(t,e)=>{let i,s;for(;;){if(t.lookahead<Be){if(Fe(t),t.lookahead<Be&&e===se)return 1;if(0===t.lookahead)break}if(i=0,t.lookahead>=3&&(t.ins_h=De(t,t.ins_h,t.window[t.strstart+3-1]),i=t.prev[t.strstart&t.w_mask]=t.head[t.ins_h],t.head[t.ins_h]=t.strstart),0!==i&&t.strstart-i<=t.w_size-Be&&(t.match_length=ze(t,i)),t.match_length>=3)if(s=ee(t,t.strstart-t.match_start,t.match_length-3),t.lookahead-=t.match_length,t.match_length<=t.max_lazy_match&&t.lookahead>=3){t.match_length--;do{t.strstart++,t.ins_h=De(t,t.ins_h,t.window[t.strstart+3-1]),i=t.prev[t.strstart&t.w_mask]=t.head[t.ins_h],t.head[t.ins_h]=t.strstart}while(0!==--t.match_length);t.strstart++}else t.strstart+=t.match_length,t.match_length=0,t.ins_h=t.window[t.strstart],t.ins_h=De(t,t.ins_h,t.window[t.strstart+1]);else s=ee(t,0,t.window[t.strstart]),t.lookahead--,t.strstart++;if(s&&(xe(t,!1),0===t.strm.avail_out))return 1}return t.insert=t.strstart<2?t.strstart:2,e===ne?(xe(t,!0),0===t.strm.avail_out?3:4):t.sym_next&&(xe(t,!1),0===t.strm.avail_out)?1:2},Me=(t,e)=>{let i,s,a;for(;;){if(t.lookahead<Be){if(Fe(t),t.lookahead<Be&&e===se)return 1;if(0===t.lookahead)break}if(i=0,t.lookahead>=3&&(t.ins_h=De(t,t.ins_h,t.window[t.strstart+3-1]),i=t.prev[t.strstart&t.w_mask]=t.head[t.ins_h],t.head[t.ins_h]=t.strstart),t.prev_length=t.match_length,t.prev_match=t.match_start,t.match_length=2,0!==i&&t.prev_length<t.max_lazy_match&&t.strstart-i<=t.w_size-Be&&(t.match_length=ze(t,i),t.match_length<=5&&(t.strategy===fe||3===t.match_length&&t.strstart-t.match_start>4096)&&(t.match_length=2)),t.prev_length>=3&&t.match_length<=t.prev_length){a=t.strstart+t.lookahead-3,s=ee(t,t.strstart-1-t.prev_match,t.prev_length-3),t.lookahead-=t.prev_length-1,t.prev_length-=2;do{++t.strstart<=a&&(t.ins_h=De(t,t.ins_h,t.window[t.strstart+3-1]),i=t.prev[t.strstart&t.w_mask]=t.head[t.ins_h],t.head[t.ins_h]=t.strstart)}while(0!==--t.prev_length);if(t.match_available=0,t.match_length=2,t.strstart++,s&&(xe(t,!1),0===t.strm.avail_out))return 1}else if(t.match_available){if(s=ee(t,0,t.window[t.strstart-1]),s&&xe(t,!1),t.strstart++,t.lookahead--,0===t.strm.avail_out)return 1}else t.match_available=1,t.strstart++,t.lookahead--}return t.match_available&&(s=ee(t,0,t.window[t.strstart-1]),t.match_available=0),t.insert=t.strstart<2?t.strstart:2,e===ne?(xe(t,!0),0===t.strm.avail_out?3:4):t.sym_next&&(xe(t,!1),0===t.strm.avail_out)?1:2};function Ne(t,e,i,s,a){this.good_length=t,this.max_lazy=e,this.nice_length=i,this.max_chain=s,this.func=a}const $e=[new Ne(0,0,0,0,Le),new Ne(4,4,8,4,We),new Ne(4,5,16,8,We),new Ne(4,6,32,32,We),new Ne(4,4,16,16,Me),new Ne(8,16,32,32,Me),new Ne(8,16,128,128,Me),new Ne(8,32,128,256,Me),new Ne(32,128,258,1024,Me),new Ne(32,258,258,4096,Me)];function je(){this.strm=null,this.status=0,this.pending_buf=null,this.pending_buf_size=0,this.pending_out=0,this.pending=0,this.wrap=0,this.gzhead=null,this.gzindex=0,this.method=Se,this.last_flush=-1,this.w_size=0,this.w_bits=0,this.w_mask=0,this.window=null,this.window_size=0,this.prev=null,this.head=null,this.ins_h=0,this.hash_size=0,this.hash_bits=0,this.hash_mask=0,this.hash_shift=0,this.block_start=0,this.match_length=0,this.prev_match=0,this.match_available=0,this.strstart=0,this.match_start=0,this.lookahead=0,this.prev_length=0,this.max_chain_length=0,this.max_lazy_match=0,this.level=0,this.strategy=0,this.good_match=0,this.nice_match=0,this.dyn_ltree=new Uint16Array(1146),this.dyn_dtree=new Uint16Array(122),this.bl_tree=new Uint16Array(78),Ee(this.dyn_ltree),Ee(this.dyn_dtree),Ee(this.bl_tree),this.l_desc=null,this.d_desc=null,this.bl_desc=null,this.bl_count=new Uint16Array(16),this.heap=new Uint16Array(573),Ee(this.heap),this.heap_len=0,this.heap_max=0,this.depth=new Uint16Array(573),Ee(this.depth),this.sym_buf=0,this.lit_bufsize=0,this.sym_next=0,this.sym_end=0,this.opt_len=0,this.static_len=0,this.matches=0,this.insert=0,this.bi_buf=0,this.bi_valid=0}const Ge=t=>{if(!t)return 1;const e=t.state;return!e||e.strm!==t||e.status!==Re&&57!==e.status&&69!==e.status&&73!==e.status&&91!==e.status&&103!==e.status&&e.status!==Ie&&e.status!==ve?1:0},Je=t=>{if(Ge(t))return Ue(t,ce);t.total_in=t.total_out=0,t.data_type=me;const e=t.state;return e.pending=0,e.pending_out=0,e.wrap<0&&(e.wrap=-e.wrap),e.status=2===e.wrap?57:e.wrap?Re:Ie,t.adler=2===e.wrap?0:1,e.last_flush=-2,Yt(e),oe},He=t=>{const e=Je(t);var i;return e===oe&&((i=t.state).window_size=2*i.w_size,Ee(i.head),i.max_lazy_match=$e[i.level].max_lazy,i.good_match=$e[i.level].good_length,i.nice_match=$e[i.level].nice_length,i.max_chain_length=$e[i.level].max_chain,i.strstart=0,i.block_start=0,i.lookahead=0,i.insert=0,i.match_length=i.prev_length=2,i.match_available=0,i.ins_h=0),e},Ve=(t,e,i,s,a,r)=>{if(!t)return ce;let n=1;if(e===ge&&(e=6),s<0?(n=0,s=-s):s>15&&(n=2,s-=16),a<1||a>9||i!==Se||s<8||s>15||e<0||e>9||r<0||r>be||8===s&&1!==n)return Ue(t,ce);8===s&&(s=9);const h=new je;return t.state=h,h.strm=t,h.status=Re,h.wrap=n,h.gzhead=null,h.w_bits=s,h.w_size=1<<h.w_bits,h.w_mask=h.w_size-1,h.hash_bits=a+7,h.hash_size=1<<h.hash_bits,h.hash_mask=h.hash_size-1,h.hash_shift=~~((h.hash_bits+3-1)/3),h.window=new Uint8Array(2*h.w_size),h.head=new Uint16Array(h.hash_size),h.prev=new Uint16Array(h.w_size),h.lit_bufsize=1<<a+6,h.pending_buf_size=4*h.lit_bufsize,h.pending_buf=new Uint8Array(h.pending_buf_size),h.sym_buf=h.lit_bufsize,h.sym_end=3*(h.lit_bufsize-1),h.level=e,h.strategy=r,h.method=i,He(t)};var Ze={deflateInit:(t,e)=>Ve(t,e,Se,15,8,we),deflateInit2:Ve,deflateReset:He,deflateResetKeep:Je,deflateSetHeader:(t,e)=>Ge(t)||2!==t.state.wrap?ce:(t.state.gzhead=e,oe),deflate:(t,e)=>{if(Ge(t)||e>he||e<0)return t?Ue(t,ce):ce;const i=t.state;if(!t.output||0!==t.avail_in&&!t.input||i.status===ve&&e!==ne)return Ue(t,0===t.avail_out?ue:ce);const s=i.last_flush;if(i.last_flush=e,0!==i.pending){if(Te(t),0===t.avail_out)return i.last_flush=-1,oe}else if(0===t.avail_in&&Ce(e)<=Ce(s)&&e!==ne)return Ue(t,ue);if(i.status===ve&&0!==t.avail_in)return Ue(t,ue);if(i.status===Re&&0===i.wrap&&(i.status=Ie),i.status===Re){let e=Se+(i.w_bits-8<<4)<<8,s=-1;if(s=i.strategy>=_e||i.level<2?0:i.level<6?1:6===i.level?2:3,e|=s<<6,0!==i.strstart&&(e|=32),e+=31-e%31,Ae(i,e),0!==i.strstart&&(Ae(i,t.adler>>>16),Ae(i,65535&t.adler)),t.adler=1,i.status=Ie,Te(t),0!==i.pending)return i.last_flush=-1,oe}if(57===i.status)if(t.adler=0,Oe(i,31),Oe(i,139),Oe(i,8),i.gzhead)Oe(i,(i.gzhead.text?1:0)+(i.gzhead.hcrc?2:0)+(i.gzhead.extra?4:0)+(i.gzhead.name?8:0)+(i.gzhead.comment?16:0)),Oe(i,255&i.gzhead.time),Oe(i,i.gzhead.time>>8&255),Oe(i,i.gzhead.time>>16&255),Oe(i,i.gzhead.time>>24&255),Oe(i,9===i.level?2:i.strategy>=_e||i.level<2?4:0),Oe(i,255&i.gzhead.os),i.gzhead.extra&&i.gzhead.extra.length&&(Oe(i,255&i.gzhead.extra.length),Oe(i,i.gzhead.extra.length>>8&255)),i.gzhead.hcrc&&(t.adler=Kt(t.adler,i.pending_buf,i.pending,0)),i.gzindex=0,i.status=69;else if(Oe(i,0),Oe(i,0),Oe(i,0),Oe(i,0),Oe(i,0),Oe(i,9===i.level?2:i.strategy>=_e||i.level<2?4:0),Oe(i,3),i.status=Ie,Te(t),0!==i.pending)return i.last_flush=-1,oe;if(69===i.status){if(i.gzhead.extra){let e=i.pending,s=(65535&i.gzhead.extra.length)-i.gzindex;for(;i.pending+s>i.pending_buf_size;){let a=i.pending_buf_size-i.pending;if(i.pending_buf.set(i.gzhead.extra.subarray(i.gzindex,i.gzindex+a),i.pending),i.pending=i.pending_buf_size,i.gzhead.hcrc&&i.pending>e&&(t.adler=Kt(t.adler,i.pending_buf,i.pending-e,e)),i.gzindex+=a,Te(t),0!==i.pending)return i.last_flush=-1,oe;e=0,s-=a}let a=new Uint8Array(i.gzhead.extra);i.pending_buf.set(a.subarray(i.gzindex,i.gzindex+s),i.pending),i.pending+=s,i.gzhead.hcrc&&i.pending>e&&(t.adler=Kt(t.adler,i.pending_buf,i.pending-e,e)),i.gzindex=0}i.status=73}if(73===i.status){if(i.gzhead.name){let e,s=i.pending;do{if(i.pending===i.pending_buf_size){if(i.gzhead.hcrc&&i.pending>s&&(t.adler=Kt(t.adler,i.pending_buf,i.pending-s,s)),Te(t),0!==i.pending)return i.last_flush=-1,oe;s=0}e=i.gzindex<i.gzhead.name.length?255&i.gzhead.name.charCodeAt(i.gzindex++):0,Oe(i,e)}while(0!==e);i.gzhead.hcrc&&i.pending>s&&(t.adler=Kt(t.adler,i.pending_buf,i.pending-s,s)),i.gzindex=0}i.status=91}if(91===i.status){if(i.gzhead.comment){let e,s=i.pending;do{if(i.pending===i.pending_buf_size){if(i.gzhead.hcrc&&i.pending>s&&(t.adler=Kt(t.adler,i.pending_buf,i.pending-s,s)),Te(t),0!==i.pending)return i.last_flush=-1,oe;s=0}e=i.gzindex<i.gzhead.comment.length?255&i.gzhead.comment.charCodeAt(i.gzindex++):0,Oe(i,e)}while(0!==e);i.gzhead.hcrc&&i.pending>s&&(t.adler=Kt(t.adler,i.pending_buf,i.pending-s,s))}i.status=103}if(103===i.status){if(i.gzhead.hcrc){if(i.pending+2>i.pending_buf_size&&(Te(t),0!==i.pending))return i.last_flush=-1,oe;Oe(i,255&t.adler),Oe(i,t.adler>>8&255),t.adler=0}if(i.status=Ie,Te(t),0!==i.pending)return i.last_flush=-1,oe}if(0!==t.avail_in||0!==i.lookahead||e!==se&&i.status!==ve){let s=0===i.level?Le(i,e):i.strategy===_e?((t,e)=>{let i;for(;;){if(0===t.lookahead&&(Fe(t),0===t.lookahead)){if(e===se)return 1;break}if(t.match_length=0,i=ee(t,0,t.window[t.strstart]),t.lookahead--,t.strstart++,i&&(xe(t,!1),0===t.strm.avail_out))return 1}return t.insert=0,e===ne?(xe(t,!0),0===t.strm.avail_out?3:4):t.sym_next&&(xe(t,!1),0===t.strm.avail_out)?1:2})(i,e):i.strategy===pe?((t,e)=>{let i,s,a,r;const n=t.window;for(;;){if(t.lookahead<=ye){if(Fe(t),t.lookahead<=ye&&e===se)return 1;if(0===t.lookahead)break}if(t.match_length=0,t.lookahead>=3&&t.strstart>0&&(a=t.strstart-1,s=n[a],s===n[++a]&&s===n[++a]&&s===n[++a])){r=t.strstart+ye;do{}while(s===n[++a]&&s===n[++a]&&s===n[++a]&&s===n[++a]&&s===n[++a]&&s===n[++a]&&s===n[++a]&&s===n[++a]&&a<r);t.match_length=ye-(r-a),t.match_length>t.lookahead&&(t.match_length=t.lookahead)}if(t.match_length>=3?(i=ee(t,1,t.match_length-3),t.lookahead-=t.match_length,t.strstart+=t.match_length,t.match_length=0):(i=ee(t,0,t.window[t.strstart]),t.lookahead--,t.strstart++),i&&(xe(t,!1),0===t.strm.avail_out))return 1}return t.insert=0,e===ne?(xe(t,!0),0===t.strm.avail_out?3:4):t.sym_next&&(xe(t,!1),0===t.strm.avail_out)?1:2})(i,e):$e[i.level].func(i,e);if(3!==s&&4!==s||(i.status=ve),1===s||3===s)return 0===t.avail_out&&(i.last_flush=-1),oe;if(2===s&&(e===ae?ie(i):e!==he&&(Qt(i,0,0,!1),e===re&&(Ee(i.head),0===i.lookahead&&(i.strstart=0,i.block_start=0,i.insert=0))),Te(t),0===t.avail_out))return i.last_flush=-1,oe}return e!==ne?oe:i.wrap<=0?le:(2===i.wrap?(Oe(i,255&t.adler),Oe(i,t.adler>>8&255),Oe(i,t.adler>>16&255),Oe(i,t.adler>>24&255),Oe(i,255&t.total_in),Oe(i,t.total_in>>8&255),Oe(i,t.total_in>>16&255),Oe(i,t.total_in>>24&255)):(Ae(i,t.adler>>>16),Ae(i,65535&t.adler)),Te(t),i.wrap>0&&(i.wrap=-i.wrap),0!==i.pending?oe:le)},deflateEnd:t=>{if(Ge(t))return ce;const e=t.state.status;return t.state=null,e===Ie?Ue(t,de):oe},deflateSetDictionary:(t,e)=>{let i=e.length;if(Ge(t))return ce;const s=t.state,a=s.wrap;if(2===a||1===a&&s.status!==Re||s.lookahead)return ce;if(1===a&&(t.adler=Vt(t.adler,e,i,0)),s.wrap=0,i>=s.w_size){0===a&&(Ee(s.head),s.strstart=0,s.block_start=0,s.insert=0);let t=new Uint8Array(s.w_size);t.set(e.subarray(i-s.w_size,i),0),e=t,i=s.w_size}const r=t.avail_in,n=t.next_in,h=t.input;for(t.avail_in=i,t.next_in=0,t.input=e,Fe(s);s.lookahead>=3;){let t=s.strstart,e=s.lookahead-2;do{s.ins_h=De(s,s.ins_h,s.window[t+3-1]),s.prev[t&s.w_mask]=s.head[s.ins_h],s.head[s.ins_h]=t,t++}while(--e);s.strstart=t,s.lookahead=2,Fe(s)}return s.strstart+=s.lookahead,s.block_start=s.strstart,s.insert=s.lookahead,s.lookahead=0,s.match_length=s.prev_length=2,s.match_available=0,t.next_in=n,t.input=h,t.avail_in=r,s.wrap=a,oe},deflateInfo:"pako deflate (from Nodeca project)"};const Ke=(t,e)=>Object.prototype.hasOwnProperty.call(t,e);var Xe=function(t){const e=Array.prototype.slice.call(arguments,1);for(;e.length;){const i=e.shift();if(i){if("object"!=typeof i)throw new TypeError(i+"must be non-object");for(const e in i)Ke(i,e)&&(t[e]=i[e])}}return t},qe=t=>{let e=0;for(let i=0,s=t.length;i<s;i++)e+=t[i].length;const i=new Uint8Array(e);for(let e=0,s=0,a=t.length;e<a;e++){let a=t[e];i.set(a,s),s+=a.length}return i};let Ye=!0;try{String.fromCharCode.apply(null,new Uint8Array(1))}catch(t){Ye=!1}const Qe=new Uint8Array(256);for(let t=0;t<256;t++)Qe[t]=t>=252?6:t>=248?5:t>=240?4:t>=224?3:t>=192?2:1;Qe[254]=Qe[254]=1;var ti=t=>{if("function"==typeof TextEncoder&&TextEncoder.prototype.encode)return(new TextEncoder).encode(t);let e,i,s,a,r,n=t.length,h=0;for(a=0;a<n;a++)i=t.charCodeAt(a),55296==(64512&i)&&a+1<n&&(s=t.charCodeAt(a+1),56320==(64512&s)&&(i=65536+(i-55296<<10)+(s-56320),a++)),h+=i<128?1:i<2048?2:i<65536?3:4;for(e=new Uint8Array(h),r=0,a=0;r<h;a++)i=t.charCodeAt(a),55296==(64512&i)&&a+1<n&&(s=t.charCodeAt(a+1),56320==(64512&s)&&(i=65536+(i-55296<<10)+(s-56320),a++)),i<128?e[r++]=i:i<2048?(e[r++]=192|i>>>6,e[r++]=128|63&i):i<65536?(e[r++]=224|i>>>12,e[r++]=128|i>>>6&63,e[r++]=128|63&i):(e[r++]=240|i>>>18,e[r++]=128|i>>>12&63,e[r++]=128|i>>>6&63,e[r++]=128|63&i);return e};var ei=function(){this.input=null,this.next_in=0,this.avail_in=0,this.total_in=0,this.output=null,this.next_out=0,this.avail_out=0,this.total_out=0,this.msg="",this.state=null,this.data_type=2,this.adler=0};const ii=Object.prototype.toString,{Z_NO_FLUSH:si,Z_SYNC_FLUSH:ai,Z_FULL_FLUSH:ri,Z_FINISH:ni,Z_OK:hi,Z_STREAM_END:oi,Z_DEFAULT_COMPRESSION:li,Z_DEFAULT_STRATEGY:ci,Z_DEFLATED:di}=qt;function ui(t){this.options=Xe({level:li,method:di,chunkSize:16384,windowBits:15,memLevel:8,strategy:ci},t||{});let e=this.options;e.raw&&e.windowBits>0?e.windowBits=-e.windowBits:e.gzip&&e.windowBits>0&&e.windowBits<16&&(e.windowBits+=16),this.err=0,this.msg="",this.ended=!1,this.chunks=[],this.strm=new ei,this.strm.avail_out=0;let i=Ze.deflateInit2(this.strm,e.level,e.method,e.windowBits,e.memLevel,e.strategy);if(i!==hi)throw new Error(Xt[i]);if(e.header&&Ze.deflateSetHeader(this.strm,e.header),e.dictionary){let t;if(t="string"==typeof e.dictionary?ti(e.dictionary):"[object ArrayBuffer]"===ii.call(e.dictionary)?new Uint8Array(e.dictionary):e.dictionary,i=Ze.deflateSetDictionary(this.strm,t),i!==hi)throw new Error(Xt[i]);this._dict_set=!0}}ui.prototype.push=function(t,e){const i=this.strm,s=this.options.chunkSize;let a,r;if(this.ended)return!1;for(r=e===~~e?e:!0===e?ni:si,"string"==typeof t?i.input=ti(t):"[object ArrayBuffer]"===ii.call(t)?i.input=new Uint8Array(t):i.input=t,i.next_in=0,i.avail_in=i.input.length;;)if(0===i.avail_out&&(i.output=new Uint8Array(s),i.next_out=0,i.avail_out=s),(r===ai||r===ri)&&i.avail_out<=6)this.onData(i.output.subarray(0,i.next_out)),i.avail_out=0;else{if(a=Ze.deflate(i,r),a===oi)return i.next_out>0&&this.onData(i.output.subarray(0,i.next_out)),a=Ze.deflateEnd(this.strm),this.onEnd(a),this.ended=!0,a===hi;if(0!==i.avail_out){if(r>0&&i.next_out>0)this.onData(i.output.subarray(0,i.next_out)),i.avail_out=0;else if(0===i.avail_in)break}else this.onData(i.output)}return!0},ui.prototype.onData=function(t){this.chunks.push(t)},ui.prototype.onEnd=function(t){t===hi&&(this.result=qe(this.chunks)),this.chunks=[],this.err=t,this.msg=this.strm.msg};var gi={deflate:function(t,e){const i=new ui(e);if(i.push(t,!0),i.err)throw i.msg||Xt[i.err];return i.result}};const{deflate:fi}=gi;var _i=fi;const pi={b:{u:DataView.prototype.getInt8,p:DataView.prototype.setInt8,bytes:1},B:{u:DataView.prototype.getUint8,p:DataView.prototype.setUint8,bytes:1},h:{u:DataView.prototype.getInt16,p:DataView.prototype.setInt16,bytes:2},H:{u:DataView.prototype.getUint16,p:DataView.prototype.setUint16,bytes:2},i:{u:DataView.prototype.getInt32,p:DataView.prototype.setInt32,bytes:4},I:{u:DataView.prototype.getUint32,p:DataView.prototype.setUint32,bytes:4}},bi=(t,...e)=>{let i=0;if(t.replace(/[<>]/,"").length!=e.length)throw"Pack format to Argument count mismatch";const s=[];let a=!0;for(let s=0;s<t.length;s++)"<"==t[s]?a=!0:">"==t[s]?a=!1:(r(t[s],e[i]),i++);function r(t,e){if(!(t in pi))throw"Unhandled character '"+t+"' in pack format";const i=pi[t].bytes,r=new DataView(new ArrayBuffer(i));pi[t].p.bind(r)(0,e,a);for(let t=0;t<i;t++)s.push(r.getUint8(t))}return s},wi=(t,e)=>{let i=0;const s=[];let a=!0;for(const e of t)"<"==e?a=!0:">"==e?a=!1:r(e);function r(t){if(!(t in pi))throw"Unhandled character '"+t+"' in unpack format";const r=pi[t].bytes,n=new DataView(new ArrayBuffer(r));for(let t=0;t<r;t++)n.setUint8(t,255&e[i+t]);const h=pi[t].u.bind(n);s.push(h(0,a)),i+=r}return s};class mi extends EventTarget{get isUsbJtagOrOtg(){return this._parent?this._parent._isUsbJtagOrOtg:this._isUsbJtagOrOtg}constructor(t,e,i){super(),this.port=t,this.logger=e,this._parent=i,this.__chipName=null,this.__chipRevision=null,this.__chipVariant=null,this._efuses=new Array(4).fill(0),this._flashsize=4194304,this.debug=!1,this.IS_STUB=!1,this.connected=!0,this.flashSize=null,this.currentBaudRate=o,this.SLIP_END=192,this.SLIP_ESC=219,this.SLIP_ESC_END=220,this.SLIP_ESC_ESC=221,this._isESP32S2NativeUSB=!1,this._initializationSucceeded=!1,this.__commandLock=Promise.resolve([0,[]]),this.__isReconfiguring=!1,this.__abandonCurrentOperation=!1,this._suppressDisconnect=!1,this.__consoleMode=!1,this._isUsbJtagOrOtg=void 0,this.__adaptiveBlockMultiplier=1,this.__adaptiveMaxInFlightMultiplier=1,this.__consecutiveSuccessfulChunks=0,this.__lastAdaptiveAdjustment=0,this.__isCDCDevice=!1,this.state_DTR=!1,this.state_RTS=!1,this.__writeChain=Promise.resolve()}get chipFamily(){return this._parent?this._parent.chipFamily:this.__chipFamily}set chipFamily(t){this._parent?this._parent.chipFamily=t:this.__chipFamily=t}get chipName(){return this._parent?this._parent.chipName:this.__chipName}set chipName(t){this._parent?this._parent.chipName=t:this.__chipName=t}get chipRevision(){return this._parent?this._parent.chipRevision:this.__chipRevision}set chipRevision(t){this._parent?this._parent.chipRevision=t:this.__chipRevision=t}get chipVariant(){return this._parent?this._parent.chipVariant:this.__chipVariant}set chipVariant(t){this._parent?this._parent.chipVariant=t:this.__chipVariant=t}get _consoleMode(){return this._parent?this._parent._consoleMode:this.__consoleMode}set _consoleMode(t){this._parent?this._parent._consoleMode=t:this.__consoleMode=t}setConsoleMode(t){this._consoleMode=t}get _inputBuffer(){if(this._parent)return this._parent._inputBuffer;if(void 0===this.__inputBuffer)throw new Error("_inputBuffer accessed before initialization");return this.__inputBuffer}get _inputBufferReadIndex(){return this._parent?this._parent._inputBufferReadIndex:this.__inputBufferReadIndex||0}set _inputBufferReadIndex(t){this._parent?this._parent._inputBufferReadIndex=t:this.__inputBufferReadIndex=t}get _inputBufferAvailable(){return this._inputBuffer.length-this._inputBufferReadIndex}_readByte(){if(!(this._inputBufferReadIndex>=this._inputBuffer.length))return this._inputBuffer[this._inputBufferReadIndex++]}_clearInputBuffer(){this._inputBuffer.length=0,this._inputBufferReadIndex=0}_compactInputBuffer(){this._inputBufferReadIndex>1e3&&this._inputBufferReadIndex>this._inputBuffer.length/2&&(this._inputBuffer.splice(0,this._inputBufferReadIndex),this._inputBufferReadIndex=0)}get _totalBytesRead(){return this._parent?this._parent._totalBytesRead:this.__totalBytesRead||0}set _totalBytesRead(t){this._parent?this._parent._totalBytesRead=t:this.__totalBytesRead=t}get _commandLock(){return this._parent?this._parent._commandLock:this.__commandLock}set _commandLock(t){this._parent?this._parent._commandLock=t:this.__commandLock=t}get _isReconfiguring(){return this._parent?this._parent._isReconfiguring:this.__isReconfiguring}set _isReconfiguring(t){this._parent?this._parent._isReconfiguring=t:this.__isReconfiguring=t}get _abandonCurrentOperation(){return this._parent?this._parent._abandonCurrentOperation:this.__abandonCurrentOperation}set _abandonCurrentOperation(t){this._parent?this._parent._abandonCurrentOperation=t:this.__abandonCurrentOperation=t}get _adaptiveBlockMultiplier(){return this._parent?this._parent._adaptiveBlockMultiplier:this.__adaptiveBlockMultiplier}set _adaptiveBlockMultiplier(t){this._parent?this._parent._adaptiveBlockMultiplier=t:this.__adaptiveBlockMultiplier=t}get _adaptiveMaxInFlightMultiplier(){return this._parent?this._parent._adaptiveMaxInFlightMultiplier:this.__adaptiveMaxInFlightMultiplier}set _adaptiveMaxInFlightMultiplier(t){this._parent?this._parent._adaptiveMaxInFlightMultiplier=t:this.__adaptiveMaxInFlightMultiplier=t}get _consecutiveSuccessfulChunks(){return this._parent?this._parent._consecutiveSuccessfulChunks:this.__consecutiveSuccessfulChunks}set _consecutiveSuccessfulChunks(t){this._parent?this._parent._consecutiveSuccessfulChunks=t:this.__consecutiveSuccessfulChunks=t}get _lastAdaptiveAdjustment(){return this._parent?this._parent._lastAdaptiveAdjustment:this.__lastAdaptiveAdjustment}set _lastAdaptiveAdjustment(t){this._parent?this._parent._lastAdaptiveAdjustment=t:this.__lastAdaptiveAdjustment=t}get _isCDCDevice(){return this._parent?this._parent._isCDCDevice:this.__isCDCDevice}set _isCDCDevice(t){this._parent?this._parent._isCDCDevice=t:this.__isCDCDevice=t}detectUSBSerialChip(t,e){const i={6790:{29986:{name:"CH340",maxBaudrate:460800},29987:{name:"CH340",maxBaudrate:460800},30084:{name:"CH340",maxBaudrate:460800},21795:{name:"CH341",maxBaudrate:2e6},21971:{name:"CH343",maxBaudrate:6e6},21972:{name:"CH9102",maxBaudrate:6e6},21976:{name:"CH9101",maxBaudrate:3e6}},4292:{6e4:{name:"CP2102(n)",maxBaudrate:3e6},60016:{name:"CP2105",maxBaudrate:2e6},60017:{name:"CP2108",maxBaudrate:2e6}},1027:{24577:{name:"FT232R",maxBaudrate:3e6},24592:{name:"FT2232",maxBaudrate:3e6},24593:{name:"FT4232",maxBaudrate:3e6},24596:{name:"FT232H",maxBaudrate:12e6},24597:{name:"FT230X",maxBaudrate:3e6}},12346:{2:{name:"ESP32-S2 Native USB",maxBaudrate:2e6},18:{name:"ESP32-P4 Native USB",maxBaudrate:2e6},4097:{name:"ESP32 Native USB",maxBaudrate:2e6}}}[t];return i&&i[e]?i[e]:{name:`Unknown (VID: 0x${t.toString(16)}, PID: 0x${e.toString(16)})`}}async initialize(){if(!this._parent){this.__inputBuffer=[],this.__inputBufferReadIndex=0,this.__totalBytesRead=0;const t=this.port.getInfo();if(t.usbVendorId&&t.usbProductId){const e=this.detectUSBSerialChip(t.usbVendorId,t.usbProductId);this.logger.log(`USB-Serial: ${e.name} (VID: 0x${t.usbVendorId.toString(16)}, PID: 0x${t.usbProductId.toString(16)})`),e.maxBaudrate&&(this._maxUSBSerialBaudrate=e.maxBaudrate,this.logger.log(`Max baudrate: ${e.maxBaudrate}`)),12346===t.usbVendorId&&2===t.usbProductId&&(this._isESP32S2NativeUSB=!0),(12346===t.usbVendorId||6790===t.usbVendorId&&21971===t.usbProductId)&&(this._isCDCDevice=!0)}this.readLoop()}await this.connectWithResetStrategies(),await this.detectChip();try{this._isUsbJtagOrOtg=await this.detectUsbConnectionType(),this.logger.debug("USB connection type: "+(this._isUsbJtagOrOtg?"USB-JTAG/OTG":"External Serial Chip"))}catch(t){this.logger.debug(`Could not detect USB connection type: ${t}`)}const t=nt(this.getChipFamily()),e=t.macFuse;for(let t=0;t<4;t++)this._efuses[t]=await this.readRegister(e+4*t);this.logger.log(`Chip type ${this.chipName}`),this.logger.debug(`Bootloader flash offset: 0x${t.flashOffs.toString(16)}`),this._initializationSucceeded=!0}async detectChip(){try{const t=(await this.getSecurityInfo()).chipId,e=U[t];if(e)return this.chipName=e.name,this.chipFamily=e.family,this.chipFamily===I?(this.chipRevision=await this.getChipRevision(),this.logger.debug(`ESP32-P4 revision: ${this.chipRevision}`),this.chipRevision>=300?this.chipVariant="rev300":this.chipVariant="rev0",this.logger.debug(`ESP32-P4 variant: ${this.chipVariant}`)):this.chipFamily===b&&(this.chipRevision=await this.getChipRevision(),this.logger.debug(`ESP32-C3 revision: ${this.chipRevision}`)),void this.logger.debug(`Detected chip via IMAGE_CHIP_ID: ${t} (${this.chipName})`);this.logger.debug(`Unknown IMAGE_CHIP_ID: ${t}, falling back to magic value detection`)}catch(t){this.logger.debug(`GET_SECURITY_INFO failed, using magic value detection: ${t}`),await this.drainInputBuffer(200),this._clearInputBuffer(),await r(et);try{await this.sync()}catch(t){this.logger.debug(`Re-sync after GET_SECURITY_INFO failure: ${t}`)}}const t=await this.readRegister(1073745920),e=C[t>>>0];if(void 0===e)throw new Error(`Unknown Chip: Hex: ${s(t>>>0,8).toLowerCase()} Number: ${t}`);this.chipName=e.name,this.chipFamily=e.family,this.chipFamily===I?(this.chipRevision=await this.getChipRevision(),this.chipRevision>=300?this.chipVariant="rev300":this.chipVariant="rev0",this.logger.debug(`ESP32-P4 variant: ${this.chipVariant}`)):this.chipFamily===b&&(this.chipRevision=await this.getChipRevision()),this.logger.debug(`Detected chip via magic value: ${s(t>>>0,8)} (${this.chipName})`)}async getChipRevision(){if(this.chipFamily===I){const t=await this.readRegister(1343410252);return 100*((t>>23&1)<<2|t>>4&3)+(15&t)}return this.chipFamily===b?await this.getChipRevisionC3():0}async getSecurityInfo(){const[,t]=await this.checkCommand(20,[],0);if(0===t.length)throw new Error("GET_SECURITY_INFO not supported or returned empty response");if(t.length<12)throw new Error(`Invalid security info response length: ${t.length} (expected at least 12 bytes)`);return{flags:wi("<I",t.slice(0,4))[0],flashCryptCnt:t[4],keyPurposes:Array.from(t.slice(5,12)),chipId:t.length>=16?wi("<I",t.slice(12,16))[0]:0,apiVersion:t.length>=20?wi("<I",t.slice(16,20))[0]:0}}async getMacAddress(){if(!this._initializationSucceeded)throw new Error("getMacAddress() requires initialize() to have completed successfully");return this.macAddr().map(t=>t.toString(16).padStart(2,"0").toUpperCase()).join(":")}async readLoop(){this.debug&&this.logger.debug("Starting read loop"),this._reader=this.port.readable.getReader();try{let t=!0;for(;t;){const{value:e,done:i}=await this._reader.read();if(i){this._reader.releaseLock(),t=!1;break}if(!e||0===e.length)continue;const s=Array.from(e);Array.prototype.push.apply(this._inputBuffer,s),this._totalBytesRead+=e.length}}catch{}finally{if(this._isReconfiguring=!1,this._reader){try{this._reader.releaseLock(),this.logger.debug("Reader released in readLoop cleanup")}catch(t){this.logger.debug(`Reader release error in readLoop: ${t}`)}this._reader=void 0}}this.connected=!1,this._isESP32S2NativeUSB&&!this._initializationSucceeded&&(this.logger.log("ESP32-S2 Native USB detected - requesting port reselection"),this.dispatchEvent(new CustomEvent("esp32s2-usb-reconnect",{detail:{message:"ESP32-S2 Native USB requires port reselection"}}))),this._suppressDisconnect||this.dispatchEvent(new Event("disconnect")),this._suppressDisconnect=!1,this.logger.debug("Finished read loop")}sleep(t=100){return new Promise(e=>setTimeout(e,t))}async setRTS(t){this.port.writable?(await this.port.setSignals({requestToSend:t}),await this.setDTR(this.state_DTR)):this.logger.debug("Port is closed - skipping setRTS")}async setDTR(t){this.state_DTR=t,this.port.writable?await this.port.setSignals({dataTerminalReady:t}):this.logger.debug("Port is closed - skipping setDTR")}async setDTRandRTS(t,e){this.state_DTR=t,this.state_RTS=e,this.port.writable?await this.port.setSignals({dataTerminalReady:t,requestToSend:e}):this.logger.debug("Port is closed - skipping setDTRandRTS")}async hardResetUSBJTAGSerial(){await this.setRTS(!1),await this.setDTR(!1),await this.sleep(100),await this.setDTR(!0),await this.setRTS(!1),await this.sleep(100),await this.setRTS(!0),await this.setDTR(!1),await this.setRTS(!0),await this.sleep(100),await this.setDTR(!1),await this.setRTS(!1),await this.sleep(200)}async hardResetClassic(){await this.setDTR(!1),await this.setRTS(!0),await this.sleep(100),await this.setDTR(!0),await this.setRTS(!1),await this.sleep(50),await this.setDTR(!1),await this.sleep(200)}async hardResetToFirmware(){await this.setDTR(!1),await this.setRTS(!0),await this.sleep(100),await this.setRTS(!1),await this.sleep(50),await this.sleep(200)}async hardResetToFirmwareWebUSB(){await this.setDTRWebUSB(!1),await this.setRTSWebUSB(!0),await this.sleep(100),await this.setRTSWebUSB(!1),await this.sleep(50),await this.sleep(200)}async hardResetUnixTight(){await this.setDTRandRTS(!0,!0),await this.setDTRandRTS(!1,!1),await this.setDTRandRTS(!1,!0),await this.sleep(100),await this.setDTRandRTS(!0,!1),await this.sleep(50),await this.setDTRandRTS(!1,!1),await this.setDTR(!1),await this.sleep(200)}async setRTSWebUSB(t){this.state_RTS=t,this.port.writable?await this.port.setSignals({requestToSend:t,dataTerminalReady:this.state_DTR}):this.logger.debug("Port is closed - skipping setRTSWebUSB")}async setDTRWebUSB(t){this.state_DTR=t,this.port.writable?await this.port.setSignals({dataTerminalReady:t,requestToSend:this.state_RTS}):this.logger.debug("Port is closed - skipping setDTRWebUSB")}async setDTRandRTSWebUSB(t,e){this.state_DTR=t,this.state_RTS=e,this.port.writable?await this.port.setSignals({dataTerminalReady:t,requestToSend:e}):this.logger.debug("Port is closed - skipping setDTRandRTSWebUSB")}async hardResetUSBJTAGSerialWebUSB(){await this.setRTSWebUSB(!1),await this.setDTRWebUSB(!1),await this.sleep(100),await this.setDTRWebUSB(!0),await this.setRTSWebUSB(!1),await this.sleep(100),await this.setRTSWebUSB(!0),await this.setDTRWebUSB(!1),await this.setRTSWebUSB(!0),await this.sleep(100),await this.setDTRWebUSB(!1),await this.setRTSWebUSB(!1),await this.sleep(200)}async hardResetUSBJTAGSerialInvertedDTRWebUSB(){await this.setRTSWebUSB(!1),await this.setDTRWebUSB(!0),await this.sleep(100),await this.setDTRWebUSB(!1),await this.setRTSWebUSB(!1),await this.sleep(100),await this.setRTSWebUSB(!0),await this.setDTRWebUSB(!0),await this.setRTSWebUSB(!0),await this.sleep(100),await this.setDTRWebUSB(!0),await this.setRTSWebUSB(!1),await this.sleep(200)}async hardResetClassicWebUSB(){await this.setDTRWebUSB(!1),await this.setRTSWebUSB(!0),await this.sleep(100),await this.setDTRWebUSB(!0),await this.setRTSWebUSB(!1),await this.sleep(50),await this.setDTRWebUSB(!1),await this.sleep(200)}async hardResetUnixTightWebUSB(){await this.setDTRandRTSWebUSB(!1,!1),await this.setDTRandRTSWebUSB(!0,!0),await this.setDTRandRTSWebUSB(!1,!0),await this.sleep(100),await this.setDTRandRTSWebUSB(!0,!1),await this.sleep(50),await this.setDTRandRTSWebUSB(!1,!1),await this.setDTRWebUSB(!1),await this.sleep(200)}async hardResetClassicLongDelayWebUSB(){await this.setDTRWebUSB(!1),await this.setRTSWebUSB(!0),await this.sleep(500),await this.setDTRWebUSB(!0),await this.setRTSWebUSB(!1),await this.sleep(200),await this.setDTRWebUSB(!1),await this.sleep(500)}async hardResetClassicShortDelayWebUSB(){await this.setDTRWebUSB(!1),await this.setRTSWebUSB(!0),await this.sleep(50),await this.setDTRWebUSB(!0),await this.setRTSWebUSB(!1),await this.sleep(25),await this.setDTRWebUSB(!1),await this.sleep(100)}async hardResetInvertedWebUSB(){await this.setDTRWebUSB(!0),await this.setRTSWebUSB(!1),await this.sleep(100),await this.setDTRWebUSB(!1),await this.setRTSWebUSB(!0),await this.sleep(50),await this.setDTRWebUSB(!0),await this.sleep(200)}async hardResetInvertedDTRWebUSB(){await this.setDTRWebUSB(!0),await this.setRTSWebUSB(!0),await this.sleep(100),await this.setDTRWebUSB(!1),await this.setRTSWebUSB(!1),await this.sleep(50),await this.setDTRWebUSB(!0),await this.sleep(200)}async hardResetInvertedRTSWebUSB(){await this.setDTRWebUSB(!1),await this.setRTSWebUSB(!1),await this.sleep(100),await this.setDTRWebUSB(!0),await this.setRTSWebUSB(!0),await this.sleep(50),await this.setDTRWebUSB(!1),await this.sleep(200)}isWebUSB(){return!0===this.port.isWebUSB}async connectWithResetStrategies(){const t=this.port.getInfo(),e=4097===t.usbProductId,i=12346===t.usbVendorId,s=[],a=this,n=!e&&!i;if(this.isWebUSB()){const r=4292===t.usbVendorId,h=6790===t.usbVendorId,o=12346===t.usbVendorId&&2===t.usbProductId;(e||i)&&(o?(s.push({name:"USB-JTAG/Serial (WebUSB) - ESP32-S2",fn:async()=>await a.hardResetUSBJTAGSerialWebUSB()}),s.push({name:"USB-JTAG/Serial Inverted DTR (WebUSB) - ESP32-S2",fn:async()=>await a.hardResetUSBJTAGSerialInvertedDTRWebUSB()}),s.push({name:"UnixTight (WebUSB) - ESP32-S2 CDC",fn:async()=>await a.hardResetUnixTightWebUSB()}),s.push({name:"Classic (WebUSB) - ESP32-S2 CDC",fn:async()=>await a.hardResetClassicWebUSB()})):(s.push({name:"USB-JTAG/Serial Inverted DTR (WebUSB)",fn:async()=>await a.hardResetUSBJTAGSerialInvertedDTRWebUSB()}),s.push({name:"USB-JTAG/Serial (WebUSB)",fn:async()=>await a.hardResetUSBJTAGSerialWebUSB()}),s.push({name:"Inverted DTR Classic (WebUSB)",fn:async()=>await a.hardResetInvertedDTRWebUSB()}))),n&&(h?(s.push({name:"UnixTight (WebUSB) - CH34x",fn:async()=>await a.hardResetUnixTightWebUSB()}),s.push({name:"Classic (WebUSB) - CH34x",fn:async()=>await a.hardResetClassicWebUSB()}),s.push({name:"Inverted Both (WebUSB) - CH34x",fn:async()=>await a.hardResetInvertedWebUSB()}),s.push({name:"Inverted RTS (WebUSB) - CH34x",fn:async()=>await a.hardResetInvertedRTSWebUSB()}),s.push({name:"Inverted DTR (WebUSB) - CH34x",fn:async()=>await a.hardResetInvertedDTRWebUSB()})):r?(s.push({name:"UnixTight (WebUSB) - CP2102",fn:async()=>await a.hardResetUnixTightWebUSB()}),s.push({name:"Classic (WebUSB) - CP2102",fn:async()=>await a.hardResetClassicWebUSB()}),s.push({name:"Inverted Both (WebUSB) - CP2102",fn:async()=>await a.hardResetInvertedWebUSB()}),s.push({name:"Inverted RTS (WebUSB) - CP2102",fn:async()=>await a.hardResetInvertedRTSWebUSB()}),s.push({name:"Inverted DTR (WebUSB) - CP2102",fn:async()=>await a.hardResetInvertedDTRWebUSB()})):(s.push({name:"UnixTight (WebUSB)",fn:async()=>await a.hardResetUnixTightWebUSB()}),s.push({name:"Classic (WebUSB)",fn:async function(){return await a.hardResetClassicWebUSB()}}),s.push({name:"Inverted Both (WebUSB)",fn:async function(){return await a.hardResetInvertedWebUSB()}}),s.push({name:"Inverted RTS (WebUSB)",fn:async function(){return await a.hardResetInvertedRTSWebUSB()}}),s.push({name:"Inverted DTR (WebUSB)",fn:async function(){return await a.hardResetInvertedDTRWebUSB()}}))),r||o||(6790!==t.usbVendorId&&s.push({name:"Classic (WebUSB)",fn:async function(){return await a.hardResetClassicWebUSB()}}),s.push({name:"UnixTight (WebUSB)",fn:async function(){return await a.hardResetUnixTightWebUSB()}}),s.push({name:"Classic Long Delay (WebUSB)",fn:async function(){return await a.hardResetClassicLongDelayWebUSB()}}),s.push({name:"Classic Short Delay (WebUSB)",fn:async function(){return await a.hardResetClassicShortDelayWebUSB()}}),e||i||s.push({name:"USB-JTAG/Serial fallback (WebUSB)",fn:async function(){return await a.hardResetUSBJTAGSerialWebUSB()}}))}else(e||i)&&s.push({name:"USB-JTAG/Serial",fn:async function(){return await a.hardResetUSBJTAGSerial()}}),s.push({name:"UnixTight",fn:async function(){return await a.hardResetUnixTight()}}),e||i||s.push({name:"USB-JTAG/Serial (fallback)",fn:async function(){return await a.hardResetUSBJTAGSerial()}});let h=null;for(const t of s)try{if(!this.connected||!this.port.writable){this.logger.debug(`Port disconnected, skipping ${t.name} reset`);continue}if(this._abandonCurrentOperation=!1,await t.fn(),n){if(await this.syncWithTimeout(2e3))return void this.logger.log(`Connected USB Serial successfully with ${t.name} reset.`);throw new Error("Sync timeout or abandoned")}{const e=this.sync(),i=new Promise((t,e)=>setTimeout(()=>e(new Error("Sync timeout")),1e3));try{return await Promise.race([e,i]),void this.logger.log(`Connected CDC/JTAG successfully with ${t.name} reset.`)}catch(t){throw new Error("Sync timeout or abandoned")}}}catch(t){if(h=t,this._abandonCurrentOperation=!0,await r(100),!this.connected||!this.port.writable){this.logger.log("Port disconnected during reset attempt");break}this._clearInputBuffer(),await this.drainInputBuffer(200),await this.flushSerialBuffers()}throw this._abandonCurrentOperation=!1,new Error(`Couldn't sync to ESP. Try resetting manually. Last error: ${null==h?void 0:h.message}`)}async watchdogReset(){await this.rtcWdtResetChipSpecific()}async getChipRevisionC3(){if(this.chipFamily!==b)return 0;const t=await this.readRegister(1610647632)>>18&7;return(await this.readRegister(1610647640)>>23&7)<<3|t}async rtcWdtResetChipSpecific(){let t,e,i,s;if(this.logger.debug("Hard resetting with watchdog timer..."),this.chipFamily===f)t=1061191852,e=1061191828,i=1061191832,s=1356348065;else if(this.chipFamily===_)t=1610645680,e=1610645656,i=1610645660,s=1356348065;else if(this.chipFamily===b)t=1610645672,e=1610645648,i=1610645652,s=1356348065;else if(this.chipFamily===w||this.chipFamily===m)t=1611340824,e=1611340800,i=1611340804,s=1356348065;else{if(this.chipFamily!==I)throw new Error(`rtcWdtResetChipSpecific() is not supported for ${this.chipFamily}`);t=1343315992,e=1343315968,i=1343315972,s=1356348065}await this.writeRegister(t,s,void 0,0),await this.writeRegister(i,2e3,void 0,0);await this.writeRegister(e,-805306110,void 0,0),await this.writeRegister(t,0,void 0,0),await this.sleep(500)}async tryUsbWdtReset(t){return await this.detectUsbConnectionType()?(await this.rtcWdtResetChipSpecific(),this.logger.debug(`${t}: RTC WDT reset (USB-JTAG/Serial or USB-OTG detected)`),!0):(this.isWebUSB()?(await this.hardResetClassicWebUSB(),this.logger.debug("Classic reset (WebUSB/Android).")):(await this.hardResetClassic(),this.logger.debug("Classic reset.")),!1)}async hardReset(t=!1){if(this._consoleMode)return t?void this.logger.debug("Skipping bootloader reset - device is in console mode"):(this.logger.debug("Performing hardware reset (console mode)..."),this.isWebUSB()?await this.hardResetToFirmwareWebUSB():await this.hardResetToFirmware(),void this.logger.debug("Hardware reset complete"));if(t)4097===this.port.getInfo().usbProductId?(await this.hardResetUSBJTAGSerial(),this.logger.debug("USB-JTAG/Serial reset.")):this.isWebUSB()?(await this.hardResetClassicWebUSB(),this.logger.debug("Classic reset (WebUSB/Android).")):(await this.hardResetClassic(),this.logger.debug("Classic reset."));else{if(this.logger.debug("*** Performing WDT reset strategy ***"),this.chipFamily===f){if(await this.tryUsbWdtReset("ESP32-S2"))return}else if(this.chipFamily===_){if(await this.tryUsbWdtReset("ESP32-S3"))return}else if(this.chipFamily===I){if(await this.tryUsbWdtReset("ESP32-P4"))return}else if(this.chipFamily===b){if(await this.tryUsbWdtReset("ESP32-C3"))return}else if(this.chipFamily===w){if(await this.tryUsbWdtReset("ESP32-C5"))return}else if(this.chipFamily===m){if(await this.tryUsbWdtReset("ESP32-C6"))return}this.isWebUSB()?(await this.setRTSWebUSB(!0),await this.sleep(200),await this.setRTSWebUSB(!1),await this.sleep(200),this.logger.debug("Hard reset (WebUSB).")):(await this.setRTS(!0),await this.sleep(100),await this.setRTS(!1),this.logger.debug("Hard reset."))}await new Promise(t=>setTimeout(t,1e3))}macAddr(){const t=new Array(6).fill(0),e=this._efuses[0],i=this._efuses[1],s=this._efuses[2],a=this._efuses[3];let r;if(this.chipFamily==u){if(0!=a)r=[a>>16&255,a>>8&255,255&a];else if(i>>16&255){if(1!=(i>>16&255))throw new Error("Couldnt determine OUI");r=[172,208,116]}else r=[24,254,52];t[0]=r[0],t[1]=r[1],t[2]=r[2],t[3]=i>>8&255,t[4]=255&i,t[5]=e>>24&255}else if(this.chipFamily==g)t[0]=s>>8&255,t[1]=255&s,t[2]=i>>24&255,t[3]=i>>16&255,t[4]=i>>8&255,t[5]=255&i;else{if(this.chipFamily!=f&&this.chipFamily!=_&&this.chipFamily!=p&&this.chipFamily!=b&&this.chipFamily!=w&&this.chipFamily!=m&&this.chipFamily!=S&&this.chipFamily!=y&&this.chipFamily!=B&&this.chipFamily!=R&&this.chipFamily!=I&&this.chipFamily!=v)throw new Error("Unknown chip family");t[0]=i>>8&255,t[1]=255&i,t[2]=e>>24&255,t[3]=e>>16&255,t[4]=e>>8&255,t[5]=255&e}return t}async readRegister(t){this.debug&&this.logger.debug("Reading from Register "+s(t,8));const e=bi("<I",t);await this.sendCommand(10,e);const[i]=await this.getResponse(10);return i}async checkCommand(t,e,i=0,a=3e3){const r=async()=>{a=Math.min(a,tt),await this.sendCommand(t,e,i);const[r,n]=await this.getResponse(t,a);if(null===n)throw new Error("Didn't get enough status bytes");let h=n,o=0;if(this.IS_STUB||this.chipFamily==u?o=2:[g,f,_,p,b,w,m,S,y,B,R,I,v].includes(this.chipFamily)||20===t?o=4:[2,4].includes(h.length)?o=h.length:(o=2,this.logger.debug(`Unknown chip family, defaulting to 2-byte status (opcode: ${s(t)}, data.length: ${h.length})`)),h.length<o)throw new Error("Didn't get enough status bytes");const l=h.slice(-o,h.length);if(h=h.slice(0,-o),this.debug&&(this.logger.debug("status",l),this.logger.debug("value",r),this.logger.debug("data",h)),1==l[0])throw 5==l[1]?(await this.drainInputBuffer(200),new Error("Invalid (unsupported) command "+s(t))):new Error("Command failure error code "+s(l[1]));return[r,h]};return this._commandLock=this._commandLock.then(r,r),this._commandLock}async sendCommand(e,i,s=0){const a=t([...bi("<BBHI",0,e,i.length,s),...i]);this.debug&&this.logger.debug(`Writing ${a.length} byte${1==a.length?"":"s"}:`,a),await this.writeToStream(a)}async readPacket(t){let e=null,a=!1;if(this._isCDCDevice){const n=Date.now();for(;;){if(this._abandonCurrentOperation)throw new ht("Operation abandoned (reset strategy timeout)");if(Date.now()-n>t){throw new ht("Timed out waiting for packet "+(null===e?"header":"content"))}if(0!==this._inputBufferAvailable)for(;this._inputBufferAvailable>0;){if(Date.now()-n>t){throw new ht("Timed out waiting for packet "+(null===e?"header":"content"))}const r=this._readByte();if(null===e){if(r!=this.SLIP_END)throw this.debug&&(this.logger.debug("Read invalid data: "+s(r)),this.logger.debug("Remaining data in serial buffer: "+i(this._inputBuffer))),new ht("Invalid head of packet ("+s(r)+")");e=[]}else if(a)if(a=!1,r==this.SLIP_ESC_END)e.push(this.SLIP_END);else{if(r!=this.SLIP_ESC_ESC)throw this.debug&&(this.logger.debug("Read invalid data: "+s(r)),this.logger.debug("Remaining data in serial buffer: "+i(this._inputBuffer))),new ht("Invalid SLIP escape (0xdb, "+s(r)+")");e.push(this.SLIP_ESC)}else if(r==this.SLIP_ESC)a=!0;else{if(r==this.SLIP_END)return this.debug&&this.logger.debug("Received full packet: "+i(e)),this._compactInputBuffer(),e;e.push(r)}}else await r(1)}}else{let n=[];for(;;){if(this._abandonCurrentOperation)throw new ht("Operation abandoned (reset strategy timeout)");const h=Date.now();for(n=[];Date.now()-h<t;){if(this._inputBufferAvailable>0){n.push(this._readByte());break}await r(1)}if(0==n.length){throw new ht("Timed out waiting for packet "+(null===e?"header":"content"))}this.debug&&this.logger.debug("Read "+n.length+" bytes: "+i(n));for(const t of n)if(null===e){if(t!=this.SLIP_END)throw this.debug&&(this.logger.debug("Read invalid data: "+s(t)),this.logger.debug("Remaining data in serial buffer: "+i(this._inputBuffer))),new ht("Invalid head of packet ("+s(t)+")");e=[]}else if(a)if(a=!1,t==this.SLIP_ESC_END)e.push(this.SLIP_END);else{if(t!=this.SLIP_ESC_ESC)throw this.debug&&(this.logger.debug("Read invalid data: "+s(t)),this.logger.debug("Remaining data in serial buffer: "+i(this._inputBuffer))),new ht("Invalid SLIP escape (0xdb, "+s(t)+")");e.push(this.SLIP_ESC)}else if(t==this.SLIP_ESC)a=!0;else{if(t==this.SLIP_END)return this.debug&&this.logger.debug("Received full packet: "+i(e)),this._compactInputBuffer(),e;e.push(t)}}}}async getResponse(t,e=3e3){for(let i=0;i<100;i++){const i=await this.readPacket(e);if(i.length<8)continue;const[a,r,,n]=wi("<BBHI",i.slice(0,8));if(1!=a)continue;const h=i.slice(8);if(null==t||r==t)return[n,h];if(0!=h[0]&&5==h[1])throw await this.drainInputBuffer(200),new Error(`Invalid (unsupported) command ${s(t)}`)}throw new Error("Response doesn't match request")}checksum(t,e=239){for(const i of t)e^=i;return e}async setBaudrate(t){try{const e=bi("<II",t,this.IS_STUB?o:0);await this.checkCommand(15,e)}catch(e){throw this.logger.error(`Baudrate change error: ${e}`),new Error(`Unable to change the baud rate to ${t}: No response from set baud rate command.`)}this._parent?await this._parent.reconfigurePort(t):await this.reconfigurePort(t),await r(et),this._parent?this._parent.currentBaudRate=t:this.currentBaudRate=t;const e=this._parent?this._parent._maxUSBSerialBaudrate:this._maxUSBSerialBaudrate;e&&t>e&&(this.logger.log(`⚠️  WARNING: Baudrate ${t} exceeds USB-Serial chip limit (${e})!`),this.logger.log("⚠️  This may cause data corruption or connection failures!")),this.logger.log(`Changed baud rate to ${t}`)}async reconfigurePort(t){var e;this._isReconfiguring=!0;try{try{await this._writeChain}catch(t){this.logger.debug(`Pending write error during reconfigure: ${t}`)}if(this.isWebUSB()){const e=this.port.getInfo(),i=6790===e.usbVendorId&&21971===e.usbProductId;if(!i&&"function"==typeof this.port.setBaudRate)return await this.port.setBaudRate(t),void await r(100)}if(this._writer){try{this._writer.releaseLock()}catch(t){this.logger.debug(`Writer release error during reconfigure: ${t}`)}this._writer=void 0}await(null===(e=this._reader)||void 0===e?void 0:e.cancel()),await this.port.close(),await this.port.open({baudRate:t}),await this.flushSerialBuffers(),this.readLoop()}catch(t){}finally{this._isReconfiguring=!1}}async syncWithTimeout(t){const e=Date.now();for(let i=0;i<5;i++){if(Date.now()-e>t)return!1;if(this._abandonCurrentOperation)return!1;this._clearInputBuffer();try{if(await this._sync())return await r(et),!0}catch(t){if(this._abandonCurrentOperation)return!1}await r(et)}return!1}async sync(){for(let t=0;t<5;t++){this._clearInputBuffer();if(await this._sync())return await r(et),!0;await r(et)}throw new Error("Couldn't sync to ESP. Try resetting.")}async _sync(){await this.sendCommand(8,d);for(let t=0;t<8;t++)try{const[,t]=await this.getResponse(8,et);if(t.length>1&&0==t[0]&&0==t[1])return!0}catch(e){this.debug&&this.logger.debug(`Sync attempt ${t+1} failed: ${e}`)}return!1}getFlashWriteSize(){return this.IS_STUB?16384:1024}async flashData(t,e,i=0,a=!1){if(t.byteLength>=8){const e=Array.from(new Uint8Array(t,0,4)),i=e[0],a=e[2],r=e[3];this.logger.log(`Image header, Magic=${s(i)}, FlashMode=${s(a)}, FlashSizeFreq=${s(r)}`)}const r=t.byteLength;let n,h=0,o=Y;a?(n=_i(new Uint8Array(t),{level:9}).buffer,h=n.byteLength,this.logger.log(`Writing data with filesize: ${r}. Compressed Size: ${h}`),o=await this.flashDeflBegin(r,h,i)):(this.logger.log(`Writing data with filesize: ${r}`),n=t,await this.flashBegin(r,i));let l=[],c=0,d=0,u=0;const g=Date.now(),f=this.getFlashWriteSize(),_=a?h:r;for(;_-u>0;)this.debug&&this.logger.log(`Writing at ${s(i+c*f,8)} `),_-u>=f?l=Array.from(new Uint8Array(n,u,f)):(l=Array.from(new Uint8Array(n,u,_-u)),a||(l=l.concat(new Array(f-l.length).fill(255)))),a?await this.flashDeflBlock(l,c,o):await this.flashBlock(l,c),c+=1,d+=a?Math.round(l.length*r/h):l.length,u+=f,e(Math.min(d,r),r);this.logger.log("Took "+(Date.now()-g)+"ms to write "+_+" bytes"),this.IS_STUB&&(await this.flashBegin(0,0),a?await this.flashDeflFinish():await this.flashFinish())}async flashBlock(t,e,i=3e3){await this.checkCommand(3,bi("<IIII",t.length,e,0,0).concat(t),this.checksum(t),i)}async flashDeflBlock(t,e,i=3e3){await this.checkCommand(17,bi("<IIII",t.length,e,0,0).concat(t),this.checksum(t),i)}async flashBegin(t=0,e=0,i=!1){let a;await this.flushSerialBuffers();const r=this.getFlashWriteSize();!this.IS_STUB&&[g,f,_,p,b,w,m,S,y,B,R,I,v].includes(this.chipFamily)&&await this.checkCommand(13,new Array(8).fill(0));const n=Math.floor((t+r-1)/r);a=this.chipFamily!=u||this.IS_STUB?t:this.getEraseSize(e,t);const h=this.IS_STUB?Y:rt(it,t),o=Date.now();let l=bi("<IIII",a,n,r,e);return this.chipFamily!=g&&this.chipFamily!=f&&this.chipFamily!=_&&this.chipFamily!=p&&this.chipFamily!=b&&this.chipFamily!=w&&this.chipFamily!=m&&this.chipFamily!=S&&this.chipFamily!=y&&this.chipFamily!=B&&this.chipFamily!=R&&this.chipFamily!=I&&this.chipFamily!=v||(l=l.concat(bi("<I",i?1:0))),this.logger.log("Erase size "+a+", blocks "+n+", block size "+s(r,4)+", offset "+s(e,4)+", encrypted "+(i?"yes":"no")),await this.checkCommand(2,l,0,h),0==t||this.IS_STUB||this.logger.log("Took "+(Date.now()-o)+"ms to erase "+n+" bytes"),n}async flashDeflBegin(t=0,e=0,i=0){const s=this.getFlashWriteSize(),a=Math.floor((e+s-1)/s),r=Math.floor((t+s-1)/s);let n=0,h=0;this.IS_STUB?(n=t,h=rt(it,n)):(n=r*s,h=Y);const o=bi("<IIII",n,a,s,i);return await this.checkCommand(16,o,0,h),h}async flashFinish(){const t=bi("<I",1);await this.checkCommand(4,t)}async flashDeflFinish(){const t=bi("<I",1);await this.checkCommand(18,t)}getBootloaderOffset(){return nt(this.getChipFamily()).flashOffs}async flashId(){return await this.runSpiFlashCommand(159,[],24)}getChipFamily(){return this._parent?this._parent.chipFamily:this.chipFamily}async writeRegister(t,e,i=4294967295,s=0,a=0){let r=bi("<IIII",t,e,i,s);a>0&&(r=r.concat(bi("<IIII",nt(this.getChipFamily()).uartDateReg,0,0,a))),await this.checkCommand(9,r)}async setDataLengths(t,e,i){if(-1!=t.mosiDlenOffs){const s=t.regBase+t.mosiDlenOffs,a=t.regBase+t.misoDlenOffs;e>0&&await this.writeRegister(s,e-1),i>0&&await this.writeRegister(a,i-1)}else{const s=t.regBase+t.usr1Offs,a=(0==i?0:i-1)<<8|(0==e?0:e-1)<<17;await this.writeRegister(s,a)}}async waitDone(t,e){for(let i=0;i<10;i++){if(0==(await this.readRegister(t)&e))return}throw Error("SPI command did not complete in time")}async runSpiFlashCommand(t,e,i=0){const a=nt(this.getChipFamily()),r=a.regBase,n=r,h=r+a.usrOffs,o=r+a.usr2Offs,l=r+a.w0Offs,c=1<<18;if(i>32)throw new Error("Reading more than 32 bits back from a SPI flash operation is unsupported");if(e.length>64)throw new Error("Writing more than 64 bytes of data with one SPI command is unsupported");const d=8*e.length,u=await this.readRegister(h),g=await this.readRegister(o);let f=1<<31;if(i>0&&(f|=268435456),d>0&&(f|=134217728),await this.setDataLengths(a,d,i),await this.writeRegister(h,f),await this.writeRegister(o,7<<28|t),0==d)await this.writeRegister(l,0);else{const t=(4-e.length%4)%4;e=e.concat(new Array(t).fill(0));const i=wi("I".repeat(Math.floor(e.length/4)),e);let a=l;this.logger.debug(`Words Length: ${i.length}`);for(const t of i)this.logger.debug(`Writing word ${s(t)} to register offset ${s(a)}`),await this.writeRegister(a,t),a+=4}await this.writeRegister(n,c),await this.waitDone(n,c);const _=await this.readRegister(l);return await this.writeRegister(h,u),await this.writeRegister(o,g),_}async detectFlashSize(){this.logger.log("Detecting Flash Size");const t=await this.flashId(),e=255&t,i=t>>16&255;this.logger.log(`FlashId: ${s(t)}`),this.logger.log(`Flash Manufacturer: ${e.toString(16)}`),this.logger.log(`Flash Device: ${(t>>8&255).toString(16)}${i.toString(16)}`),this.flashSize=n[i],this.logger.log(`Auto-detected Flash size: ${this.flashSize}`)}getEraseSize(t,e){const i=h,s=Math.floor((e+i-1)/i);let a=16-Math.floor(t/i)%16;return s<a&&(a=s),s<2*a?Math.floor((s+1)/2*i):(s-a)*i}async memBegin(t,e,i,s){return await this.checkCommand(5,bi("<IIII",t,e,i,s))}async memBlock(t,e){return await this.checkCommand(7,bi("<IIII",t.length,e,0,0).concat(t),this.checksum(t))}async memFinish(t=0){const e=this.IS_STUB?Y:500,i=bi("<II",0==t?1:0,t);return await this.checkCommand(6,i,0,e)}async runStub(t=!1){const e=await ot(this.chipFamily,this.chipRevision);if(null===e)return this.logger.log(`Stub flasher is not yet supported on ${this.chipName}, using ROM loader`),this;const i=2048;this.logger.log("Uploading stub...");for(const t of["text","data"]){const s=e[t],a=e[`${t}_start`],r=s.length,n=Math.floor((r+i-1)/i);await this.memBegin(r,n,i,a);for(const t of Array(n).keys()){const e=t*i;let a=e+i;a>r&&(a=r),await this.memBlock(s.slice(e,a),t)}}await this.memFinish(e.entry);const s=await this.readPacket(500),a=String.fromCharCode(...s);if("OHAI"!=a)throw new Error("Failed to start stub. Unexpected response: "+a);this.logger.log("Stub is now running...");const r=new Si(this.port,this.logger,this);return t||await r.detectFlashSize(),r}get _writer(){return this._parent?this._parent._writer:this.__writer}set _writer(t){this._parent?this._parent._writer=t:this.__writer=t}get _writeChain(){return this._parent?this._parent._writeChain:this.__writeChain}set _writeChain(t){this._parent?this._parent._writeChain=t:this.__writeChain=t}async writeToStream(t){if(this.port.writable){if(this._isReconfiguring)throw new Error("Cannot write during port reconfiguration");this._writeChain=this._writeChain.then(async()=>{if(!this.port.writable)throw new Error("Port became unavailable during write");if(!this._writer)try{this._writer=this.port.writable.getWriter()}catch(t){throw this.logger.error(`Failed to get writer: ${t}`),t}await this._writer.write(new Uint8Array(t))},async()=>{if(this.logger.debug("Previous write failed, attempting recovery for current write"),!this.port.writable)throw new Error("Port became unavailable during write");if(!this._writer)try{this._writer=this.port.writable.getWriter()}catch(t){throw this.logger.debug(`Failed to get writer in recovery: ${t}`),new Error("Cannot acquire writer lock")}await this._writer.write(new Uint8Array(t))}).catch(t=>{if(this.logger.error(`Write error: ${t}`),this._writer){try{this._writer.releaseLock()}catch{}this._writer=void 0}throw t}),await this._writeChain}else this.logger.debug("Port writable stream not available, skipping write")}async disconnect(){if(this._parent)await this._parent.disconnect();else if(this.port.writable){try{await this._writeChain}catch(t){}if(this._writer){try{await this._writer.close(),this._writer.releaseLock()}catch(t){}this._writer=void 0}else try{const t=this.port.writable.getWriter();await t.close(),t.releaseLock()}catch(t){}await new Promise(t=>{if(!this._reader)return void t(void 0);const e=setTimeout(()=>{this.logger.debug("Disconnect timeout - forcing resolution"),t(void 0)},1e3);this.addEventListener("disconnect",()=>{clearTimeout(e),t(void 0)},{once:!0});try{this._reader.cancel()}catch(i){clearTimeout(e),t(void 0)}}),this.connected=!1;try{await this.port.close(),this.logger.debug("Port closed successfully")}catch(t){this.logger.debug(`Port close error: ${t}`)}}}async releaseReaderWriter(){if(this._parent)await this._parent.releaseReaderWriter();else{try{await this._writeChain}catch(t){}if(this._writer){try{this._writer.releaseLock(),this.logger.debug("Writer released")}catch(t){this.logger.debug(`Writer release error: ${t}`)}this._writer=void 0}if(this._reader){const t=this._reader;try{this._suppressDisconnect=!0,await t.cancel(),this.logger.debug("Reader cancelled")}catch(t){this.logger.debug(`Reader cancel error: ${t}`)}finally{try{t.releaseLock()}catch(t){this.logger.debug(`Reader release error: ${t}`)}}this._reader===t&&(this._reader=void 0)}}}async resetToFirmware(){return await this._resetToFirmwareIfNeeded()}async detectUsbConnectionType(){const t=this.port.getInfo(),e=t.usbProductId;if(!(12346===t.usbVendorId))return this.logger.debug("Not Espressif VID - external serial chip"),!1;const i=[2,18,4097].includes(e||0);return this.logger.debug(`USB-JTAG/OTG detection: ${i?"YES":"NO"} (PID=0x${null==e?void 0:e.toString(16)})`),i}async enterConsoleMode(){if(!this.port.writable||!this.port.readable)return this.logger.debug("Port is not open - port selection needed"),!0;let t;try{t=await this.detectUsbConnectionType(),this.logger.debug("USB connection type detected: "+(t?"USB-JTAG/OTG":"External Serial Chip")),this._isUsbJtagOrOtg=t}catch(e){if(void 0===this.isUsbJtagOrOtg)throw new Error(`Cannot enter console mode: USB connection type unknown and detection failed: ${e}`);this._consoleMode=!1,this.logger.debug(`USB detection failed, using cached value: ${this.isUsbJtagOrOtg}`),t=this.isUsbJtagOrOtg}if(t){return await this._resetToFirmwareIfNeeded()}try{await this.releaseReaderWriter(),await this.sleep(100)}catch(t){this.logger.debug(`Failed to release locks: ${t}`)}try{await this.hardReset(!1),this.logger.log("Device reset to firmware mode")}catch(t){this.logger.debug(`Could not reset device: ${t}`)}if(this.isWebUSB())try{await this.port.recreateStreams(),this.logger.debug("WebUSB streams recreated for console mode")}catch(t){this._consoleMode=!1,this.logger.debug(`Failed to recreate WebUSB streams: ${t}`)}return this._consoleMode=!0,!1}async _clearForceDownloadBootIfNeeded(){try{let t,e,i;if(this.chipFamily===f)t=1061191976,e=1,i="ESP32-S2";else if(this.chipFamily===_)t=1610645804,e=1,i="ESP32-S3";else{if(this.chipFamily!==I)return!1;t=1343291400,e=4,i="ESP32-P4"}const s=await this.readRegister(t);this.logger.debug(`${i} force download boot register: 0x${s.toString(16)} (mask: 0x${e.toString(16)})`);return 0!==(s&e)?(this.logger.debug(`${i} force download boot flag is SET - clearing it`),await this.writeRegister(t,0,e,0),this.logger.debug(`${i} force download boot flag cleared`),!0):(this.logger.debug(`${i} force download boot flag is already CLEAR - no action needed`),!1)}catch(t){return this.logger.debug(`Error checking/clearing force download flag: ${t}`),!1}}async _resetToFirmwareIfNeeded(){try{if(!this.port.writable||!this.port.readable)return this.logger.debug("Port is not open - assuming device is already in firmware mode"),!1;const t=await this.detectUsbConnectionType();if(t){if(this.IS_STUB){if(this.logger.debug("On stub - need to get back to ROM to check flag"),this.currentBaudRate!==o){this.logger.debug(`Changing baudrate from ${this.currentBaudRate} to 115200 for ROM`);try{await this.reconfigurePort(o),this.currentBaudRate=o}catch(t){this.logger.debug(`Baudrate change failed: ${t}`)}}this.logger.debug("Resetting to bootloader (ROM)...");try{await this.hardReset(!0),await r(200),await this.sync(),this.logger.debug("Now on ROM after reset"),this.IS_STUB=!1}catch(t){return this.logger.debug(`Reset to ROM failed: ${t}`),this.logger.debug("Assuming device is already in firmware mode"),await this.releaseReaderWriter(),!1}}else this.logger.debug("Already on ROM - checking force download flag");await this._clearForceDownloadBootIfNeeded()?this.logger.debug("Force download flag was cleared - device will boot to firmware after reset"):this.logger.debug("Force download flag already clear - device will boot to firmware after reset"),await this.hardReset(!1);return this.chipFamily===f&&t||this.chipFamily===I&&t?(await this.releaseReaderWriter(),this.logger.log(`${this.chipName} USB-OTG: Port will change after WDT reset`),this.logger.log("Please select the new port for console mode"),this.dispatchEvent(new CustomEvent("usb-otg-port-change",{detail:{chipName:this.chipName,message:`${this.chipName} USB port changed after reset. Please select the new port.`,reason:"wdt-reset-to-firmware"}})),!0):(await this.releaseReaderWriter(),!1)}}catch(t){this.logger.debug(`Could not reset device to firmware mode: ${t}`)}return!1}async reconnect(){if(this._parent)await this._parent.reconnect();else try{this.logger.log("Reconnecting serial port...");const t=this.currentBaudRate;this.connected=!1,this.__inputBuffer=[],this.__inputBufferReadIndex=0;try{await this._writeChain}catch(t){this.logger.debug(`Pending write error during reconnect: ${t}`)}if(this._isReconfiguring=!0,this._writer){try{this._writer.releaseLock()}catch(t){this.logger.debug(`Writer release error during reconnect: ${t}`)}this._writer=void 0}if(this._reader){try{await this._reader.cancel()}catch(t){this.logger.debug(`Reader cancel error: ${t}`)}this._reader=void 0}try{await this.port.close(),this.logger.debug("Port closed")}catch(t){this.logger.debug(`Port close error: ${t}`)}this.logger.debug("Opening port...");try{await this.port.open({baudRate:o}),this.connected=!0,this.currentBaudRate=o}catch(t){throw new Error(`Failed to open port: ${t}`)}if(!this.port.readable||!this.port.writable)throw new Error(`Port streams not available after open (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`);this._isReconfiguring=!1;const e=this.chipFamily,i=this.chipName,s=this.chipRevision,a=this.chipVariant,r=this.flashSize;if(await this.hardReset(!0),this._parent||(this.__inputBuffer=[],this.__inputBufferReadIndex=0,this.__totalBytesRead=0,this.readLoop()),await this.flushSerialBuffers(),await this.sync(),this.chipFamily=e,this.chipName=i,this.chipRevision=s,this.chipVariant=a,this.flashSize=r,this.logger.debug(`Reconnect complete (chip: ${this.chipName})`),!this.port.writable||!this.port.readable)throw new Error("Port not ready after reconnect");const n=await this.runStub(!0);if(this.logger.debug("Stub loaded"),t!==o&&(await n.setBaudrate(t),!this.port.writable||!this.port.readable))throw new Error(`Port not ready after baudrate change (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`);this.IS_STUB=!0,this.logger.debug("Reconnection successful")}catch(t){throw this._isReconfiguring=!1,t}}async reconnectToBootloader(){if(this._parent)await this._parent.reconnectToBootloader();else try{this.logger.log("Reconnecting to bootloader mode..."),this._consoleMode=!1,this.connected=!1,this.__inputBuffer=[],this.__inputBufferReadIndex=0;try{await this._writeChain}catch(t){this.logger.debug(`Pending write error during reconnect: ${t}`)}if(this._isReconfiguring=!0,this._writer){try{this._writer.releaseLock()}catch(t){this.logger.debug(`Writer release error during reconnect: ${t}`)}this._writer=void 0}if(this._reader){try{await this._reader.cancel()}catch(t){this.logger.debug(`Reader cancel error: ${t}`)}this._reader=void 0}try{await this.port.close(),this.logger.debug("Port closed")}catch(t){this.logger.debug(`Port close error: ${t}`)}this.logger.debug("Opening port...");try{await this.port.open({baudRate:o}),this.connected=!0,this.currentBaudRate=o}catch(t){throw new Error(`Failed to open port: ${t}`)}if(!this.port.readable||!this.port.writable)throw new Error(`Port streams not available after open (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`);this._isReconfiguring=!1,this.__chipFamily=void 0,this.chipName="Unknown Chip",this.chipRevision=null,this.chipVariant=null,this.IS_STUB=!1,this._parent||(this.__inputBuffer=[],this.__inputBufferReadIndex=0,this.__totalBytesRead=0,this.readLoop()),await r(100),await this.connectWithResetStrategies(),await this.detectChip(),this.logger.log(`Reconnected to bootloader: ${this.chipName}`)}catch(t){throw this._isReconfiguring=!1,t}}async exitConsoleMode(){if(this._parent)return await this._parent.exitConsoleMode();this._consoleMode=!1;const t=this.chipFamily===f||this.chipFamily===I;let e=this._isUsbJtagOrOtg;if(t&&void 0===e)try{e=await this.detectUsbConnectionType()}catch(t){this.logger.debug(`USB detection failed, assuming USB-JTAG/OTG for ${this.chipName}: ${t}`),e=!0}if(t&&e){this.logger.log(`${this.chipName} USB: Resetting to bootloader mode`);try{this.isWebUSB()?await this.hardResetClassicWebUSB():await this.hardResetClassic(),this.logger.debug("Reset to bootloader initiated")}catch(t){this.logger.debug(`Reset error: ${t}`)}return await r(500),this.logger.log(`${this.chipName}: Port changed. Please select the bootloader port.`),this.dispatchEvent(new CustomEvent("usb-otg-port-change",{detail:{chipName:this.chipName,message:`${this.chipName}: Port changed. Please select the bootloader port.`,reason:"exit-console-to-bootloader"}})),!0}return await this.reconnectToBootloader(),!1}isConsoleResetSupported(){if(this._parent)return this._parent.isConsoleResetSupported();return!(this.chipFamily===f&&(!0===this._isUsbJtagOrOtg||void 0===this._isUsbJtagOrOtg))}async resetInConsoleMode(){if(this._parent)return await this._parent.resetInConsoleMode();if(!this.isConsoleResetSupported())return void this.logger.debug("Console reset not supported for ESP32-S2 USB-JTAG/CDC");const t=!0===this.port.isWebUSB;try{this.logger.debug("Resetting device in console mode"),t?await this.hardResetToFirmwareWebUSB():await this.hardResetToFirmware(),this.logger.debug("Device reset complete")}catch(t){throw this.logger.error(`Reset failed: ${t}`),t}}async drainInputBuffer(t=200){await r(t);let e=0;const i=Date.now();for(;e<112&&Date.now()-i<100;)if(this._inputBufferAvailable>0){void 0!==this._readByte()&&e++}else await r(1);e>0&&this.logger.debug(`Drained ${e} bytes from input buffer`),this._parent||(this.__inputBuffer=[],this.__inputBufferReadIndex=0)}async flushSerialBuffers(){this._parent||(this.__inputBuffer=[],this.__inputBufferReadIndex=0),await r(et),this._parent||(this.__inputBuffer=[],this.__inputBufferReadIndex=0),this.logger.debug("Serial buffers flushed")}async readFlash(e,i,s,a){if(!this.IS_STUB)throw new Error("Reading flash is only supported in stub mode. Please run runStub() first.");let n;await this.flushSerialBuffers(),this.logger.log(`Reading ${i} bytes from flash at address 0x${e.toString(16)}...`),this.isWebUSB()&&(this._isCDCDevice?(this._adaptiveBlockMultiplier=8,this._adaptiveMaxInFlightMultiplier=8,this._consecutiveSuccessfulChunks=0,this.logger.debug(`CDC device - Initialized: blockMultiplier=${this._adaptiveBlockMultiplier}, maxInFlightMultiplier=${this._adaptiveMaxInFlightMultiplier}`)):(this._adaptiveBlockMultiplier=1,this._adaptiveMaxInFlightMultiplier=1,this._consecutiveSuccessfulChunks=0,this.logger.debug("Non-CDC device - Fixed values: blockSize=31, maxInFlight=31"))),void 0!==(null==a?void 0:a.chunkSize)?(n=a.chunkSize,this.logger.log(`Using custom chunk size: 0x${n.toString(16)} bytes`)):n=this.isWebUSB()?16384:262144;let h=new Uint8Array(0),o=e,l=i;for(;l>0;){const e=Math.min(n,l);let c=!1,d=0;const u=5;let g=!1;for(;!c&&d<=u;){let i=new Uint8Array(0),s=0;try{let n,l;if(0===d&&this.logger.debug(`Reading chunk at 0x${o.toString(16)}, size: 0x${e.toString(16)}`),void 0!==(null==a?void 0:a.blockSize)&&void 0!==(null==a?void 0:a.maxInFlight))n=a.blockSize,l=a.maxInFlight,0===d&&this.logger.debug(`Using custom parameters: blockSize=${n}, maxInFlight=${l}`);else if(this.isWebUSB()){const t=this.port.maxTransferSize||64,e=Math.floor((t-2)/2);n=e*this._adaptiveBlockMultiplier,l=e*this._adaptiveMaxInFlightMultiplier}else{const t=63;n=65*t,l=130*t}const u=bi("<IIII",o,e,n,l),[g]=await this.checkCommand(210,u);if(0!=g)throw new Error("Failed to read memory: "+g);for(;i.length<e;){let a;try{a=await this.readPacket(100)}catch(t){if(t instanceof ht){this.logger.debug(`SLIP read error at ${i.length} bytes: ${t.message}`);try{const t=[this.SLIP_END,this.SLIP_END];await this.writeToStream(t),this.logger.debug("Sent abort frame to stub"),await r(50)}catch(t){this.logger.debug(`Abort frame error: ${t}`)}if(await this.drainInputBuffer(200),i.length>=e)break}throw t}if(a&&a.length>0){const r=new Uint8Array(a),n=new Uint8Array(i.length+r.length);n.set(i),n.set(r,i.length),i=n;if(i.length>=e||i.length>=s+l){const e=bi("<I",i.length),a=t(e);await this.writeToStream(a),s=i.length}}}const f=new Uint8Array(h.length+i.length);if(f.set(h),f.set(i,h.length),h=f,c=!0,this.isWebUSB()&&this._isCDCDevice&&0===d&&(this._consecutiveSuccessfulChunks++,this._consecutiveSuccessfulChunks>=2)){const t=this.port.maxTransferSize||64,e=Math.floor((t-2)/2),i=8,s=8;let a=!1;if(this._adaptiveBlockMultiplier<i?(this._adaptiveBlockMultiplier=Math.min(2*this._adaptiveBlockMultiplier,i),a=!0):this._adaptiveMaxInFlightMultiplier<s&&(this._adaptiveMaxInFlightMultiplier=Math.min(2*this._adaptiveMaxInFlightMultiplier,s),a=!0),a){const t=e*this._adaptiveBlockMultiplier,i=e*this._adaptiveMaxInFlightMultiplier;this.logger.debug(`Speed increased: blockSize=${t}, maxInFlight=${i}`),this._lastAdaptiveAdjustment=Date.now()}this._consecutiveSuccessfulChunks=0}}catch(t){if(d++,this.isWebUSB()&&this._isCDCDevice&&1===d)if(this._adaptiveBlockMultiplier>1||this._adaptiveMaxInFlightMultiplier>1){this._adaptiveBlockMultiplier=1,this._adaptiveMaxInFlightMultiplier=1,this._consecutiveSuccessfulChunks=0;const t=this.port.maxTransferSize||64,e=Math.floor((t-2)/2),i=e*this._adaptiveBlockMultiplier,s=e*this._adaptiveMaxInFlightMultiplier;this.logger.debug(`Error at higher speed - reduced to minimum: blockSize=${i}, maxInFlight=${s}`)}else this.logger.debug("Error at minimum speed (blockSize=31, maxInFlight=31) - not a speed issue");if(!(t instanceof ht))throw t;if(d<=u){this.logger.debug(`${t.message} at 0x${o.toString(16)}. Draining buffer and retrying (attempt ${d}/${u})...`);try{await this.drainInputBuffer(200),await this.flushSerialBuffers(),await r(et)}catch(t){this.logger.debug(`Buffer drain error: ${t}`)}}else{if(g)throw new Error(`Failed to read chunk at 0x${o.toString(16)} after ${u} retries and recovery attempt`);g=!0,this.logger.log(`All retries exhausted at 0x${o.toString(16)}. Attempting recovery (close and reopen port)...`);try{await this.reconnect(),this.logger.log("Deep recovery successful. Resuming read from current position..."),d=0;continue}catch(t){throw new Error(`Failed to read chunk at 0x${o.toString(16)} after ${u} retries and recovery failed: ${t}`)}}}}s&&s(new Uint8Array(e),h.length,i),o+=e,l-=e,this.logger.debug(`Total progress: 0x${h.length.toString(16)} from 0x${i.toString(16)} bytes`)}return h}}class Si extends mi{constructor(){super(...arguments),this.IS_STUB=!0}async memBegin(t,e,i,a){const r=await ot(this.chipFamily,this.chipRevision);if(null===r)return[0,[]];const n=a,h=a+t;this.logger.debug(`Load range: ${s(n,8)}-${s(h,8)}`),this.logger.debug(`Stub data: ${s(r.data_start,8)}, len: ${r.data.length}, text: ${s(r.text_start,8)}, len: ${r.text.length}`);for(const[t,e]of[[r.data_start,r.data_start+r.data.length],[r.text_start,r.text_start+r.text.length]])if(n<e&&h>t)throw new Error("Software loader is resident at "+s(t,8)+"-"+s(e,8)+". Can't load binary at overlapping address range "+s(n,8)+"-"+s(h,8)+". Try changing the binary loading address.");return[0,[]]}async eraseFlash(){await this.checkCommand(208,[],0,Q)}async eraseRegion(t,e){if(t<0)throw new Error(`Invalid offset: ${t} (must be non-negative)`);if(e<0)throw new Error(`Invalid size: ${e} (must be non-negative)`);if(0===e)return void this.logger.log("eraseRegion: size is 0, skipping erase");if(t%h!==0)throw new Error(`Offset ${t} (0x${t.toString(16)}) is not aligned to flash sector size 4096 (0x${h.toString(16)})`);if(e%h!==0)throw new Error(`Size ${e} (0x${e.toString(16)}) is not aligned to flash sector size 4096 (0x${h.toString(16)})`);const i=4294967295;if(t>i)throw new Error(`Offset ${t} exceeds maximum value 4294967295`);if(e>i)throw new Error(`Size ${e} exceeds maximum value 4294967295`);if(t+e>i)throw new Error(`Region end (offset + size = ${t+e}) exceeds maximum addressable range 4294967295`);const s=rt(it,e),a=bi("<II",t,e);await this.checkCommand(209,a,0,s)}}const yi=4096,Bi=[4096,2048,1024,512],Ri=4096,Ii=[4096,2048,1024,512],vi=8192,Ui=[8192,4096],Ci=256,Ei=256,ki=8192;function Di(t){if(t.length<4096)return!1;let e=0;const i=256,s=Math.min(32,Math.floor(t.length/i));for(let a=0;a<s;a++){const s=a*i;if(s+i>t.length)break;const r=t.slice(s,s+i),n=r[0]|r[1]<<8;for(let t=0;t<r.length-10;t++)if(1===r[t]&&47===r[t+1]){let i=0;for(let e=t+1;e<Math.min(t+20,r.length);e++)if(r[e]>=32&&r[e]<127)i++;else if(0===r[e])break;if(i>=4){e+=5;break}}if(32768&n){const t=32767&n;t>0&&t<4096&&(e+=2)}}return e>=10}function Ti(t,e,i){const s=Ui;for(const a of s)for(let s=0;s<2;s++){const r=s*a,n=r+8;if(n+8>t.length)continue;if("littlefs"===String.fromCharCode(t[n],t[n+1],t[n+2],t[n+3],t[n+4],t[n+5],t[n+6],t[n+7])){const s=r+16,n=t[s]|t[s+1]<<8|t[s+2]<<16|t[s+3]<<24;if(0!==n&&n>>>0!=4294967295){const s=r+24;if(s+4<=t.length){const r=t[s]|t[s+1]<<8|t[s+2]<<16|t[s+3]<<24;if(r>0&&r<1e5){const t=r*a;if(t>0&&e+t<=i)return{start:e,end:e+t,size:t,page:256,block:a}}}return xi(e,i,a)}}}if(Di(t))return xi(e,i,ki);if(t.length>=4){if(538182953===(t[0]|t[1]<<8|t[2]<<16|t[3]<<24)){let s=!0;if(t.length>=16){let e=!0;for(let i=4;i<16;i++)if(255!==t[i]){e=!1;break}e&&(s=!1)}if(s)return xi(e,i,ki)}}const a=[0,4096];for(const s of a){if(t.length<s+512)continue;if(43605===(t[s+510]|t[s+511]<<8)){const a=t[s+11]|t[s+12]<<8;if(![512,1024,2048,4096].includes(a))continue;let r=t[s+19]|t[s+20]<<8;if(0===r&&(r=t[s+32]|t[s+33]<<8|t[s+34]<<16|t[s+35]<<24),a>0&&r>0&&r<1e8){const t=r*a,n=e+s;if(t>0&&n+t<=i)return{start:n,end:n+t,size:t,page:a,block:a}}}}return null}function xi(t,e,i){const s=e/1048576;if(s>=16){if(1048576===t)return{start:1048576,end:16752640,size:15704064,page:256,block:i};if(2097152===t)return{start:2097152,end:16752640,size:14655488,page:256,block:i}}if(s>=8){if(1048576===t)return{start:1048576,end:8364032,size:7315456,page:256,block:i};if(2097152===t)return{start:2097152,end:8364032,size:6266880,page:256,block:i}}if(s>=4){if(1048576===t)return{start:1048576,end:4169728,size:3121152,page:256,block:i};if(2097152===t)return{start:2097152,end:4169728,size:2072576,page:256,block:i};if(3145728===t)return{start:3145728,end:4169728,size:1024e3,page:256,block:i}}if(s>=2){if(1048576===t)return{start:1048576,end:2072576,size:1024e3,page:256,block:i};if(1572864===t)return{start:1572864,end:2072576,size:499712,page:256,block:i};if(1835008===t)return{start:1835008,end:2076672,size:241664,page:256,block:i};if(1966080===t)return{start:1966080,end:2076672,size:110592,page:256,block:i};if(2031616===t)return{start:2031616,end:2076672,size:45056,page:256,block:i}}if(s>=1){if(503808===t)return{start:503808,end:1028096,size:524288,page:256,block:i};if(765952===t)return{start:765952,end:1028096,size:262144,page:256,block:i};if(831488===t)return{start:831488,end:1028096,size:196608,page:256,block:i};if(864256===t)return{start:864256,end:1028096,size:163840,page:256,block:i};if(880640===t)return{start:880640,end:1028096,size:147456,page:256,block:i};if(897024===t)return{start:897024,end:1028096,size:131072,page:256,block:i};if(962560===t)return{start:962560,end:1028096,size:65536,page:256,block:i}}if(s>=.5){if(372736===t)return{start:372736,end:503808,size:131072,page:256,block:i};if(438272===t)return{start:438272,end:503808,size:65536,page:256,block:i};if(471040===t)return{start:471040,end:503808,size:32768,page:256,block:i}}return{start:t,end:e,size:e-t,page:256,block:i}}function Oi(t){return t>=16?[{start:1048576,end:16752640,size:15704064,page:256,block:8192},{start:2097152,end:16752640,size:14655488,page:256,block:8192}]:t>=8?[{start:1048576,end:8364032,size:7315456,page:256,block:8192},{start:2097152,end:8364032,size:6266880,page:256,block:8192}]:t>=4?[{start:2097152,end:4169728,size:2072576,page:256,block:8192},{start:1048576,end:4169728,size:3121152,page:256,block:8192},{start:3145728,end:4169728,size:1024e3,page:256,block:8192}]:t>=2?[{start:1048576,end:2072576,size:1024e3,page:256,block:8192},{start:1572864,end:2072576,size:499712,page:256,block:8192},{start:1835008,end:2076672,size:241664,page:256,block:8192},{start:1966080,end:2076672,size:110592,page:256,block:8192},{start:2031616,end:2076672,size:45056,page:256,block:8192}]:t>=1?[{start:897024,end:1028096,size:131072,page:256,block:8192},{start:503808,end:1028096,size:524288,page:256,block:8192},{start:765952,end:1028096,size:262144,page:256,block:8192},{start:831488,end:1028096,size:196608,page:256,block:8192},{start:864256,end:1028096,size:163840,page:256,block:8192},{start:880640,end:1028096,size:147456,page:256,block:8192},{start:962560,end:1028096,size:65536,page:256,block:8192}]:t>=.5?[{start:372736,end:503808,size:131072,page:256,block:8192},{start:438272,end:503808,size:65536,page:256,block:8192},{start:471040,end:503808,size:32768,page:256,block:8192}]:[]}var Ai;function Pi(t){return 1!==t.type?Ai.UNKNOWN:129===t.subtype?Ai.FATFS:Ai.UNKNOWN}function zi(t,e){if(t.length<512)return Ai.UNKNOWN;const i=(null==e?void 0:e.toUpperCase().includes("ESP8266"))?Ui:Bi;for(const e of i)for(let i=0;i<2;i++){const s=i*e;if(s+20>t.length)continue;const a=s+8;if(a+8<=t.length){if("littlefs"===String.fromCharCode(t[a],t[a+1],t[a+2],t[a+3],t[a+4],t[a+5],t[a+6],t[a+7])){const e=s+16,i=t[e]|t[e+1]<<8|t[e+2]<<16|t[e+3]<<24;if(0!==i&&i>>>0!=4294967295)return Ai.LITTLEFS}}}const s=[0,4096];for(const e of s){if(t.length<e+512)continue;if(43605===(t[e+510]|t[e+511]<<8)){const i=t.length>=e+62?String.fromCharCode(t[e+54],t[e+55],t[e+56],t[e+57],t[e+58]):"",s=t.length>=e+90?String.fromCharCode(t[e+82],t[e+83],t[e+84],t[e+85],t[e+86]):"";if(i.startsWith("FAT")||s.startsWith("FAT"))return Ai.FATFS}}if(t.length>=4){if(538182953===(t[0]|t[1]<<8|t[2]<<16|t[3]<<24))return Ai.SPIFFS}return Di(t)?Ai.SPIFFS:Ai.UNKNOWN}function Fi(t,e){const i=null==e?void 0:e.toUpperCase().includes("ESP8266");switch(t){case Ai.FATFS:return 4096;case Ai.LITTLEFS:default:return i?vi:4096}}function Li(t,e){const i=null==e?void 0:e.toUpperCase().includes("ESP8266");switch(t){case Ai.FATFS:return Ii;case Ai.LITTLEFS:return i?Ui:Bi;default:return i?Ui:[4096,2048,1024,512]}}!function(t){t.UNKNOWN="unknown",t.LITTLEFS="littlefs",t.FATFS="fatfs",t.SPIFFS="spiffs"}(Ai||(Ai={}));const Wi={0:"app",1:"data"},Mi={0:"factory",16:"ota_0",17:"ota_1",18:"ota_2",19:"ota_3",20:"ota_4",21:"ota_5",22:"ota_6",23:"ota_7",24:"ota_8",25:"ota_9",26:"ota_10",27:"ota_11",28:"ota_12",29:"ota_13",30:"ota_14",31:"ota_15",32:"test"},Ni={0:"ota",1:"phy",2:"nvs",3:"coredump",4:"nvs_keys",5:"efuse",128:"esphttpd",129:"fat",130:"spiffs",131:"littlefs"};function $i(t){if(t.length<32)return null;if(20650!==(65535&(t[0]|t[1]<<8)))return null;const e=t[2],i=t[3],s=t[4]|t[5]<<8|t[6]<<16|t[7]<<24,a=t[8]|t[9]<<8|t[10]<<16|t[11]<<24;let r="";for(let e=12;e<28&&0!==t[e];e++)r+=String.fromCharCode(t[e]);const n=t[28]|t[29]<<8|t[30]<<16|t[31]<<24,h=Wi[e]||`unknown(0x${e.toString(16)})`;let o="";return o=0===e?Mi[i]||`unknown(0x${i.toString(16)})`:1===e?Ni[i]||`unknown(0x${i.toString(16)})`:`0x${i.toString(16)}`,{name:r,type:e,subtype:i,offset:s,size:a,flags:n,typeName:h,subtypeName:o}}function ji(t){const e=[];for(let i=0;i<t.length;i+=32){const s=$i(t.slice(i,i+32));if(null===s)break;e.push(s)}return e}function Gi(){return 32768}function Ji(t){return t<1024?`${t} B`:t<1048576?`${(t/1024).toFixed(2)} KB`:`${(t/1048576).toFixed(2)} MB`}class Hi{constructor(t){var e,i,s,a,r,n,h,o,l,c,d,u;if(t.blockSize%t.pageSize!==0)throw new Error("block size should be a multiple of page size");this.pageSize=t.pageSize,this.blockSize=t.blockSize,this.objIdLen=null!==(e=t.objIdLen)&&void 0!==e?e:2,this.spanIxLen=null!==(i=t.spanIxLen)&&void 0!==i?i:2,this.packed=null===(s=t.packed)||void 0===s||s,this.aligned=null===(a=t.aligned)||void 0===a||a,this.objNameLen=null!==(r=t.objNameLen)&&void 0!==r?r:32,this.metaLen=null!==(n=t.metaLen)&&void 0!==n?n:4,this.pageIxLen=null!==(h=t.pageIxLen)&&void 0!==h?h:2,this.blockIxLen=null!==(o=t.blockIxLen)&&void 0!==o?o:2,this.endianness=null!==(l=t.endianness)&&void 0!==l?l:"little",this.useMagic=null===(c=t.useMagic)||void 0===c||c,this.useMagicLen=null===(d=t.useMagicLen)||void 0===d||d,this.alignedObjIxTables=null!==(u=t.alignedObjIxTables)&&void 0!==u&&u,this.PAGES_PER_BLOCK=Math.floor(this.blockSize/this.pageSize),this.OBJ_LU_PAGES_PER_BLOCK=Math.ceil(this.blockSize/this.pageSize*this.objIdLen/this.pageSize),this.OBJ_USABLE_PAGES_PER_BLOCK=this.PAGES_PER_BLOCK-this.OBJ_LU_PAGES_PER_BLOCK,this.OBJ_LU_PAGES_OBJ_IDS_LIM=Math.floor(this.pageSize/this.objIdLen),this.OBJ_DATA_PAGE_HEADER_LEN=this.objIdLen+this.spanIxLen+1;const g=4-(this.OBJ_DATA_PAGE_HEADER_LEN%4==0?4:this.OBJ_DATA_PAGE_HEADER_LEN%4);this.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED=this.OBJ_DATA_PAGE_HEADER_LEN+g,this.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED_PAD=g,this.OBJ_DATA_PAGE_CONTENT_LEN=this.pageSize-this.OBJ_DATA_PAGE_HEADER_LEN,this.OBJ_INDEX_PAGES_HEADER_LEN=this.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED+4+1+this.objNameLen+this.metaLen,this.alignedObjIxTables?(this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED=this.OBJ_INDEX_PAGES_HEADER_LEN+2-1&-2,this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED_PAD=this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED-this.OBJ_INDEX_PAGES_HEADER_LEN):(this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED=this.OBJ_INDEX_PAGES_HEADER_LEN,this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED_PAD=0),this.OBJ_INDEX_PAGES_OBJ_IDS_HEAD_LIM=Math.floor((this.pageSize-this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED)/this.blockIxLen),this.OBJ_INDEX_PAGES_OBJ_IDS_LIM=Math.floor((this.pageSize-this.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED)/this.blockIxLen)}}class Vi extends Error{constructor(t="SPIFFS is full"){super(t),this.name="SpiffsFullError"}}class Zi{constructor(t,e){this.buildConfig=e,this.bix=t}pack(t,...e){const i=new ArrayBuffer(this.calcSize(t)),s=new DataView(i);let a=0;for(let i=0;i<t.length;i++){const r=t[i],n=e[i];switch(r){case"B":s.setUint8(a,n),a+=1;break;case"H":"little"===this.buildConfig.endianness?s.setUint16(a,n,!0):s.setUint16(a,n,!1),a+=2;break;case"I":"little"===this.buildConfig.endianness?s.setUint32(a,n,!0):s.setUint32(a,n,!1),a+=4}}return new Uint8Array(i)}unpack(t,e,i=0){const s=new DataView(e.buffer,e.byteOffset+i),a=[];let r=0;for(const e of t)switch(e){case"B":a.push(s.getUint8(r)),r+=1;break;case"H":a.push("little"===this.buildConfig.endianness?s.getUint16(r,!0):s.getUint16(r,!1)),r+=2;break;case"I":a.push("little"===this.buildConfig.endianness?s.getUint32(r,!0):s.getUint32(r,!1)),r+=4}return a}calcSize(t){let e=0;for(const i of t)switch(i){case"B":e+=1;break;case"H":e+=2;break;case"I":e+=4}return e}}class Ki extends Zi{constructor(t,e){super(0,e),this.objId=t}getObjId(){return this.objId}}class Xi extends Zi{constructor(t,e){super(t,e),this.objIdsLimit=this.buildConfig.OBJ_LU_PAGES_OBJ_IDS_LIM,this.objIds=[]}calcMagic(t){let e=538182953^this.buildConfig.pageSize;this.buildConfig.useMagicLen&&(e^=t-this.bix);return e&(1<<8*this.buildConfig.objIdLen)-1}registerPage(t){if(this.objIdsLimit<=0)throw new Vi;const e=t instanceof qi?"index":"data";this.objIds.push([t.getObjId(),e]),this.objIdsLimit--}toBinary(){const t=new Uint8Array(this.buildConfig.pageSize);t.fill(255);let e=0;for(const[i,s]of this.objIds){let a=i;"index"===s&&(a^=1<<8*this.buildConfig.objIdLen-1);const r=this.pack(1===this.buildConfig.objIdLen?"B":2===this.buildConfig.objIdLen?"H":"I",a);t.set(r,e),e+=r.length}return t}magicfy(t){const e=this.objIdsLimit,i=(1<<8*this.buildConfig.objIdLen)-1;if(e>=2)for(let s=0;s<e;s++){if(s===e-2){this.objIds.push([this.calcMagic(t),"data"]);break}this.objIds.push([i,"data"]),this.objIdsLimit--}}}class qi extends Ki{constructor(t,e,i,s,a){super(t,a),this.spanIx=e,this.name=s,this.size=i,0===this.spanIx?this.pagesLim=this.buildConfig.OBJ_INDEX_PAGES_OBJ_IDS_HEAD_LIM:this.pagesLim=this.buildConfig.OBJ_INDEX_PAGES_OBJ_IDS_LIM,this.pages=[]}registerPage(t){if(this.pagesLim<=0)throw new Vi;this.pages.push(t.offset),this.pagesLim--}toBinary(){const t=new Uint8Array(this.buildConfig.pageSize);t.fill(255);const e=this.objId^1<<8*this.buildConfig.objIdLen-1,i=(1===this.buildConfig.objIdLen?"B":2===this.buildConfig.objIdLen?"H":"I")+(1===this.buildConfig.spanIxLen?"B":2===this.buildConfig.spanIxLen?"H":"I")+"B";let s=0;const a=this.pack(i,e,this.spanIx,248);if(t.set(a,s),s+=a.length,s+=this.buildConfig.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED_PAD,0===this.spanIx){const e=this.pack("IB",this.size,1);t.set(e,s),s+=e.length;const i=(new TextEncoder).encode(this.name),a=Math.min(i.length,this.buildConfig.objNameLen);t.set(i.slice(0,a),s);for(let e=a;e<this.buildConfig.objNameLen;e++)t[s+e]=0;s+=this.buildConfig.objNameLen+this.buildConfig.metaLen+this.buildConfig.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED_PAD}for(const e of this.pages){const i=Math.floor(e/this.buildConfig.pageSize),a=this.pack(1===this.buildConfig.pageIxLen?"B":2===this.buildConfig.pageIxLen?"H":"I",i);t.set(a,s),s+=a.length}return t}}class Yi extends Ki{constructor(t,e,i,s,a){super(e,a),this.offset=t,this.spanIx=i,this.contents=s}toBinary(){const t=new Uint8Array(this.buildConfig.pageSize);t.fill(255);const e=(1===this.buildConfig.objIdLen?"B":2===this.buildConfig.objIdLen?"H":"I")+(1===this.buildConfig.spanIxLen?"B":2===this.buildConfig.spanIxLen?"H":"I")+"B",i=this.pack(e,this.objId,this.spanIx,252);return t.set(i,0),t.set(this.contents,i.length),t}}class Qi{constructor(t,e){this.buildConfig=e,this.offset=t*this.buildConfig.blockSize,this.remainingPages=this.buildConfig.OBJ_USABLE_PAGES_PER_BLOCK,this.pages=[],this.bix=t,this.luPages=[];for(let t=0;t<this.buildConfig.OBJ_LU_PAGES_PER_BLOCK;t++){const t=new Xi(this.bix,this.buildConfig);this.luPages.push(t)}this.pages.push(...this.luPages),this.luPageIter=this.luPages[Symbol.iterator](),this.luPage=this.luPageIter.next().value||null,this.curObjIndexSpanIx=0,this.curObjDataSpanIx=0,this.curObjId=0,this.curObjIdxPage=null}reset(){this.curObjIndexSpanIx=0,this.curObjDataSpanIx=0,this.curObjId=0,this.curObjIdxPage=null}registerPage(t){if(t instanceof Yi){if(!this.curObjIdxPage)throw new Error("No current object index page");this.curObjIdxPage.registerPage(t)}try{if(!this.luPage)throw new Vi;this.luPage.registerPage(t)}catch(e){if(!(e instanceof Vi))throw e;{const e=this.luPageIter.next();if(e.done)throw new Error("Invalid attempt to add page to a block when there is no more space in lookup");this.luPage=e.value,this.luPage.registerPage(t)}}this.pages.push(t)}beginObj(t,e,i,s=0,a=0){if(this.remainingPages<=0)throw new Vi;this.reset(),this.curObjId=t,this.curObjIndexSpanIx=s,this.curObjDataSpanIx=a;const r=new qi(t,this.curObjIndexSpanIx,e,i,this.buildConfig);this.registerPage(r),this.curObjIdxPage=r,this.remainingPages--,this.curObjIndexSpanIx++}updateObj(t){if(this.remainingPages<=0)throw new Vi;const e=new Yi(this.offset+this.pages.length*this.buildConfig.pageSize,this.curObjId,this.curObjDataSpanIx,t,this.buildConfig);this.registerPage(e),this.curObjDataSpanIx++,this.remainingPages--}endObj(){this.reset()}isFull(){return this.remainingPages<=0}toBinary(t){const e=new Uint8Array(this.buildConfig.blockSize);e.fill(255);let i=0;if(this.buildConfig.useMagic)for(let s=0;s<this.pages.length;s++){const a=this.pages[s];s===this.buildConfig.OBJ_LU_PAGES_PER_BLOCK-1&&a instanceof Xi&&a.magicfy(t);const r=a.toBinary();e.set(r,i),i+=r.length}else for(const t of this.pages){const s=t.toBinary();e.set(s,i),i+=s.length}return e}get currentObjIndexSpanIx(){return this.curObjIndexSpanIx}get currentObjDataSpanIx(){return this.curObjDataSpanIx}get currentObjId(){return this.curObjId}get currentObjIdxPage(){return this.curObjIdxPage}set currentObjId(t){this.curObjId=t}set currentObjIdxPage(t){this.curObjIdxPage=t}set currentObjDataSpanIx(t){this.curObjDataSpanIx=t}set currentObjIndexSpanIx(t){this.curObjIndexSpanIx=t}}class ts{constructor(t,e){if(t%e.blockSize!==0)throw new Error("image size should be a multiple of block size");this.imgSize=t,this.buildConfig=e,this.blocks=[],this.blocksLim=Math.floor(this.imgSize/this.buildConfig.blockSize),this.remainingBlocks=this.blocksLim,this.curObjId=1}createBlock(){if(this.isFull())throw new Vi("the image size has been exceeded");const t=new Qi(this.blocks.length,this.buildConfig);return this.blocks.push(t),this.remainingBlocks--,t}isFull(){return this.remainingBlocks<=0}createFile(t,e){if(t.length>this.buildConfig.objNameLen)throw new Error(`object name '${t}' too long`);const i=t;let s=0;try{this.blocks[this.blocks.length-1].beginObj(this.curObjId,e.length,i)}catch{this.createBlock().beginObj(this.curObjId,e.length,i)}for(;s<e.length;){const t=Math.min(this.buildConfig.OBJ_DATA_PAGE_CONTENT_LEN,e.length-s),a=e.slice(s,s+t);try{const t=this.blocks[this.blocks.length-1];try{t.updateObj(a)}catch(s){if(s instanceof Vi){if(t.isFull())throw s;t.beginObj(this.curObjId,e.length,i,t.currentObjIndexSpanIx,t.currentObjDataSpanIx);continue}throw s}}catch(t){if(t instanceof Vi){const t=this.blocks[this.blocks.length-1],e=this.createBlock();e.currentObjId=t.currentObjId,e.currentObjIdxPage=t.currentObjIdxPage,e.currentObjDataSpanIx=t.currentObjDataSpanIx,e.currentObjIndexSpanIx=t.currentObjIndexSpanIx;continue}throw t}s+=t}this.blocks[this.blocks.length-1].endObj(),this.curObjId++}toBinary(){const t=[];for(const e of this.blocks)t.push(e.toBinary(this.blocksLim));let e=this.blocks.length,i=this.remainingBlocks;if(this.buildConfig.useMagic)for(;i>0;){const s=new Qi(e,this.buildConfig);t.push(s.toBinary(this.blocksLim)),i--,e++}else{const e=this.imgSize-t.length*this.buildConfig.blockSize;if(e>0){const i=new Uint8Array(e);i.fill(255),t.push(i)}}const s=t.reduce((t,e)=>t+e.length,0),a=new Uint8Array(s);let r=0;for(const e of t)a.set(e,r),r+=e.length;return a}listFiles(){throw new Error("listFiles requires fromBinary to be called first")}readFile(){throw new Error("readFile requires fromBinary to be called first")}deleteFile(){throw new Error("deleteFile not yet implemented - requires filesystem recreation")}}class es{constructor(t,e){this.imageData=t,this.buildConfig=e,this.filesMap=new Map}unpack(t,e,i=0){const s=new DataView(e.buffer,e.byteOffset+i),a=[];let r=0;for(const e of t)switch(e){case"B":a.push(s.getUint8(r)),r+=1;break;case"H":a.push("little"===this.buildConfig.endianness?s.getUint16(r,!0):s.getUint16(r,!1)),r+=2;break;case"I":a.push("little"===this.buildConfig.endianness?s.getUint32(r,!0):s.getUint32(r,!1)),r+=4}return a}parse(){const t=Math.floor(this.imageData.length/this.buildConfig.blockSize);for(let e=0;e<t;e++){const t=e*this.buildConfig.blockSize,i=this.imageData.slice(t,t+this.buildConfig.blockSize);this.parseBlock(i)}}parseBlock(t){for(let e=0;e<this.buildConfig.OBJ_LU_PAGES_PER_BLOCK;e++){const i=e*this.buildConfig.pageSize,s=t.slice(i,i+this.buildConfig.pageSize);for(let t=0;t<s.length&&!(t+this.buildConfig.objIdLen>s.length);t+=this.buildConfig.objIdLen){const e=s.slice(t,t+this.buildConfig.objIdLen),[i]=this.unpack(1===this.buildConfig.objIdLen?"B":2===this.buildConfig.objIdLen?"H":"I",e);if(i===(1<<8*this.buildConfig.objIdLen)-1)continue;const a=!!(i&1<<8*this.buildConfig.objIdLen-1),r=i&~(1<<8*this.buildConfig.objIdLen-1);a&&!this.filesMap.has(r)&&this.filesMap.set(r,{name:null,size:0,dataPages:[]})}}for(let e=this.buildConfig.OBJ_LU_PAGES_PER_BLOCK;e<this.buildConfig.PAGES_PER_BLOCK;e++){const i=e*this.buildConfig.pageSize,s=t.slice(i,i+this.buildConfig.pageSize);this.parsePage(s)}}parsePage(t){const e=(1===this.buildConfig.objIdLen?"B":2===this.buildConfig.objIdLen?"H":"I")+(1===this.buildConfig.spanIxLen?"B":2===this.buildConfig.spanIxLen?"H":"I")+"B",i=this.buildConfig.objIdLen+this.buildConfig.spanIxLen+1;if(t.length<i)return;const[s,a,r]=this.unpack(e,t);if(s===(1<<8*this.buildConfig.objIdLen)-1)return;const n=!!(s&1<<8*this.buildConfig.objIdLen-1),h=s&~(1<<8*this.buildConfig.objIdLen-1);if(n&&248===r)this.filesMap.has(h)||this.filesMap.set(h,{name:null,size:0,dataPages:[]}),0===a&&this.parseIndexPage(t,i,h);else if(!n&&252===r&&this.filesMap.has(h)){const e=i,s=t.slice(e,e+this.buildConfig.OBJ_DATA_PAGE_CONTENT_LEN);this.filesMap.get(h).dataPages.push([a,s])}}parseIndexPage(t,e,i){let s=e+this.buildConfig.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED_PAD;if(s+5<=t.length){const[e]=this.unpack("IB",t,s);s+=5;const a=s+this.buildConfig.objNameLen;if(a<=t.length){const r=t.slice(s,a),n=r.indexOf(0),h=-1!==n?r.slice(0,n):r,o=(new TextDecoder).decode(h),l=this.filesMap.get(i);l.name=o,l.size=e}}}listFiles(){const t=[];for(const[,e]of this.filesMap){if(null===e.name)continue;e.dataPages.sort((t,e)=>t[0]-e[0]);const i=[];let s=0;for(const[,t]of e.dataPages){const a=e.size-s;if(a<=0)break;const r=Math.min(t.length,a);i.push(t.slice(0,r)),s+=r}const a=new Uint8Array(s);let r=0;for(const t of i)a.set(t,r),r+=t.length;t.push({name:e.name,size:e.size,data:a})}return t}readFile(t){const e=this.listFiles().find(e=>e.name===t||e.name==="/"+t);return e?e.data:null}}const is={pageSize:256,blockSize:4096,objNameLen:32,metaLen:4,useMagic:!0,useMagicLen:!0,alignedObjIxTables:!1},ss=async t=>{let e;const i=globalThis.requestSerialPort;if("function"==typeof i)e=await i();else{if(!navigator.serial)throw new Error("Web Serial API is not supported in this browser. Please use Chrome, Edge, or Opera on desktop, or Chrome on Android. Note: The page must be served over HTTPS or localhost.");e=await navigator.serial.requestPort()}return e.readable&&e.writable||await e.open({baudRate:o}),new mi(e,t)},as=async(t,e)=>{if(!t)throw new Error("Port is required");return t.readable&&t.writable||await t.open({baudRate:o}),new mi(t,e)};export{Q as CHIP_ERASE_TIMEOUT,g as CHIP_FAMILY_ESP32,p as CHIP_FAMILY_ESP32C2,b as CHIP_FAMILY_ESP32C3,w as CHIP_FAMILY_ESP32C5,m as CHIP_FAMILY_ESP32C6,S as CHIP_FAMILY_ESP32C61,y as CHIP_FAMILY_ESP32H2,R as CHIP_FAMILY_ESP32H21,B as CHIP_FAMILY_ESP32H4,I as CHIP_FAMILY_ESP32P4,f as CHIP_FAMILY_ESP32S2,_ as CHIP_FAMILY_ESP32S3,v as CHIP_FAMILY_ESP32S31,u as CHIP_FAMILY_ESP8266,is as DEFAULT_SPIFFS_CONFIG,Y as DEFAULT_TIMEOUT,it as ERASE_REGION_TIMEOUT_PER_MB,vi as ESP8266_LITTLEFS_BLOCK_SIZE,Ui as ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES,Ci as ESP8266_LITTLEFS_PAGE_SIZE,ki as ESP8266_SPIFFS_BLOCK_SIZE,Ei as ESP8266_SPIFFS_PAGE_SIZE,mi as ESPLoader,$ as ESP_CHANGE_BAUDRATE,J as ESP_CHECKSUM_MAGIC,F as ESP_ERASE_FLASH,L as ESP_ERASE_REGION,E as ESP_FLASH_BEGIN,k as ESP_FLASH_DATA,H as ESP_FLASH_DEFL_BEGIN,V as ESP_FLASH_DEFL_DATA,Z as ESP_FLASH_DEFL_END,D as ESP_FLASH_END,G as ESP_GET_SECURITY_INFO,T as ESP_MEM_BEGIN,O as ESP_MEM_DATA,x as ESP_MEM_END,q as ESP_RAM_BLOCK,W as ESP_READ_FLASH,z as ESP_READ_REG,N as ESP_SPI_ATTACH,j as ESP_SPI_FLASH_MD5,M as ESP_SPI_SET_PARAMS,A as ESP_SYNC,P as ESP_WRITE_REG,Ii as FATFS_BLOCK_SIZE_CANDIDATES,Ri as FATFS_DEFAULT_BLOCK_SIZE,at as FLASH_READ_TIMEOUT,Ai as FilesystemType,Bi as LITTLEFS_BLOCK_SIZE_CANDIDATES,yi as LITTLEFS_DEFAULT_BLOCK_SIZE,tt as MAX_TIMEOUT,st as MEM_END_ROM_TIMEOUT,K as ROM_INVALID_RECV_MSG,et as SYNC_TIMEOUT,Hi as SpiffsBuildConfig,ts as SpiffsFS,es as SpiffsReader,X as USB_RAM_BLOCK,ss as connect,as as connectWithPort,zi as detectFilesystemFromImage,Pi as detectFilesystemType,a as formatMacAddr,Ji as formatSize,Li as getBlockSizeCandidates,Fi as getDefaultBlockSize,Oi as getESP8266FilesystemLayout,Gi as getPartitionTableOffset,i as hexFormatter,ji as parsePartitionTable,Ti as scanESP8266Filesystem,r as sleep,s as toHex};
+/**
+ * @name slipEncode
+ * Take an array buffer and return back a new array where
+ * 0xdb is replaced with 0xdb 0xdd and 0xc0 is replaced with 0xdb 0xdc
+ */
+const slipEncode = (buffer) => {
+    let encoded = [0xc0];
+    for (const byte of buffer) {
+        if (byte == 0xdb) {
+            encoded = encoded.concat([0xdb, 0xdd]);
+        }
+        else if (byte == 0xc0) {
+            encoded = encoded.concat([0xdb, 0xdc]);
+        }
+        else {
+            encoded.push(byte);
+        }
+    }
+    encoded.push(0xc0);
+    return encoded;
+};
+/**
+ * @name toByteArray
+ * Convert a string to a byte array
+ */
+const toByteArray = (str) => {
+    const byteArray = [];
+    for (let i = 0; i < str.length; i++) {
+        const charcode = str.charCodeAt(i);
+        if (charcode <= 0xff) {
+            byteArray.push(charcode);
+        }
+    }
+    return byteArray;
+};
+const hexFormatter = (bytes) => "[" + bytes.map((value) => toHex(value)).join(", ") + "]";
+const toHex = (value, size = 2) => {
+    const hex = value.toString(16).toUpperCase();
+    if (hex.startsWith("-")) {
+        return "-0x" + hex.substring(1).padStart(size, "0");
+    }
+    else {
+        return "0x" + hex.padStart(size, "0");
+    }
+};
+/**
+ * Format MAC address array to string (e.g., [0xAA, 0xBB, 0xCC] -> "AA:BB:CC:DD:EE:FF")
+ */
+const formatMacAddr = (macAddr) => {
+    return macAddr
+        .map((value) => value.toString(16).toUpperCase().padStart(2, "0"))
+        .join(":");
+};
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const DETECTED_FLASH_SIZES = {
+    0x12: "256KB",
+    0x13: "512KB",
+    0x14: "1MB",
+    0x15: "2MB",
+    0x16: "4MB",
+    0x17: "8MB",
+    0x18: "16MB",
+    0x19: "32MB",
+    0x1a: "64MB",
+    0x1b: "128MB",
+    0x1c: "256MB",
+    0x20: "64MB",
+    0x21: "128MB",
+    0x22: "256MB",
+    0x32: "256KB",
+    0x33: "512KB",
+    0x34: "1MB",
+    0x35: "2MB",
+    0x36: "4MB",
+    0x37: "8MB",
+    0x38: "16MB",
+    0x39: "32MB",
+    0x3a: "64MB",
+};
+const FLASH_WRITE_SIZE = 0x400;
+const STUB_FLASH_WRITE_SIZE = 0x4000;
+const FLASH_SECTOR_SIZE = 0x1000; // Flash sector size, minimum unit of erase.
+const ESP_ROM_BAUD = 115200;
+const USB_JTAG_SERIAL_PID = 0x1001;
+const ESP8266_SPI_REG_BASE = 0x60000200;
+const ESP8266_BASEFUSEADDR = 0x3ff00050;
+const ESP8266_MACFUSEADDR = 0x3ff00050;
+const ESP8266_SPI_USR_OFFS = 0x1c;
+const ESP8266_SPI_USR1_OFFS = 0x20;
+const ESP8266_SPI_USR2_OFFS = 0x24;
+const ESP8266_SPI_MOSI_DLEN_OFFS = -1;
+const ESP8266_SPI_MISO_DLEN_OFFS = -1;
+const ESP8266_SPI_W0_OFFS = 0x40;
+const ESP8266_UART_DATE_REG_ADDR = 0x60000078;
+const ESP8266_BOOTLOADER_FLASH_OFFSET = 0x0000;
+const ESP32_SPI_REG_BASE = 0x3ff42000;
+const ESP32_BASEFUSEADDR = 0x3ff5a000;
+const ESP32_MACFUSEADDR = 0x3ff5a000;
+const ESP32_SPI_USR_OFFS = 0x1c;
+const ESP32_SPI_USR1_OFFS = 0x20;
+const ESP32_SPI_USR2_OFFS = 0x24;
+const ESP32_SPI_MOSI_DLEN_OFFS = 0x28;
+const ESP32_SPI_MISO_DLEN_OFFS = 0x2c;
+const ESP32_SPI_W0_OFFS = 0x80;
+const ESP32_UART_DATE_REG_ADDR = 0x60000078;
+const ESP32_BOOTLOADER_FLASH_OFFSET = 0x1000;
+const ESP32S2_SPI_REG_BASE = 0x3f402000;
+const ESP32S2_BASEFUSEADDR = 0x3f41a000;
+const ESP32S2_MACFUSEADDR = 0x3f41a044;
+const ESP32S2_SPI_USR_OFFS = 0x18;
+const ESP32S2_SPI_USR1_OFFS = 0x1c;
+const ESP32S2_SPI_USR2_OFFS = 0x20;
+const ESP32S2_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32S2_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32S2_SPI_W0_OFFS = 0x58;
+const ESP32S2_UART_DATE_REG_ADDR = 0x60000078;
+const ESP32S2_BOOTLOADER_FLASH_OFFSET = 0x1000;
+// ESP32-S2 RTC Watchdog Timer registers for USB-OTG reset
+const ESP32S2_RTCCNTL_BASE_REG = 0x3f408000;
+const ESP32S2_RTC_CNTL_WDTWPROTECT_REG = ESP32S2_RTCCNTL_BASE_REG + 0x00ac;
+const ESP32S2_RTC_CNTL_WDTCONFIG0_REG = ESP32S2_RTCCNTL_BASE_REG + 0x0094;
+const ESP32S2_RTC_CNTL_WDTCONFIG1_REG = ESP32S2_RTCCNTL_BASE_REG + 0x0098;
+const ESP32S2_RTC_CNTL_WDT_WKEY = 0x50d83aa1;
+const ESP32S2_RTC_CNTL_OPTION1_REG = 0x3f408128;
+const ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK = 0x1; // Is download mode forced over USB?
+const ESP32S3_SPI_REG_BASE = 0x60002000;
+const ESP32S3_BASEFUSEADDR = 0x60007000;
+const ESP32S3_MACFUSEADDR = 0x60007000 + 0x044;
+const ESP32S3_SPI_USR_OFFS = 0x18;
+const ESP32S3_SPI_USR1_OFFS = 0x1c;
+const ESP32S3_SPI_USR2_OFFS = 0x20;
+const ESP32S3_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32S3_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32S3_SPI_W0_OFFS = 0x58;
+const ESP32S3_UART_DATE_REG_ADDR = 0x60000080;
+const ESP32S3_BOOTLOADER_FLASH_OFFSET = 0x0000;
+// ESP32-S3 RTC Watchdog Timer registers for USB-OTG reset
+const ESP32S3_RTCCNTL_BASE_REG = 0x60008000;
+const ESP32S3_RTC_CNTL_WDTWPROTECT_REG = ESP32S3_RTCCNTL_BASE_REG + 0x00b0;
+const ESP32S3_RTC_CNTL_WDTCONFIG0_REG = ESP32S3_RTCCNTL_BASE_REG + 0x0098;
+const ESP32S3_RTC_CNTL_WDTCONFIG1_REG = ESP32S3_RTCCNTL_BASE_REG + 0x009c;
+const ESP32S3_RTC_CNTL_WDT_WKEY = 0x50d83aa1;
+const ESP32S3_RTC_CNTL_OPTION1_REG = 0x6000812c;
+const ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK = 0x1; // Is download mode forced over USB?
+const ESP32C2_SPI_REG_BASE = 0x60002000;
+const ESP32C2_BASEFUSEADDR = 0x60008800;
+const ESP32C2_MACFUSEADDR = ESP32C2_BASEFUSEADDR + 0x040;
+const ESP32C2_SPI_USR_OFFS = 0x18;
+const ESP32C2_SPI_USR1_OFFS = 0x1c;
+const ESP32C2_SPI_USR2_OFFS = 0x20;
+const ESP32C2_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32C2_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32C2_SPI_W0_OFFS = 0x58;
+const ESP32C2_UART_DATE_REG_ADDR = 0x6000007c;
+const ESP32C2_BOOTLOADER_FLASH_OFFSET = 0x0000;
+const ESP32C3_SPI_REG_BASE = 0x60002000;
+const ESP32C3_BASEFUSEADDR = 0x60008800;
+const ESP32C3_MACFUSEADDR = 0x60008800 + 0x044;
+const ESP32C3_SPI_USR_OFFS = 0x18;
+const ESP32C3_SPI_USR1_OFFS = 0x1c;
+const ESP32C3_SPI_USR2_OFFS = 0x20;
+const ESP32C3_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32C3_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32C3_SPI_W0_OFFS = 0x58;
+const ESP32C3_UART_DATE_REG_ADDR = 0x6000007c;
+const ESP32C3_BOOTLOADER_FLASH_OFFSET = 0x0000;
+// ESP32-C3 RTC Watchdog Timer registers
+const ESP32C3_RTC_CNTL_BASE_REG = 0x60008000;
+const ESP32C3_RTC_CNTL_WDTWPROTECT_REG = ESP32C3_RTC_CNTL_BASE_REG + 0x00a8;
+const ESP32C3_RTC_CNTL_WDTCONFIG0_REG = ESP32C3_RTC_CNTL_BASE_REG + 0x0090;
+const ESP32C3_RTC_CNTL_WDTCONFIG1_REG = ESP32C3_RTC_CNTL_BASE_REG + 0x0094;
+const ESP32C3_RTC_CNTL_WDT_WKEY = 0x50d83aa1;
+// Note: ESP32C3_BSS_UART_DEV_ADDR is calculated dynamically based on chip revision in esp_loader.ts
+// Revision < 101: 0x3FCDF064, Revision >= 101: 0x3FCDF060
+// ESP32-C3 EFUSE registers for chip revision detection
+const ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG = 0x60008850;
+const ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG = 0x60008858;
+const ESP32C5_SPI_REG_BASE = 0x60003000;
+const ESP32C5_BASEFUSEADDR = 0x600b4800;
+const ESP32C5_MACFUSEADDR = 0x600b4800 + 0x044;
+const ESP32C5_SPI_USR_OFFS = 0x18;
+const ESP32C5_SPI_USR1_OFFS = 0x1c;
+const ESP32C5_SPI_USR2_OFFS = 0x20;
+const ESP32C5_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32C5_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32C5_SPI_W0_OFFS = 0x58;
+const ESP32C5_UART_DATE_REG_ADDR = 0x6000007c;
+const ESP32C5_BOOTLOADER_FLASH_OFFSET = 0x2000;
+const ESP32C6_SPI_REG_BASE = 0x60003000;
+const ESP32C6_BASEFUSEADDR = 0x600b0800;
+const ESP32C6_MACFUSEADDR = 0x600b0800 + 0x044;
+const ESP32C6_SPI_USR_OFFS = 0x18;
+const ESP32C6_SPI_USR1_OFFS = 0x1c;
+const ESP32C6_SPI_USR2_OFFS = 0x20;
+const ESP32C6_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32C6_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32C6_SPI_W0_OFFS = 0x58;
+const ESP32C6_UART_DATE_REG_ADDR = 0x6000007c;
+const ESP32C6_BOOTLOADER_FLASH_OFFSET = 0x0000;
+// ESP32-C5/C6 LP Watchdog Timer registers (Low Power WDT)
+const ESP32C5_C6_DR_REG_LP_WDT_BASE = 0x600b1c00;
+const ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG = ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0000; // LP_WDT_RWDT_CONFIG0_REG
+const ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG = ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_RWDT_CONFIG1_REG
+const ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG = ESP32C5_C6_DR_REG_LP_WDT_BASE + 0x0018; // LP_WDT_RWDT_WPROTECT_REG
+const ESP32C5_C6_RTC_CNTL_WDT_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY
+const ESP32C61_SPI_REG_BASE = 0x60003000;
+const ESP32C61_BASEFUSEADDR = 0x600b4800;
+const ESP32C61_MACFUSEADDR = 0x600b4800 + 0x044;
+const ESP32C61_SPI_USR_OFFS = 0x18;
+const ESP32C61_SPI_USR1_OFFS = 0x1c;
+const ESP32C61_SPI_USR2_OFFS = 0x20;
+const ESP32C61_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32C61_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32C61_SPI_W0_OFFS = 0x58;
+const ESP32C61_UART_DATE_REG_ADDR = 0x6000007c;
+const ESP32C61_BOOTLOADER_FLASH_OFFSET = 0x0000;
+const ESP32H2_SPI_REG_BASE = 0x60003000;
+const ESP32H2_BASEFUSEADDR = 0x600b0800;
+const ESP32H2_MACFUSEADDR = 0x600b0800 + 0x044;
+const ESP32H2_SPI_USR_OFFS = 0x18;
+const ESP32H2_SPI_USR1_OFFS = 0x1c;
+const ESP32H2_SPI_USR2_OFFS = 0x20;
+const ESP32H2_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32H2_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32H2_SPI_W0_OFFS = 0x58;
+const ESP32H2_UART_DATE_REG_ADDR = 0x6000007c;
+const ESP32H2_BOOTLOADER_FLASH_OFFSET = 0x0000;
+const ESP32H4_SPI_REG_BASE = 0x60099000;
+const ESP32H4_BASEFUSEADDR = 0x600b1800;
+const ESP32H4_MACFUSEADDR = 0x600b1800 + 0x044;
+const ESP32H4_SPI_USR_OFFS = 0x18;
+const ESP32H4_SPI_USR1_OFFS = 0x1c;
+const ESP32H4_SPI_USR2_OFFS = 0x20;
+const ESP32H4_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32H4_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32H4_SPI_W0_OFFS = 0x58;
+const ESP32H4_UART_DATE_REG_ADDR = 0x60012000 + 0x7c;
+const ESP32H4_BOOTLOADER_FLASH_OFFSET = 0x2000;
+const ESP32H21_SPI_REG_BASE = 0x60003000;
+const ESP32H21_BASEFUSEADDR = 0x600b4000;
+const ESP32H21_MACFUSEADDR = 0x600b4000 + 0x044;
+const ESP32H21_SPI_USR_OFFS = 0x18;
+const ESP32H21_SPI_USR1_OFFS = 0x1c;
+const ESP32H21_SPI_USR2_OFFS = 0x20;
+const ESP32H21_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32H21_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32H21_SPI_W0_OFFS = 0x58;
+const ESP32H21_UART_DATE_REG_ADDR = 0x6000007c;
+const ESP32H21_BOOTLOADER_FLASH_OFFSET = 0x0000;
+const ESP32P4_SPI_REG_BASE = 0x5008d000;
+const ESP32P4_BASEFUSEADDR = 0x5012d000;
+const ESP32P4_EFUSE_BLOCK1_ADDR = ESP32P4_BASEFUSEADDR + 0x044;
+const ESP32P4_MACFUSEADDR = 0x5012d000 + 0x044;
+const ESP32P4_SPI_USR_OFFS = 0x18;
+const ESP32P4_SPI_USR1_OFFS = 0x1c;
+const ESP32P4_SPI_USR2_OFFS = 0x20;
+const ESP32P4_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32P4_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32P4_SPI_W0_OFFS = 0x58;
+const ESP32P4_UART_DATE_REG_ADDR = 0x500ca000 + 0x8c;
+const ESP32P4_BOOTLOADER_FLASH_OFFSET = 0x2000;
+// ESP32-P4 RTC Watchdog Timer registers
+const ESP32P4_DR_REG_LP_WDT_BASE = 0x50116000;
+const ESP32P4_RTC_CNTL_WDTWPROTECT_REG = ESP32P4_DR_REG_LP_WDT_BASE + 0x0018; // LP_WDT_WPROTECT_REG
+const ESP32P4_RTC_CNTL_WDTCONFIG0_REG = ESP32P4_DR_REG_LP_WDT_BASE + 0x0000; // LP_WDT_CONFIG0_REG
+const ESP32P4_RTC_CNTL_WDTCONFIG1_REG = ESP32P4_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_CONFIG1_REG
+const ESP32P4_RTC_CNTL_WDT_WKEY = 0x50d83aa1;
+const ESP32P4_RTC_CNTL_OPTION1_REG = 0x50110008;
+const ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK = 0x4; // Is download mode forced over USB?
+const ESP32S31_SPI_REG_BASE = 0x20500000;
+const ESP32S31_BASEFUSEADDR = 0x20715000;
+const ESP32S31_MACFUSEADDR = 0x20715000 + 0x044;
+const ESP32S31_SPI_USR_OFFS = 0x18;
+const ESP32S31_SPI_USR1_OFFS = 0x1c;
+const ESP32S31_SPI_USR2_OFFS = 0x20;
+const ESP32S31_SPI_MOSI_DLEN_OFFS = 0x24;
+const ESP32S31_SPI_MISO_DLEN_OFFS = 0x28;
+const ESP32S31_SPI_W0_OFFS = 0x58;
+const ESP32S31_UART_DATE_REG_ADDR = 0x2038a000 + 0x8c;
+const ESP32S31_BOOTLOADER_FLASH_OFFSET = 0x2000;
+const SYNC_PACKET = toByteArray("\x07\x07\x12 UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU");
+const CHIP_DETECT_MAGIC_REG_ADDR = 0x40001000;
+// Image Chip IDs (used by ESP32-C3 and later for chip detection)
+// These values for the families are made up; nothing that esptool uses.
+const CHIP_FAMILY_ESP8266 = 0x8266;
+const CHIP_FAMILY_ESP32 = 0x32;
+const CHIP_FAMILY_ESP32S2 = 0x3252;
+const CHIP_FAMILY_ESP32S3 = 0x3253;
+const CHIP_FAMILY_ESP32C2 = 0x32c2;
+const CHIP_FAMILY_ESP32C3 = 0x32c3;
+const CHIP_FAMILY_ESP32C5 = 0x32c5;
+const CHIP_FAMILY_ESP32C6 = 0x32c6;
+const CHIP_FAMILY_ESP32C61 = 0x32c61;
+const CHIP_FAMILY_ESP32H2 = 0x3272;
+const CHIP_FAMILY_ESP32H4 = 0x3274;
+const CHIP_FAMILY_ESP32H21 = 0x3275;
+const CHIP_FAMILY_ESP32P4 = 0x3280;
+const CHIP_FAMILY_ESP32S31 = 0x3231;
+const CHIP_ID_TO_INFO = {
+    5: { name: "ESP32-C3", family: CHIP_FAMILY_ESP32C3 },
+    9: { name: "ESP32-S3", family: CHIP_FAMILY_ESP32S3 },
+    12: { name: "ESP32-C2", family: CHIP_FAMILY_ESP32C2 },
+    13: { name: "ESP32-C6", family: CHIP_FAMILY_ESP32C6 },
+    16: { name: "ESP32-H2", family: CHIP_FAMILY_ESP32H2 },
+    18: { name: "ESP32-P4", family: CHIP_FAMILY_ESP32P4 },
+    20: { name: "ESP32-C61", family: CHIP_FAMILY_ESP32C61 },
+    23: { name: "ESP32-C5", family: CHIP_FAMILY_ESP32C5 },
+    25: { name: "ESP32-H21", family: CHIP_FAMILY_ESP32H21 },
+    28: { name: "ESP32-H4", family: CHIP_FAMILY_ESP32H4 },
+    32: { name: "ESP32-S31", family: CHIP_FAMILY_ESP32S31 },
+};
+const CHIP_DETECT_MAGIC_VALUES = {
+    0xfff0c101: { name: "ESP8266", family: CHIP_FAMILY_ESP8266 },
+    0x00f01d83: { name: "ESP32", family: CHIP_FAMILY_ESP32 },
+    0x000007c6: { name: "ESP32-S2", family: CHIP_FAMILY_ESP32S2 },
+};
+// Commands supported by ESP8266 ROM bootloader
+const ESP_FLASH_BEGIN = 0x02;
+const ESP_FLASH_DATA = 0x03;
+const ESP_FLASH_END = 0x04;
+const ESP_MEM_BEGIN = 0x05;
+const ESP_MEM_END = 0x06;
+const ESP_MEM_DATA = 0x07;
+const ESP_SYNC = 0x08;
+const ESP_WRITE_REG = 0x09;
+const ESP_READ_REG = 0x0a;
+const ESP_ERASE_FLASH = 0xd0;
+const ESP_ERASE_REGION = 0xd1;
+const ESP_READ_FLASH = 0xd2;
+const ESP_SPI_SET_PARAMS = 0x0b;
+const ESP_SPI_ATTACH = 0x0d;
+const ESP_CHANGE_BAUDRATE = 0x0f;
+const ESP_SPI_FLASH_MD5 = 0x13;
+const ESP_GET_SECURITY_INFO = 0x14;
+const ESP_CHECKSUM_MAGIC = 0xef;
+const ESP_FLASH_DEFL_BEGIN = 0x10;
+const ESP_FLASH_DEFL_DATA = 0x11;
+const ESP_FLASH_DEFL_END = 0x12;
+const ROM_INVALID_RECV_MSG = 0x05;
+const USB_RAM_BLOCK = 0x800;
+const ESP_RAM_BLOCK = 0x1800;
+// Timeouts
+const DEFAULT_TIMEOUT = 3000;
+const CHIP_ERASE_TIMEOUT = 150000; // timeout for full chip erase in ms
+const MAX_TIMEOUT = CHIP_ERASE_TIMEOUT * 2; // longest any command can run in ms
+const SYNC_TIMEOUT = 100; // timeout for syncing with bootloader in ms
+const ERASE_REGION_TIMEOUT_PER_MB = 30000; // timeout (per megabyte) for erasing a region in ms
+const MEM_END_ROM_TIMEOUT = 500;
+const FLASH_READ_TIMEOUT = 100; // timeout for reading flash in ms
+/**
+ * @name timeoutPerMb
+ * Scales timeouts which are size-specific
+ */
+const timeoutPerMb = (secondsPerMb, sizeBytes) => {
+    const result = Math.floor(secondsPerMb * (sizeBytes / 0x1e6));
+    if (result < DEFAULT_TIMEOUT) {
+        return DEFAULT_TIMEOUT;
+    }
+    return result;
+};
+const getSpiFlashAddresses = (chipFamily) => {
+    switch (chipFamily) {
+        case CHIP_FAMILY_ESP32:
+            return {
+                regBase: ESP32_SPI_REG_BASE,
+                baseFuse: ESP32_BASEFUSEADDR,
+                macFuse: ESP32_MACFUSEADDR,
+                usrOffs: ESP32_SPI_USR_OFFS,
+                usr1Offs: ESP32_SPI_USR1_OFFS,
+                usr2Offs: ESP32_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32_SPI_W0_OFFS,
+                uartDateReg: ESP32_UART_DATE_REG_ADDR,
+                flashOffs: ESP32_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32S2:
+            return {
+                regBase: ESP32S2_SPI_REG_BASE,
+                baseFuse: ESP32S2_BASEFUSEADDR,
+                macFuse: ESP32S2_MACFUSEADDR,
+                usrOffs: ESP32S2_SPI_USR_OFFS,
+                usr1Offs: ESP32S2_SPI_USR1_OFFS,
+                usr2Offs: ESP32S2_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32S2_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32S2_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32S2_SPI_W0_OFFS,
+                uartDateReg: ESP32S2_UART_DATE_REG_ADDR,
+                flashOffs: ESP32S2_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32S3:
+            return {
+                regBase: ESP32S3_SPI_REG_BASE,
+                usrOffs: ESP32S3_SPI_USR_OFFS,
+                baseFuse: ESP32S3_BASEFUSEADDR,
+                macFuse: ESP32S3_MACFUSEADDR,
+                usr1Offs: ESP32S3_SPI_USR1_OFFS,
+                usr2Offs: ESP32S3_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32S3_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32S3_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32S3_SPI_W0_OFFS,
+                uartDateReg: ESP32S3_UART_DATE_REG_ADDR,
+                flashOffs: ESP32S3_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP8266:
+            return {
+                regBase: ESP8266_SPI_REG_BASE,
+                usrOffs: ESP8266_SPI_USR_OFFS,
+                baseFuse: ESP8266_BASEFUSEADDR,
+                macFuse: ESP8266_MACFUSEADDR,
+                usr1Offs: ESP8266_SPI_USR1_OFFS,
+                usr2Offs: ESP8266_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP8266_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP8266_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP8266_SPI_W0_OFFS,
+                uartDateReg: ESP8266_UART_DATE_REG_ADDR,
+                flashOffs: ESP8266_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32C2:
+            return {
+                regBase: ESP32C2_SPI_REG_BASE,
+                baseFuse: ESP32C2_BASEFUSEADDR,
+                macFuse: ESP32C2_MACFUSEADDR,
+                usrOffs: ESP32C2_SPI_USR_OFFS,
+                usr1Offs: ESP32C2_SPI_USR1_OFFS,
+                usr2Offs: ESP32C2_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32C2_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32C2_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32C2_SPI_W0_OFFS,
+                uartDateReg: ESP32C2_UART_DATE_REG_ADDR,
+                flashOffs: ESP32C2_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32C3:
+            return {
+                regBase: ESP32C3_SPI_REG_BASE,
+                baseFuse: ESP32C3_BASEFUSEADDR,
+                macFuse: ESP32C3_MACFUSEADDR,
+                usrOffs: ESP32C3_SPI_USR_OFFS,
+                usr1Offs: ESP32C3_SPI_USR1_OFFS,
+                usr2Offs: ESP32C3_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32C3_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32C3_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32C3_SPI_W0_OFFS,
+                uartDateReg: ESP32C3_UART_DATE_REG_ADDR,
+                flashOffs: ESP32C3_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32C5:
+            return {
+                regBase: ESP32C5_SPI_REG_BASE,
+                baseFuse: ESP32C5_BASEFUSEADDR,
+                macFuse: ESP32C5_MACFUSEADDR,
+                usrOffs: ESP32C5_SPI_USR_OFFS,
+                usr1Offs: ESP32C5_SPI_USR1_OFFS,
+                usr2Offs: ESP32C5_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32C5_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32C5_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32C5_SPI_W0_OFFS,
+                uartDateReg: ESP32C5_UART_DATE_REG_ADDR,
+                flashOffs: ESP32C5_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32C6:
+            return {
+                regBase: ESP32C6_SPI_REG_BASE,
+                baseFuse: ESP32C6_BASEFUSEADDR,
+                macFuse: ESP32C6_MACFUSEADDR,
+                usrOffs: ESP32C6_SPI_USR_OFFS,
+                usr1Offs: ESP32C6_SPI_USR1_OFFS,
+                usr2Offs: ESP32C6_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32C6_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32C6_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32C6_SPI_W0_OFFS,
+                uartDateReg: ESP32C6_UART_DATE_REG_ADDR,
+                flashOffs: ESP32C6_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32C61:
+            return {
+                regBase: ESP32C61_SPI_REG_BASE,
+                baseFuse: ESP32C61_BASEFUSEADDR,
+                macFuse: ESP32C61_MACFUSEADDR,
+                usrOffs: ESP32C61_SPI_USR_OFFS,
+                usr1Offs: ESP32C61_SPI_USR1_OFFS,
+                usr2Offs: ESP32C61_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32C61_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32C61_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32C61_SPI_W0_OFFS,
+                uartDateReg: ESP32C61_UART_DATE_REG_ADDR,
+                flashOffs: ESP32C61_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32H2:
+            return {
+                regBase: ESP32H2_SPI_REG_BASE,
+                baseFuse: ESP32H2_BASEFUSEADDR,
+                macFuse: ESP32H2_MACFUSEADDR,
+                usrOffs: ESP32H2_SPI_USR_OFFS,
+                usr1Offs: ESP32H2_SPI_USR1_OFFS,
+                usr2Offs: ESP32H2_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32H2_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32H2_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32H2_SPI_W0_OFFS,
+                uartDateReg: ESP32H2_UART_DATE_REG_ADDR,
+                flashOffs: ESP32H2_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32H4:
+            return {
+                regBase: ESP32H4_SPI_REG_BASE,
+                baseFuse: ESP32H4_BASEFUSEADDR,
+                macFuse: ESP32H4_MACFUSEADDR,
+                usrOffs: ESP32H4_SPI_USR_OFFS,
+                usr1Offs: ESP32H4_SPI_USR1_OFFS,
+                usr2Offs: ESP32H4_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32H4_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32H4_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32H4_SPI_W0_OFFS,
+                uartDateReg: ESP32H4_UART_DATE_REG_ADDR,
+                flashOffs: ESP32H4_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32H21:
+            return {
+                regBase: ESP32H21_SPI_REG_BASE,
+                baseFuse: ESP32H21_BASEFUSEADDR,
+                macFuse: ESP32H21_MACFUSEADDR,
+                usrOffs: ESP32H21_SPI_USR_OFFS,
+                usr1Offs: ESP32H21_SPI_USR1_OFFS,
+                usr2Offs: ESP32H21_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32H21_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32H21_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32H21_SPI_W0_OFFS,
+                uartDateReg: ESP32H21_UART_DATE_REG_ADDR,
+                flashOffs: ESP32H21_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32P4:
+            return {
+                regBase: ESP32P4_SPI_REG_BASE,
+                baseFuse: ESP32P4_BASEFUSEADDR,
+                macFuse: ESP32P4_MACFUSEADDR,
+                usrOffs: ESP32P4_SPI_USR_OFFS,
+                usr1Offs: ESP32P4_SPI_USR1_OFFS,
+                usr2Offs: ESP32P4_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32P4_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32P4_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32P4_SPI_W0_OFFS,
+                uartDateReg: ESP32P4_UART_DATE_REG_ADDR,
+                flashOffs: ESP32P4_BOOTLOADER_FLASH_OFFSET,
+            };
+        case CHIP_FAMILY_ESP32S31:
+            return {
+                regBase: ESP32S31_SPI_REG_BASE,
+                baseFuse: ESP32S31_BASEFUSEADDR,
+                macFuse: ESP32S31_MACFUSEADDR,
+                usrOffs: ESP32S31_SPI_USR_OFFS,
+                usr1Offs: ESP32S31_SPI_USR1_OFFS,
+                usr2Offs: ESP32S31_SPI_USR2_OFFS,
+                mosiDlenOffs: ESP32S31_SPI_MOSI_DLEN_OFFS,
+                misoDlenOffs: ESP32S31_SPI_MISO_DLEN_OFFS,
+                w0Offs: ESP32S31_SPI_W0_OFFS,
+                uartDateReg: ESP32S31_UART_DATE_REG_ADDR,
+                flashOffs: ESP32S31_BOOTLOADER_FLASH_OFFSET,
+            };
+        default:
+            return {
+                regBase: -1,
+                baseFuse: -1,
+                macFuse: -1,
+                usrOffs: -1,
+                usr1Offs: -1,
+                usr2Offs: -1,
+                mosiDlenOffs: -1,
+                misoDlenOffs: -1,
+                w0Offs: -1,
+                uartDateReg: -1,
+                flashOffs: -1,
+            };
+    }
+};
+class SlipReadError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "SlipReadError";
+    }
+}
+
+const getStubCode = async (chipFamily, chipRevision) => {
+    let stubcode;
+    // Chips without stub support yet
+    if (chipFamily == CHIP_FAMILY_ESP32H4 ||
+        chipFamily == CHIP_FAMILY_ESP32H21 ||
+        chipFamily == CHIP_FAMILY_ESP32S31) {
+        return null;
+    }
+    if (chipFamily == CHIP_FAMILY_ESP32) {
+        stubcode = await import('./esp32-BL5RXAvE.js');
+    }
+    else if (chipFamily == CHIP_FAMILY_ESP32S2) {
+        stubcode = await import('./esp32s2-t0j-Iiag.js');
+    }
+    else if (chipFamily == CHIP_FAMILY_ESP32S3) {
+        stubcode = await import('./esp32s3-B8l06aKE.js');
+    }
+    else if (chipFamily == CHIP_FAMILY_ESP8266) {
+        stubcode = await import('./esp8266-nEkNAo8K.js');
+    }
+    else if (chipFamily == CHIP_FAMILY_ESP32C2) {
+        stubcode = await import('./esp32c2-JZd7VMTK.js');
+    }
+    else if (chipFamily == CHIP_FAMILY_ESP32C3) {
+        stubcode = await import('./esp32c3--2RgnV8f.js');
+    }
+    else if (chipFamily == CHIP_FAMILY_ESP32C5) {
+        stubcode = await import('./esp32c5-D7Zxncy7.js');
+    }
+    else if (chipFamily == CHIP_FAMILY_ESP32C6) {
+        stubcode = await import('./esp32c6-B8dieLFx.js');
+    }
+    else if (chipFamily == CHIP_FAMILY_ESP32C61) {
+        stubcode = await import('./esp32c61-CVOVhUkw.js');
+    }
+    else if (chipFamily == CHIP_FAMILY_ESP32H2) {
+        stubcode = await import('./esp32h2-C7Y4kn-J.js');
+    }
+    else if (chipFamily == CHIP_FAMILY_ESP32P4) {
+        // ESP32-P4: Use esp32p4r3.json for Rev. 300+, esp32p4.json for older revisions
+        if (chipRevision !== null && chipRevision !== undefined && chipRevision >= 300) {
+            stubcode = await import('./esp32p4r3-CW9u2O6_.js');
+        }
+        else {
+            stubcode = await import('./esp32p4-BN3KBRYS.js');
+        }
+    }
+    else {
+        // Unknown chip family - no stub available
+        return null;
+    }
+    // Base64 decode the text and data
+    return {
+        ...stubcode,
+        text: toByteArray(atob(stubcode.text)),
+        data: toByteArray(atob(stubcode.data)),
+    };
+};
+
+/*! pako 2.1.0 https://github.com/nodeca/pako @license (MIT AND Zlib) */
+// (C) 1995-2013 Jean-loup Gailly and Mark Adler
+// (C) 2014-2017 Vitaly Puzrin and Andrey Tupitsin
+//
+// This software is provided 'as-is', without any express or implied
+// warranty. In no event will the authors be held liable for any damages
+// arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//   claim that you wrote the original software. If you use this software
+//   in a product, an acknowledgment in the product documentation would be
+//   appreciated but is not required.
+// 2. Altered source versions must be plainly marked as such, and must not be
+//   misrepresented as being the original software.
+// 3. This notice may not be removed or altered from any source distribution.
+
+/* eslint-disable space-unary-ops */
+
+/* Public constants ==========================================================*/
+/* ===========================================================================*/
+
+
+//const Z_FILTERED          = 1;
+//const Z_HUFFMAN_ONLY      = 2;
+//const Z_RLE               = 3;
+const Z_FIXED$1               = 4;
+//const Z_DEFAULT_STRATEGY  = 0;
+
+/* Possible values of the data_type field (though see inflate()) */
+const Z_BINARY              = 0;
+const Z_TEXT                = 1;
+//const Z_ASCII             = 1; // = Z_TEXT
+const Z_UNKNOWN$1             = 2;
+
+/*============================================================================*/
+
+
+function zero$1(buf) { let len = buf.length; while (--len >= 0) { buf[len] = 0; } }
+
+// From zutil.h
+
+const STORED_BLOCK = 0;
+const STATIC_TREES = 1;
+const DYN_TREES    = 2;
+/* The three kinds of block type */
+
+const MIN_MATCH$1    = 3;
+const MAX_MATCH$1    = 258;
+/* The minimum and maximum match lengths */
+
+// From deflate.h
+/* ===========================================================================
+ * Internal compression state.
+ */
+
+const LENGTH_CODES$1  = 29;
+/* number of length codes, not counting the special END_BLOCK code */
+
+const LITERALS$1      = 256;
+/* number of literal bytes 0..255 */
+
+const L_CODES$1       = LITERALS$1 + 1 + LENGTH_CODES$1;
+/* number of Literal or Length codes, including the END_BLOCK code */
+
+const D_CODES$1       = 30;
+/* number of distance codes */
+
+const BL_CODES$1      = 19;
+/* number of codes used to transfer the bit lengths */
+
+const HEAP_SIZE$1     = 2 * L_CODES$1 + 1;
+/* maximum heap size */
+
+const MAX_BITS$1      = 15;
+/* All codes must not exceed MAX_BITS bits */
+
+const Buf_size      = 16;
+/* size of bit buffer in bi_buf */
+
+
+/* ===========================================================================
+ * Constants
+ */
+
+const MAX_BL_BITS = 7;
+/* Bit length codes must not exceed MAX_BL_BITS bits */
+
+const END_BLOCK   = 256;
+/* end of block literal code */
+
+const REP_3_6     = 16;
+/* repeat previous bit length 3-6 times (2 bits of repeat count) */
+
+const REPZ_3_10   = 17;
+/* repeat a zero length 3-10 times  (3 bits of repeat count) */
+
+const REPZ_11_138 = 18;
+/* repeat a zero length 11-138 times  (7 bits of repeat count) */
+
+/* eslint-disable comma-spacing,array-bracket-spacing */
+const extra_lbits =   /* extra bits for each length code */
+  new Uint8Array([0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0]);
+
+const extra_dbits =   /* extra bits for each distance code */
+  new Uint8Array([0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13]);
+
+const extra_blbits =  /* extra bits for each bit length code */
+  new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,7]);
+
+const bl_order =
+  new Uint8Array([16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15]);
+/* eslint-enable comma-spacing,array-bracket-spacing */
+
+/* The lengths of the bit length codes are sent in order of decreasing
+ * probability, to avoid transmitting the lengths for unused bit length codes.
+ */
+
+/* ===========================================================================
+ * Local data. These are initialized only once.
+ */
+
+// We pre-fill arrays with 0 to avoid uninitialized gaps
+
+const DIST_CODE_LEN = 512; /* see definition of array dist_code below */
+
+// !!!! Use flat array instead of structure, Freq = i*2, Len = i*2+1
+const static_ltree  = new Array((L_CODES$1 + 2) * 2);
+zero$1(static_ltree);
+/* The static literal tree. Since the bit lengths are imposed, there is no
+ * need for the L_CODES extra codes used during heap construction. However
+ * The codes 286 and 287 are needed to build a canonical tree (see _tr_init
+ * below).
+ */
+
+const static_dtree  = new Array(D_CODES$1 * 2);
+zero$1(static_dtree);
+/* The static distance tree. (Actually a trivial tree since all codes use
+ * 5 bits.)
+ */
+
+const _dist_code    = new Array(DIST_CODE_LEN);
+zero$1(_dist_code);
+/* Distance codes. The first 256 values correspond to the distances
+ * 3 .. 258, the last 256 values correspond to the top 8 bits of
+ * the 15 bit distances.
+ */
+
+const _length_code  = new Array(MAX_MATCH$1 - MIN_MATCH$1 + 1);
+zero$1(_length_code);
+/* length code for each normalized match length (0 == MIN_MATCH) */
+
+const base_length   = new Array(LENGTH_CODES$1);
+zero$1(base_length);
+/* First normalized length for each code (0 = MIN_MATCH) */
+
+const base_dist     = new Array(D_CODES$1);
+zero$1(base_dist);
+/* First normalized distance for each code (0 = distance of 1) */
+
+
+function StaticTreeDesc(static_tree, extra_bits, extra_base, elems, max_length) {
+
+  this.static_tree  = static_tree;  /* static tree or NULL */
+  this.extra_bits   = extra_bits;   /* extra bits for each code or NULL */
+  this.extra_base   = extra_base;   /* base index for extra_bits */
+  this.elems        = elems;        /* max number of elements in the tree */
+  this.max_length   = max_length;   /* max bit length for the codes */
+
+  // show if `static_tree` has data or dummy - needed for monomorphic objects
+  this.has_stree    = static_tree && static_tree.length;
+}
+
+
+let static_l_desc;
+let static_d_desc;
+let static_bl_desc;
+
+
+function TreeDesc(dyn_tree, stat_desc) {
+  this.dyn_tree = dyn_tree;     /* the dynamic tree */
+  this.max_code = 0;            /* largest code with non zero frequency */
+  this.stat_desc = stat_desc;   /* the corresponding static tree */
+}
+
+
+
+const d_code = (dist) => {
+
+  return dist < 256 ? _dist_code[dist] : _dist_code[256 + (dist >>> 7)];
+};
+
+
+/* ===========================================================================
+ * Output a short LSB first on the stream.
+ * IN assertion: there is enough room in pendingBuf.
+ */
+const put_short = (s, w) => {
+//    put_byte(s, (uch)((w) & 0xff));
+//    put_byte(s, (uch)((ush)(w) >> 8));
+  s.pending_buf[s.pending++] = (w) & 0xff;
+  s.pending_buf[s.pending++] = (w >>> 8) & 0xff;
+};
+
+
+/* ===========================================================================
+ * Send a value on a given number of bits.
+ * IN assertion: length <= 16 and value fits in length bits.
+ */
+const send_bits = (s, value, length) => {
+
+  if (s.bi_valid > (Buf_size - length)) {
+    s.bi_buf |= (value << s.bi_valid) & 0xffff;
+    put_short(s, s.bi_buf);
+    s.bi_buf = value >> (Buf_size - s.bi_valid);
+    s.bi_valid += length - Buf_size;
+  } else {
+    s.bi_buf |= (value << s.bi_valid) & 0xffff;
+    s.bi_valid += length;
+  }
+};
+
+
+const send_code = (s, c, tree) => {
+
+  send_bits(s, tree[c * 2]/*.Code*/, tree[c * 2 + 1]/*.Len*/);
+};
+
+
+/* ===========================================================================
+ * Reverse the first len bits of a code, using straightforward code (a faster
+ * method would use a table)
+ * IN assertion: 1 <= len <= 15
+ */
+const bi_reverse = (code, len) => {
+
+  let res = 0;
+  do {
+    res |= code & 1;
+    code >>>= 1;
+    res <<= 1;
+  } while (--len > 0);
+  return res >>> 1;
+};
+
+
+/* ===========================================================================
+ * Flush the bit buffer, keeping at most 7 bits in it.
+ */
+const bi_flush = (s) => {
+
+  if (s.bi_valid === 16) {
+    put_short(s, s.bi_buf);
+    s.bi_buf = 0;
+    s.bi_valid = 0;
+
+  } else if (s.bi_valid >= 8) {
+    s.pending_buf[s.pending++] = s.bi_buf & 0xff;
+    s.bi_buf >>= 8;
+    s.bi_valid -= 8;
+  }
+};
+
+
+/* ===========================================================================
+ * Compute the optimal bit lengths for a tree and update the total bit length
+ * for the current block.
+ * IN assertion: the fields freq and dad are set, heap[heap_max] and
+ *    above are the tree nodes sorted by increasing frequency.
+ * OUT assertions: the field len is set to the optimal bit length, the
+ *     array bl_count contains the frequencies for each bit length.
+ *     The length opt_len is updated; static_len is also updated if stree is
+ *     not null.
+ */
+const gen_bitlen = (s, desc) => {
+//    deflate_state *s;
+//    tree_desc *desc;    /* the tree descriptor */
+
+  const tree            = desc.dyn_tree;
+  const max_code        = desc.max_code;
+  const stree           = desc.stat_desc.static_tree;
+  const has_stree       = desc.stat_desc.has_stree;
+  const extra           = desc.stat_desc.extra_bits;
+  const base            = desc.stat_desc.extra_base;
+  const max_length      = desc.stat_desc.max_length;
+  let h;              /* heap index */
+  let n, m;           /* iterate over the tree elements */
+  let bits;           /* bit length */
+  let xbits;          /* extra bits */
+  let f;              /* frequency */
+  let overflow = 0;   /* number of elements with bit length too large */
+
+  for (bits = 0; bits <= MAX_BITS$1; bits++) {
+    s.bl_count[bits] = 0;
+  }
+
+  /* In a first pass, compute the optimal bit lengths (which may
+   * overflow in the case of the bit length tree).
+   */
+  tree[s.heap[s.heap_max] * 2 + 1]/*.Len*/ = 0; /* root of the heap */
+
+  for (h = s.heap_max + 1; h < HEAP_SIZE$1; h++) {
+    n = s.heap[h];
+    bits = tree[tree[n * 2 + 1]/*.Dad*/ * 2 + 1]/*.Len*/ + 1;
+    if (bits > max_length) {
+      bits = max_length;
+      overflow++;
+    }
+    tree[n * 2 + 1]/*.Len*/ = bits;
+    /* We overwrite tree[n].Dad which is no longer needed */
+
+    if (n > max_code) { continue; } /* not a leaf node */
+
+    s.bl_count[bits]++;
+    xbits = 0;
+    if (n >= base) {
+      xbits = extra[n - base];
+    }
+    f = tree[n * 2]/*.Freq*/;
+    s.opt_len += f * (bits + xbits);
+    if (has_stree) {
+      s.static_len += f * (stree[n * 2 + 1]/*.Len*/ + xbits);
+    }
+  }
+  if (overflow === 0) { return; }
+
+  // Tracev((stderr,"\nbit length overflow\n"));
+  /* This happens for example on obj2 and pic of the Calgary corpus */
+
+  /* Find the first bit length which could increase: */
+  do {
+    bits = max_length - 1;
+    while (s.bl_count[bits] === 0) { bits--; }
+    s.bl_count[bits]--;      /* move one leaf down the tree */
+    s.bl_count[bits + 1] += 2; /* move one overflow item as its brother */
+    s.bl_count[max_length]--;
+    /* The brother of the overflow item also moves one step up,
+     * but this does not affect bl_count[max_length]
+     */
+    overflow -= 2;
+  } while (overflow > 0);
+
+  /* Now recompute all bit lengths, scanning in increasing frequency.
+   * h is still equal to HEAP_SIZE. (It is simpler to reconstruct all
+   * lengths instead of fixing only the wrong ones. This idea is taken
+   * from 'ar' written by Haruhiko Okumura.)
+   */
+  for (bits = max_length; bits !== 0; bits--) {
+    n = s.bl_count[bits];
+    while (n !== 0) {
+      m = s.heap[--h];
+      if (m > max_code) { continue; }
+      if (tree[m * 2 + 1]/*.Len*/ !== bits) {
+        // Tracev((stderr,"code %d bits %d->%d\n", m, tree[m].Len, bits));
+        s.opt_len += (bits - tree[m * 2 + 1]/*.Len*/) * tree[m * 2]/*.Freq*/;
+        tree[m * 2 + 1]/*.Len*/ = bits;
+      }
+      n--;
+    }
+  }
+};
+
+
+/* ===========================================================================
+ * Generate the codes for a given tree and bit counts (which need not be
+ * optimal).
+ * IN assertion: the array bl_count contains the bit length statistics for
+ * the given tree and the field len is set for all tree elements.
+ * OUT assertion: the field code is set for all tree elements of non
+ *     zero code length.
+ */
+const gen_codes = (tree, max_code, bl_count) => {
+//    ct_data *tree;             /* the tree to decorate */
+//    int max_code;              /* largest code with non zero frequency */
+//    ushf *bl_count;            /* number of codes at each bit length */
+
+  const next_code = new Array(MAX_BITS$1 + 1); /* next code value for each bit length */
+  let code = 0;              /* running code value */
+  let bits;                  /* bit index */
+  let n;                     /* code index */
+
+  /* The distribution counts are first used to generate the code values
+   * without bit reversal.
+   */
+  for (bits = 1; bits <= MAX_BITS$1; bits++) {
+    code = (code + bl_count[bits - 1]) << 1;
+    next_code[bits] = code;
+  }
+  /* Check that the bit counts in bl_count are consistent. The last code
+   * must be all ones.
+   */
+  //Assert (code + bl_count[MAX_BITS]-1 == (1<<MAX_BITS)-1,
+  //        "inconsistent bit counts");
+  //Tracev((stderr,"\ngen_codes: max_code %d ", max_code));
+
+  for (n = 0;  n <= max_code; n++) {
+    let len = tree[n * 2 + 1]/*.Len*/;
+    if (len === 0) { continue; }
+    /* Now reverse the bits */
+    tree[n * 2]/*.Code*/ = bi_reverse(next_code[len]++, len);
+
+    //Tracecv(tree != static_ltree, (stderr,"\nn %3d %c l %2d c %4x (%x) ",
+    //     n, (isgraph(n) ? n : ' '), len, tree[n].Code, next_code[len]-1));
+  }
+};
+
+
+/* ===========================================================================
+ * Initialize the various 'constant' tables.
+ */
+const tr_static_init = () => {
+
+  let n;        /* iterates over tree elements */
+  let bits;     /* bit counter */
+  let length;   /* length value */
+  let code;     /* code value */
+  let dist;     /* distance index */
+  const bl_count = new Array(MAX_BITS$1 + 1);
+  /* number of codes at each bit length for an optimal tree */
+
+  // do check in _tr_init()
+  //if (static_init_done) return;
+
+  /* For some embedded targets, global variables are not initialized: */
+/*#ifdef NO_INIT_GLOBAL_POINTERS
+  static_l_desc.static_tree = static_ltree;
+  static_l_desc.extra_bits = extra_lbits;
+  static_d_desc.static_tree = static_dtree;
+  static_d_desc.extra_bits = extra_dbits;
+  static_bl_desc.extra_bits = extra_blbits;
+#endif*/
+
+  /* Initialize the mapping length (0..255) -> length code (0..28) */
+  length = 0;
+  for (code = 0; code < LENGTH_CODES$1 - 1; code++) {
+    base_length[code] = length;
+    for (n = 0; n < (1 << extra_lbits[code]); n++) {
+      _length_code[length++] = code;
+    }
+  }
+  //Assert (length == 256, "tr_static_init: length != 256");
+  /* Note that the length 255 (match length 258) can be represented
+   * in two different ways: code 284 + 5 bits or code 285, so we
+   * overwrite length_code[255] to use the best encoding:
+   */
+  _length_code[length - 1] = code;
+
+  /* Initialize the mapping dist (0..32K) -> dist code (0..29) */
+  dist = 0;
+  for (code = 0; code < 16; code++) {
+    base_dist[code] = dist;
+    for (n = 0; n < (1 << extra_dbits[code]); n++) {
+      _dist_code[dist++] = code;
+    }
+  }
+  //Assert (dist == 256, "tr_static_init: dist != 256");
+  dist >>= 7; /* from now on, all distances are divided by 128 */
+  for (; code < D_CODES$1; code++) {
+    base_dist[code] = dist << 7;
+    for (n = 0; n < (1 << (extra_dbits[code] - 7)); n++) {
+      _dist_code[256 + dist++] = code;
+    }
+  }
+  //Assert (dist == 256, "tr_static_init: 256+dist != 512");
+
+  /* Construct the codes of the static literal tree */
+  for (bits = 0; bits <= MAX_BITS$1; bits++) {
+    bl_count[bits] = 0;
+  }
+
+  n = 0;
+  while (n <= 143) {
+    static_ltree[n * 2 + 1]/*.Len*/ = 8;
+    n++;
+    bl_count[8]++;
+  }
+  while (n <= 255) {
+    static_ltree[n * 2 + 1]/*.Len*/ = 9;
+    n++;
+    bl_count[9]++;
+  }
+  while (n <= 279) {
+    static_ltree[n * 2 + 1]/*.Len*/ = 7;
+    n++;
+    bl_count[7]++;
+  }
+  while (n <= 287) {
+    static_ltree[n * 2 + 1]/*.Len*/ = 8;
+    n++;
+    bl_count[8]++;
+  }
+  /* Codes 286 and 287 do not exist, but we must include them in the
+   * tree construction to get a canonical Huffman tree (longest code
+   * all ones)
+   */
+  gen_codes(static_ltree, L_CODES$1 + 1, bl_count);
+
+  /* The static distance tree is trivial: */
+  for (n = 0; n < D_CODES$1; n++) {
+    static_dtree[n * 2 + 1]/*.Len*/ = 5;
+    static_dtree[n * 2]/*.Code*/ = bi_reverse(n, 5);
+  }
+
+  // Now data ready and we can init static trees
+  static_l_desc = new StaticTreeDesc(static_ltree, extra_lbits, LITERALS$1 + 1, L_CODES$1, MAX_BITS$1);
+  static_d_desc = new StaticTreeDesc(static_dtree, extra_dbits, 0,          D_CODES$1, MAX_BITS$1);
+  static_bl_desc = new StaticTreeDesc(new Array(0), extra_blbits, 0,         BL_CODES$1, MAX_BL_BITS);
+
+  //static_init_done = true;
+};
+
+
+/* ===========================================================================
+ * Initialize a new block.
+ */
+const init_block = (s) => {
+
+  let n; /* iterates over tree elements */
+
+  /* Initialize the trees. */
+  for (n = 0; n < L_CODES$1;  n++) { s.dyn_ltree[n * 2]/*.Freq*/ = 0; }
+  for (n = 0; n < D_CODES$1;  n++) { s.dyn_dtree[n * 2]/*.Freq*/ = 0; }
+  for (n = 0; n < BL_CODES$1; n++) { s.bl_tree[n * 2]/*.Freq*/ = 0; }
+
+  s.dyn_ltree[END_BLOCK * 2]/*.Freq*/ = 1;
+  s.opt_len = s.static_len = 0;
+  s.sym_next = s.matches = 0;
+};
+
+
+/* ===========================================================================
+ * Flush the bit buffer and align the output on a byte boundary
+ */
+const bi_windup = (s) =>
+{
+  if (s.bi_valid > 8) {
+    put_short(s, s.bi_buf);
+  } else if (s.bi_valid > 0) {
+    //put_byte(s, (Byte)s->bi_buf);
+    s.pending_buf[s.pending++] = s.bi_buf;
+  }
+  s.bi_buf = 0;
+  s.bi_valid = 0;
+};
+
+/* ===========================================================================
+ * Compares to subtrees, using the tree depth as tie breaker when
+ * the subtrees have equal frequency. This minimizes the worst case length.
+ */
+const smaller = (tree, n, m, depth) => {
+
+  const _n2 = n * 2;
+  const _m2 = m * 2;
+  return (tree[_n2]/*.Freq*/ < tree[_m2]/*.Freq*/ ||
+         (tree[_n2]/*.Freq*/ === tree[_m2]/*.Freq*/ && depth[n] <= depth[m]));
+};
+
+/* ===========================================================================
+ * Restore the heap property by moving down the tree starting at node k,
+ * exchanging a node with the smallest of its two sons if necessary, stopping
+ * when the heap property is re-established (each father smaller than its
+ * two sons).
+ */
+const pqdownheap = (s, tree, k) => {
+//    deflate_state *s;
+//    ct_data *tree;  /* the tree to restore */
+//    int k;               /* node to move down */
+
+  const v = s.heap[k];
+  let j = k << 1;  /* left son of k */
+  while (j <= s.heap_len) {
+    /* Set j to the smallest of the two sons: */
+    if (j < s.heap_len &&
+      smaller(tree, s.heap[j + 1], s.heap[j], s.depth)) {
+      j++;
+    }
+    /* Exit if v is smaller than both sons */
+    if (smaller(tree, v, s.heap[j], s.depth)) { break; }
+
+    /* Exchange v with the smallest son */
+    s.heap[k] = s.heap[j];
+    k = j;
+
+    /* And continue down the tree, setting j to the left son of k */
+    j <<= 1;
+  }
+  s.heap[k] = v;
+};
+
+
+// inlined manually
+// const SMALLEST = 1;
+
+/* ===========================================================================
+ * Send the block data compressed using the given Huffman trees
+ */
+const compress_block = (s, ltree, dtree) => {
+//    deflate_state *s;
+//    const ct_data *ltree; /* literal tree */
+//    const ct_data *dtree; /* distance tree */
+
+  let dist;           /* distance of matched string */
+  let lc;             /* match length or unmatched char (if dist == 0) */
+  let sx = 0;         /* running index in sym_buf */
+  let code;           /* the code to send */
+  let extra;          /* number of extra bits to send */
+
+  if (s.sym_next !== 0) {
+    do {
+      dist = s.pending_buf[s.sym_buf + sx++] & 0xff;
+      dist += (s.pending_buf[s.sym_buf + sx++] & 0xff) << 8;
+      lc = s.pending_buf[s.sym_buf + sx++];
+      if (dist === 0) {
+        send_code(s, lc, ltree); /* send a literal byte */
+        //Tracecv(isgraph(lc), (stderr," '%c' ", lc));
+      } else {
+        /* Here, lc is the match length - MIN_MATCH */
+        code = _length_code[lc];
+        send_code(s, code + LITERALS$1 + 1, ltree); /* send the length code */
+        extra = extra_lbits[code];
+        if (extra !== 0) {
+          lc -= base_length[code];
+          send_bits(s, lc, extra);       /* send the extra length bits */
+        }
+        dist--; /* dist is now the match distance - 1 */
+        code = d_code(dist);
+        //Assert (code < D_CODES, "bad d_code");
+
+        send_code(s, code, dtree);       /* send the distance code */
+        extra = extra_dbits[code];
+        if (extra !== 0) {
+          dist -= base_dist[code];
+          send_bits(s, dist, extra);   /* send the extra distance bits */
+        }
+      } /* literal or match pair ? */
+
+      /* Check that the overlay between pending_buf and sym_buf is ok: */
+      //Assert(s->pending < s->lit_bufsize + sx, "pendingBuf overflow");
+
+    } while (sx < s.sym_next);
+  }
+
+  send_code(s, END_BLOCK, ltree);
+};
+
+
+/* ===========================================================================
+ * Construct one Huffman tree and assigns the code bit strings and lengths.
+ * Update the total bit length for the current block.
+ * IN assertion: the field freq is set for all tree elements.
+ * OUT assertions: the fields len and code are set to the optimal bit length
+ *     and corresponding code. The length opt_len is updated; static_len is
+ *     also updated if stree is not null. The field max_code is set.
+ */
+const build_tree = (s, desc) => {
+//    deflate_state *s;
+//    tree_desc *desc; /* the tree descriptor */
+
+  const tree     = desc.dyn_tree;
+  const stree    = desc.stat_desc.static_tree;
+  const has_stree = desc.stat_desc.has_stree;
+  const elems    = desc.stat_desc.elems;
+  let n, m;          /* iterate over heap elements */
+  let max_code = -1; /* largest code with non zero frequency */
+  let node;          /* new node being created */
+
+  /* Construct the initial heap, with least frequent element in
+   * heap[SMALLEST]. The sons of heap[n] are heap[2*n] and heap[2*n+1].
+   * heap[0] is not used.
+   */
+  s.heap_len = 0;
+  s.heap_max = HEAP_SIZE$1;
+
+  for (n = 0; n < elems; n++) {
+    if (tree[n * 2]/*.Freq*/ !== 0) {
+      s.heap[++s.heap_len] = max_code = n;
+      s.depth[n] = 0;
+
+    } else {
+      tree[n * 2 + 1]/*.Len*/ = 0;
+    }
+  }
+
+  /* The pkzip format requires that at least one distance code exists,
+   * and that at least one bit should be sent even if there is only one
+   * possible code. So to avoid special checks later on we force at least
+   * two codes of non zero frequency.
+   */
+  while (s.heap_len < 2) {
+    node = s.heap[++s.heap_len] = (max_code < 2 ? ++max_code : 0);
+    tree[node * 2]/*.Freq*/ = 1;
+    s.depth[node] = 0;
+    s.opt_len--;
+
+    if (has_stree) {
+      s.static_len -= stree[node * 2 + 1]/*.Len*/;
+    }
+    /* node is 0 or 1 so it does not have extra bits */
+  }
+  desc.max_code = max_code;
+
+  /* The elements heap[heap_len/2+1 .. heap_len] are leaves of the tree,
+   * establish sub-heaps of increasing lengths:
+   */
+  for (n = (s.heap_len >> 1/*int /2*/); n >= 1; n--) { pqdownheap(s, tree, n); }
+
+  /* Construct the Huffman tree by repeatedly combining the least two
+   * frequent nodes.
+   */
+  node = elems;              /* next internal node of the tree */
+  do {
+    //pqremove(s, tree, n);  /* n = node of least frequency */
+    /*** pqremove ***/
+    n = s.heap[1/*SMALLEST*/];
+    s.heap[1/*SMALLEST*/] = s.heap[s.heap_len--];
+    pqdownheap(s, tree, 1/*SMALLEST*/);
+    /***/
+
+    m = s.heap[1/*SMALLEST*/]; /* m = node of next least frequency */
+
+    s.heap[--s.heap_max] = n; /* keep the nodes sorted by frequency */
+    s.heap[--s.heap_max] = m;
+
+    /* Create a new node father of n and m */
+    tree[node * 2]/*.Freq*/ = tree[n * 2]/*.Freq*/ + tree[m * 2]/*.Freq*/;
+    s.depth[node] = (s.depth[n] >= s.depth[m] ? s.depth[n] : s.depth[m]) + 1;
+    tree[n * 2 + 1]/*.Dad*/ = tree[m * 2 + 1]/*.Dad*/ = node;
+
+    /* and insert the new node in the heap */
+    s.heap[1/*SMALLEST*/] = node++;
+    pqdownheap(s, tree, 1/*SMALLEST*/);
+
+  } while (s.heap_len >= 2);
+
+  s.heap[--s.heap_max] = s.heap[1/*SMALLEST*/];
+
+  /* At this point, the fields freq and dad are set. We can now
+   * generate the bit lengths.
+   */
+  gen_bitlen(s, desc);
+
+  /* The field len is now set, we can generate the bit codes */
+  gen_codes(tree, max_code, s.bl_count);
+};
+
+
+/* ===========================================================================
+ * Scan a literal or distance tree to determine the frequencies of the codes
+ * in the bit length tree.
+ */
+const scan_tree = (s, tree, max_code) => {
+//    deflate_state *s;
+//    ct_data *tree;   /* the tree to be scanned */
+//    int max_code;    /* and its largest code of non zero frequency */
+
+  let n;                     /* iterates over all tree elements */
+  let prevlen = -1;          /* last emitted length */
+  let curlen;                /* length of current code */
+
+  let nextlen = tree[0 * 2 + 1]/*.Len*/; /* length of next code */
+
+  let count = 0;             /* repeat count of the current code */
+  let max_count = 7;         /* max repeat count */
+  let min_count = 4;         /* min repeat count */
+
+  if (nextlen === 0) {
+    max_count = 138;
+    min_count = 3;
+  }
+  tree[(max_code + 1) * 2 + 1]/*.Len*/ = 0xffff; /* guard */
+
+  for (n = 0; n <= max_code; n++) {
+    curlen = nextlen;
+    nextlen = tree[(n + 1) * 2 + 1]/*.Len*/;
+
+    if (++count < max_count && curlen === nextlen) {
+      continue;
+
+    } else if (count < min_count) {
+      s.bl_tree[curlen * 2]/*.Freq*/ += count;
+
+    } else if (curlen !== 0) {
+
+      if (curlen !== prevlen) { s.bl_tree[curlen * 2]/*.Freq*/++; }
+      s.bl_tree[REP_3_6 * 2]/*.Freq*/++;
+
+    } else if (count <= 10) {
+      s.bl_tree[REPZ_3_10 * 2]/*.Freq*/++;
+
+    } else {
+      s.bl_tree[REPZ_11_138 * 2]/*.Freq*/++;
+    }
+
+    count = 0;
+    prevlen = curlen;
+
+    if (nextlen === 0) {
+      max_count = 138;
+      min_count = 3;
+
+    } else if (curlen === nextlen) {
+      max_count = 6;
+      min_count = 3;
+
+    } else {
+      max_count = 7;
+      min_count = 4;
+    }
+  }
+};
+
+
+/* ===========================================================================
+ * Send a literal or distance tree in compressed form, using the codes in
+ * bl_tree.
+ */
+const send_tree = (s, tree, max_code) => {
+//    deflate_state *s;
+//    ct_data *tree; /* the tree to be scanned */
+//    int max_code;       /* and its largest code of non zero frequency */
+
+  let n;                     /* iterates over all tree elements */
+  let prevlen = -1;          /* last emitted length */
+  let curlen;                /* length of current code */
+
+  let nextlen = tree[0 * 2 + 1]/*.Len*/; /* length of next code */
+
+  let count = 0;             /* repeat count of the current code */
+  let max_count = 7;         /* max repeat count */
+  let min_count = 4;         /* min repeat count */
+
+  /* tree[max_code+1].Len = -1; */  /* guard already set */
+  if (nextlen === 0) {
+    max_count = 138;
+    min_count = 3;
+  }
+
+  for (n = 0; n <= max_code; n++) {
+    curlen = nextlen;
+    nextlen = tree[(n + 1) * 2 + 1]/*.Len*/;
+
+    if (++count < max_count && curlen === nextlen) {
+      continue;
+
+    } else if (count < min_count) {
+      do { send_code(s, curlen, s.bl_tree); } while (--count !== 0);
+
+    } else if (curlen !== 0) {
+      if (curlen !== prevlen) {
+        send_code(s, curlen, s.bl_tree);
+        count--;
+      }
+      //Assert(count >= 3 && count <= 6, " 3_6?");
+      send_code(s, REP_3_6, s.bl_tree);
+      send_bits(s, count - 3, 2);
+
+    } else if (count <= 10) {
+      send_code(s, REPZ_3_10, s.bl_tree);
+      send_bits(s, count - 3, 3);
+
+    } else {
+      send_code(s, REPZ_11_138, s.bl_tree);
+      send_bits(s, count - 11, 7);
+    }
+
+    count = 0;
+    prevlen = curlen;
+    if (nextlen === 0) {
+      max_count = 138;
+      min_count = 3;
+
+    } else if (curlen === nextlen) {
+      max_count = 6;
+      min_count = 3;
+
+    } else {
+      max_count = 7;
+      min_count = 4;
+    }
+  }
+};
+
+
+/* ===========================================================================
+ * Construct the Huffman tree for the bit lengths and return the index in
+ * bl_order of the last bit length code to send.
+ */
+const build_bl_tree = (s) => {
+
+  let max_blindex;  /* index of last bit length code of non zero freq */
+
+  /* Determine the bit length frequencies for literal and distance trees */
+  scan_tree(s, s.dyn_ltree, s.l_desc.max_code);
+  scan_tree(s, s.dyn_dtree, s.d_desc.max_code);
+
+  /* Build the bit length tree: */
+  build_tree(s, s.bl_desc);
+  /* opt_len now includes the length of the tree representations, except
+   * the lengths of the bit lengths codes and the 5+5+4 bits for the counts.
+   */
+
+  /* Determine the number of bit length codes to send. The pkzip format
+   * requires that at least 4 bit length codes be sent. (appnote.txt says
+   * 3 but the actual value used is 4.)
+   */
+  for (max_blindex = BL_CODES$1 - 1; max_blindex >= 3; max_blindex--) {
+    if (s.bl_tree[bl_order[max_blindex] * 2 + 1]/*.Len*/ !== 0) {
+      break;
+    }
+  }
+  /* Update opt_len to include the bit length tree and counts */
+  s.opt_len += 3 * (max_blindex + 1) + 5 + 5 + 4;
+  //Tracev((stderr, "\ndyn trees: dyn %ld, stat %ld",
+  //        s->opt_len, s->static_len));
+
+  return max_blindex;
+};
+
+
+/* ===========================================================================
+ * Send the header for a block using dynamic Huffman trees: the counts, the
+ * lengths of the bit length codes, the literal tree and the distance tree.
+ * IN assertion: lcodes >= 257, dcodes >= 1, blcodes >= 4.
+ */
+const send_all_trees = (s, lcodes, dcodes, blcodes) => {
+//    deflate_state *s;
+//    int lcodes, dcodes, blcodes; /* number of codes for each tree */
+
+  let rank;                    /* index in bl_order */
+
+  //Assert (lcodes >= 257 && dcodes >= 1 && blcodes >= 4, "not enough codes");
+  //Assert (lcodes <= L_CODES && dcodes <= D_CODES && blcodes <= BL_CODES,
+  //        "too many codes");
+  //Tracev((stderr, "\nbl counts: "));
+  send_bits(s, lcodes - 257, 5); /* not +255 as stated in appnote.txt */
+  send_bits(s, dcodes - 1,   5);
+  send_bits(s, blcodes - 4,  4); /* not -3 as stated in appnote.txt */
+  for (rank = 0; rank < blcodes; rank++) {
+    //Tracev((stderr, "\nbl code %2d ", bl_order[rank]));
+    send_bits(s, s.bl_tree[bl_order[rank] * 2 + 1]/*.Len*/, 3);
+  }
+  //Tracev((stderr, "\nbl tree: sent %ld", s->bits_sent));
+
+  send_tree(s, s.dyn_ltree, lcodes - 1); /* literal tree */
+  //Tracev((stderr, "\nlit tree: sent %ld", s->bits_sent));
+
+  send_tree(s, s.dyn_dtree, dcodes - 1); /* distance tree */
+  //Tracev((stderr, "\ndist tree: sent %ld", s->bits_sent));
+};
+
+
+/* ===========================================================================
+ * Check if the data type is TEXT or BINARY, using the following algorithm:
+ * - TEXT if the two conditions below are satisfied:
+ *    a) There are no non-portable control characters belonging to the
+ *       "block list" (0..6, 14..25, 28..31).
+ *    b) There is at least one printable character belonging to the
+ *       "allow list" (9 {TAB}, 10 {LF}, 13 {CR}, 32..255).
+ * - BINARY otherwise.
+ * - The following partially-portable control characters form a
+ *   "gray list" that is ignored in this detection algorithm:
+ *   (7 {BEL}, 8 {BS}, 11 {VT}, 12 {FF}, 26 {SUB}, 27 {ESC}).
+ * IN assertion: the fields Freq of dyn_ltree are set.
+ */
+const detect_data_type = (s) => {
+  /* block_mask is the bit mask of block-listed bytes
+   * set bits 0..6, 14..25, and 28..31
+   * 0xf3ffc07f = binary 11110011111111111100000001111111
+   */
+  let block_mask = 0xf3ffc07f;
+  let n;
+
+  /* Check for non-textual ("block-listed") bytes. */
+  for (n = 0; n <= 31; n++, block_mask >>>= 1) {
+    if ((block_mask & 1) && (s.dyn_ltree[n * 2]/*.Freq*/ !== 0)) {
+      return Z_BINARY;
+    }
+  }
+
+  /* Check for textual ("allow-listed") bytes. */
+  if (s.dyn_ltree[9 * 2]/*.Freq*/ !== 0 || s.dyn_ltree[10 * 2]/*.Freq*/ !== 0 ||
+      s.dyn_ltree[13 * 2]/*.Freq*/ !== 0) {
+    return Z_TEXT;
+  }
+  for (n = 32; n < LITERALS$1; n++) {
+    if (s.dyn_ltree[n * 2]/*.Freq*/ !== 0) {
+      return Z_TEXT;
+    }
+  }
+
+  /* There are no "block-listed" or "allow-listed" bytes:
+   * this stream either is empty or has tolerated ("gray-listed") bytes only.
+   */
+  return Z_BINARY;
+};
+
+
+let static_init_done = false;
+
+/* ===========================================================================
+ * Initialize the tree data structures for a new zlib stream.
+ */
+const _tr_init$1 = (s) =>
+{
+
+  if (!static_init_done) {
+    tr_static_init();
+    static_init_done = true;
+  }
+
+  s.l_desc  = new TreeDesc(s.dyn_ltree, static_l_desc);
+  s.d_desc  = new TreeDesc(s.dyn_dtree, static_d_desc);
+  s.bl_desc = new TreeDesc(s.bl_tree, static_bl_desc);
+
+  s.bi_buf = 0;
+  s.bi_valid = 0;
+
+  /* Initialize the first block of the first file: */
+  init_block(s);
+};
+
+
+/* ===========================================================================
+ * Send a stored block
+ */
+const _tr_stored_block$1 = (s, buf, stored_len, last) => {
+//DeflateState *s;
+//charf *buf;       /* input block */
+//ulg stored_len;   /* length of input block */
+//int last;         /* one if this is the last block for a file */
+
+  send_bits(s, (STORED_BLOCK << 1) + (last ? 1 : 0), 3);    /* send block type */
+  bi_windup(s);        /* align on byte boundary */
+  put_short(s, stored_len);
+  put_short(s, ~stored_len);
+  if (stored_len) {
+    s.pending_buf.set(s.window.subarray(buf, buf + stored_len), s.pending);
+  }
+  s.pending += stored_len;
+};
+
+
+/* ===========================================================================
+ * Send one empty static block to give enough lookahead for inflate.
+ * This takes 10 bits, of which 7 may remain in the bit buffer.
+ */
+const _tr_align$1 = (s) => {
+  send_bits(s, STATIC_TREES << 1, 3);
+  send_code(s, END_BLOCK, static_ltree);
+  bi_flush(s);
+};
+
+
+/* ===========================================================================
+ * Determine the best encoding for the current block: dynamic trees, static
+ * trees or store, and write out the encoded block.
+ */
+const _tr_flush_block$1 = (s, buf, stored_len, last) => {
+//DeflateState *s;
+//charf *buf;       /* input block, or NULL if too old */
+//ulg stored_len;   /* length of input block */
+//int last;         /* one if this is the last block for a file */
+
+  let opt_lenb, static_lenb;  /* opt_len and static_len in bytes */
+  let max_blindex = 0;        /* index of last bit length code of non zero freq */
+
+  /* Build the Huffman trees unless a stored block is forced */
+  if (s.level > 0) {
+
+    /* Check if the file is binary or text */
+    if (s.strm.data_type === Z_UNKNOWN$1) {
+      s.strm.data_type = detect_data_type(s);
+    }
+
+    /* Construct the literal and distance trees */
+    build_tree(s, s.l_desc);
+    // Tracev((stderr, "\nlit data: dyn %ld, stat %ld", s->opt_len,
+    //        s->static_len));
+
+    build_tree(s, s.d_desc);
+    // Tracev((stderr, "\ndist data: dyn %ld, stat %ld", s->opt_len,
+    //        s->static_len));
+    /* At this point, opt_len and static_len are the total bit lengths of
+     * the compressed block data, excluding the tree representations.
+     */
+
+    /* Build the bit length tree for the above two trees, and get the index
+     * in bl_order of the last bit length code to send.
+     */
+    max_blindex = build_bl_tree(s);
+
+    /* Determine the best encoding. Compute the block lengths in bytes. */
+    opt_lenb = (s.opt_len + 3 + 7) >>> 3;
+    static_lenb = (s.static_len + 3 + 7) >>> 3;
+
+    // Tracev((stderr, "\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u ",
+    //        opt_lenb, s->opt_len, static_lenb, s->static_len, stored_len,
+    //        s->sym_next / 3));
+
+    if (static_lenb <= opt_lenb) { opt_lenb = static_lenb; }
+
+  } else {
+    // Assert(buf != (char*)0, "lost buf");
+    opt_lenb = static_lenb = stored_len + 5; /* force a stored block */
+  }
+
+  if ((stored_len + 4 <= opt_lenb) && (buf !== -1)) {
+    /* 4: two words for the lengths */
+
+    /* The test buf != NULL is only necessary if LIT_BUFSIZE > WSIZE.
+     * Otherwise we can't have processed more than WSIZE input bytes since
+     * the last block flush, because compression would have been
+     * successful. If LIT_BUFSIZE <= WSIZE, it is never too late to
+     * transform a block into a stored block.
+     */
+    _tr_stored_block$1(s, buf, stored_len, last);
+
+  } else if (s.strategy === Z_FIXED$1 || static_lenb === opt_lenb) {
+
+    send_bits(s, (STATIC_TREES << 1) + (last ? 1 : 0), 3);
+    compress_block(s, static_ltree, static_dtree);
+
+  } else {
+    send_bits(s, (DYN_TREES << 1) + (last ? 1 : 0), 3);
+    send_all_trees(s, s.l_desc.max_code + 1, s.d_desc.max_code + 1, max_blindex + 1);
+    compress_block(s, s.dyn_ltree, s.dyn_dtree);
+  }
+  // Assert (s->compressed_len == s->bits_sent, "bad compressed size");
+  /* The above check is made mod 2^32, for files larger than 512 MB
+   * and uLong implemented on 32 bits.
+   */
+  init_block(s);
+
+  if (last) {
+    bi_windup(s);
+  }
+  // Tracev((stderr,"\ncomprlen %lu(%lu) ", s->compressed_len>>3,
+  //       s->compressed_len-7*last));
+};
+
+/* ===========================================================================
+ * Save the match info and tally the frequency counts. Return true if
+ * the current block must be flushed.
+ */
+const _tr_tally$1 = (s, dist, lc) => {
+//    deflate_state *s;
+//    unsigned dist;  /* distance of matched string */
+//    unsigned lc;    /* match length-MIN_MATCH or unmatched char (if dist==0) */
+
+  s.pending_buf[s.sym_buf + s.sym_next++] = dist;
+  s.pending_buf[s.sym_buf + s.sym_next++] = dist >> 8;
+  s.pending_buf[s.sym_buf + s.sym_next++] = lc;
+  if (dist === 0) {
+    /* lc is the unmatched char */
+    s.dyn_ltree[lc * 2]/*.Freq*/++;
+  } else {
+    s.matches++;
+    /* Here, lc is the match length - MIN_MATCH */
+    dist--;             /* dist = match distance - 1 */
+    //Assert((ush)dist < (ush)MAX_DIST(s) &&
+    //       (ush)lc <= (ush)(MAX_MATCH-MIN_MATCH) &&
+    //       (ush)d_code(dist) < (ush)D_CODES,  "_tr_tally: bad match");
+
+    s.dyn_ltree[(_length_code[lc] + LITERALS$1 + 1) * 2]/*.Freq*/++;
+    s.dyn_dtree[d_code(dist) * 2]/*.Freq*/++;
+  }
+
+  return (s.sym_next === s.sym_end);
+};
+
+var _tr_init_1  = _tr_init$1;
+var _tr_stored_block_1 = _tr_stored_block$1;
+var _tr_flush_block_1  = _tr_flush_block$1;
+var _tr_tally_1 = _tr_tally$1;
+var _tr_align_1 = _tr_align$1;
+
+var trees = {
+	_tr_init: _tr_init_1,
+	_tr_stored_block: _tr_stored_block_1,
+	_tr_flush_block: _tr_flush_block_1,
+	_tr_tally: _tr_tally_1,
+	_tr_align: _tr_align_1
+};
+
+// Note: adler32 takes 12% for level 0 and 2% for level 6.
+// It isn't worth it to make additional optimizations as in original.
+// Small size is preferable.
+
+// (C) 1995-2013 Jean-loup Gailly and Mark Adler
+// (C) 2014-2017 Vitaly Puzrin and Andrey Tupitsin
+//
+// This software is provided 'as-is', without any express or implied
+// warranty. In no event will the authors be held liable for any damages
+// arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//   claim that you wrote the original software. If you use this software
+//   in a product, an acknowledgment in the product documentation would be
+//   appreciated but is not required.
+// 2. Altered source versions must be plainly marked as such, and must not be
+//   misrepresented as being the original software.
+// 3. This notice may not be removed or altered from any source distribution.
+
+const adler32 = (adler, buf, len, pos) => {
+  let s1 = (adler & 0xffff) |0,
+      s2 = ((adler >>> 16) & 0xffff) |0,
+      n = 0;
+
+  while (len !== 0) {
+    // Set limit ~ twice less than 5552, to keep
+    // s2 in 31-bits, because we force signed ints.
+    // in other case %= will fail.
+    n = len > 2000 ? 2000 : len;
+    len -= n;
+
+    do {
+      s1 = (s1 + buf[pos++]) |0;
+      s2 = (s2 + s1) |0;
+    } while (--n);
+
+    s1 %= 65521;
+    s2 %= 65521;
+  }
+
+  return (s1 | (s2 << 16)) |0;
+};
+
+
+var adler32_1 = adler32;
+
+// Note: we can't get significant speed boost here.
+// So write code to minimize size - no pregenerated tables
+// and array tools dependencies.
+
+// (C) 1995-2013 Jean-loup Gailly and Mark Adler
+// (C) 2014-2017 Vitaly Puzrin and Andrey Tupitsin
+//
+// This software is provided 'as-is', without any express or implied
+// warranty. In no event will the authors be held liable for any damages
+// arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//   claim that you wrote the original software. If you use this software
+//   in a product, an acknowledgment in the product documentation would be
+//   appreciated but is not required.
+// 2. Altered source versions must be plainly marked as such, and must not be
+//   misrepresented as being the original software.
+// 3. This notice may not be removed or altered from any source distribution.
+
+// Use ordinary array, since untyped makes no boost here
+const makeTable = () => {
+  let c, table = [];
+
+  for (var n = 0; n < 256; n++) {
+    c = n;
+    for (var k = 0; k < 8; k++) {
+      c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+    }
+    table[n] = c;
+  }
+
+  return table;
+};
+
+// Create table on load. Just 255 signed longs. Not a problem.
+const crcTable = new Uint32Array(makeTable());
+
+
+const crc32 = (crc, buf, len, pos) => {
+  const t = crcTable;
+  const end = pos + len;
+
+  crc ^= -1;
+
+  for (let i = pos; i < end; i++) {
+    crc = (crc >>> 8) ^ t[(crc ^ buf[i]) & 0xFF];
+  }
+
+  return (crc ^ (-1)); // >>> 0;
+};
+
+
+var crc32_1 = crc32;
+
+// (C) 1995-2013 Jean-loup Gailly and Mark Adler
+// (C) 2014-2017 Vitaly Puzrin and Andrey Tupitsin
+//
+// This software is provided 'as-is', without any express or implied
+// warranty. In no event will the authors be held liable for any damages
+// arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//   claim that you wrote the original software. If you use this software
+//   in a product, an acknowledgment in the product documentation would be
+//   appreciated but is not required.
+// 2. Altered source versions must be plainly marked as such, and must not be
+//   misrepresented as being the original software.
+// 3. This notice may not be removed or altered from any source distribution.
+
+var messages = {
+  2:      'need dictionary',     /* Z_NEED_DICT       2  */
+  1:      'stream end',          /* Z_STREAM_END      1  */
+  0:      '',                    /* Z_OK              0  */
+  '-1':   'file error',          /* Z_ERRNO         (-1) */
+  '-2':   'stream error',        /* Z_STREAM_ERROR  (-2) */
+  '-3':   'data error',          /* Z_DATA_ERROR    (-3) */
+  '-4':   'insufficient memory', /* Z_MEM_ERROR     (-4) */
+  '-5':   'buffer error',        /* Z_BUF_ERROR     (-5) */
+  '-6':   'incompatible version' /* Z_VERSION_ERROR (-6) */
+};
+
+// (C) 1995-2013 Jean-loup Gailly and Mark Adler
+// (C) 2014-2017 Vitaly Puzrin and Andrey Tupitsin
+//
+// This software is provided 'as-is', without any express or implied
+// warranty. In no event will the authors be held liable for any damages
+// arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//   claim that you wrote the original software. If you use this software
+//   in a product, an acknowledgment in the product documentation would be
+//   appreciated but is not required.
+// 2. Altered source versions must be plainly marked as such, and must not be
+//   misrepresented as being the original software.
+// 3. This notice may not be removed or altered from any source distribution.
+
+var constants$2 = {
+
+  /* Allowed flush values; see deflate() and inflate() below for details */
+  Z_NO_FLUSH:         0,
+  Z_PARTIAL_FLUSH:    1,
+  Z_SYNC_FLUSH:       2,
+  Z_FULL_FLUSH:       3,
+  Z_FINISH:           4,
+  Z_BLOCK:            5,
+  /* Return codes for the compression/decompression functions. Negative values
+  * are errors, positive values are used for special but normal events.
+  */
+  Z_OK:               0,
+  Z_STREAM_END:       1,
+  Z_STREAM_ERROR:    -2,
+  Z_DATA_ERROR:      -3,
+  Z_BUF_ERROR:       -5,
+  Z_DEFAULT_COMPRESSION:   -1,
+
+
+  Z_FILTERED:               1,
+  Z_HUFFMAN_ONLY:           2,
+  Z_RLE:                    3,
+  Z_FIXED:                  4,
+  Z_DEFAULT_STRATEGY:       0,
+
+  //Z_ASCII:                1, // = Z_TEXT (deprecated)
+  Z_UNKNOWN:                2,
+
+  /* The deflate compression method */
+  Z_DEFLATED:               8
+  //Z_NULL:                 null // Use -1 or null inline, depending on var type
+};
+
+// (C) 1995-2013 Jean-loup Gailly and Mark Adler
+// (C) 2014-2017 Vitaly Puzrin and Andrey Tupitsin
+//
+// This software is provided 'as-is', without any express or implied
+// warranty. In no event will the authors be held liable for any damages
+// arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//   claim that you wrote the original software. If you use this software
+//   in a product, an acknowledgment in the product documentation would be
+//   appreciated but is not required.
+// 2. Altered source versions must be plainly marked as such, and must not be
+//   misrepresented as being the original software.
+// 3. This notice may not be removed or altered from any source distribution.
+
+const { _tr_init, _tr_stored_block, _tr_flush_block, _tr_tally, _tr_align } = trees;
+
+
+
+
+/* Public constants ==========================================================*/
+/* ===========================================================================*/
+
+const {
+  Z_NO_FLUSH: Z_NO_FLUSH$2, Z_PARTIAL_FLUSH, Z_FULL_FLUSH: Z_FULL_FLUSH$1, Z_FINISH: Z_FINISH$3, Z_BLOCK: Z_BLOCK$1,
+  Z_OK: Z_OK$3, Z_STREAM_END: Z_STREAM_END$3, Z_STREAM_ERROR: Z_STREAM_ERROR$2, Z_DATA_ERROR: Z_DATA_ERROR$2, Z_BUF_ERROR: Z_BUF_ERROR$1,
+  Z_DEFAULT_COMPRESSION: Z_DEFAULT_COMPRESSION$1,
+  Z_FILTERED, Z_HUFFMAN_ONLY, Z_RLE, Z_FIXED, Z_DEFAULT_STRATEGY: Z_DEFAULT_STRATEGY$1,
+  Z_UNKNOWN,
+  Z_DEFLATED: Z_DEFLATED$2
+} = constants$2;
+
+/*============================================================================*/
+
+
+const MAX_MEM_LEVEL = 9;
+/* Maximum value for memLevel in deflateInit2 */
+const MAX_WBITS$1 = 15;
+/* 32K LZ77 window */
+const DEF_MEM_LEVEL = 8;
+
+
+const LENGTH_CODES  = 29;
+/* number of length codes, not counting the special END_BLOCK code */
+const LITERALS      = 256;
+/* number of literal bytes 0..255 */
+const L_CODES       = LITERALS + 1 + LENGTH_CODES;
+/* number of Literal or Length codes, including the END_BLOCK code */
+const D_CODES       = 30;
+/* number of distance codes */
+const BL_CODES      = 19;
+/* number of codes used to transfer the bit lengths */
+const HEAP_SIZE     = 2 * L_CODES + 1;
+/* maximum heap size */
+const MAX_BITS  = 15;
+/* All codes must not exceed MAX_BITS bits */
+
+const MIN_MATCH = 3;
+const MAX_MATCH = 258;
+const MIN_LOOKAHEAD = (MAX_MATCH + MIN_MATCH + 1);
+
+const PRESET_DICT = 0x20;
+
+const INIT_STATE    =  42;    /* zlib header -> BUSY_STATE */
+//#ifdef GZIP
+const GZIP_STATE    =  57;    /* gzip header -> BUSY_STATE | EXTRA_STATE */
+//#endif
+const EXTRA_STATE   =  69;    /* gzip extra block -> NAME_STATE */
+const NAME_STATE    =  73;    /* gzip file name -> COMMENT_STATE */
+const COMMENT_STATE =  91;    /* gzip comment -> HCRC_STATE */
+const HCRC_STATE    = 103;    /* gzip header CRC -> BUSY_STATE */
+const BUSY_STATE    = 113;    /* deflate -> FINISH_STATE */
+const FINISH_STATE  = 666;    /* stream complete */
+
+const BS_NEED_MORE      = 1; /* block not completed, need more input or more output */
+const BS_BLOCK_DONE     = 2; /* block flush performed */
+const BS_FINISH_STARTED = 3; /* finish started, need only more output at next deflate */
+const BS_FINISH_DONE    = 4; /* finish done, accept no more input or output */
+
+const OS_CODE = 0x03; // Unix :) . Don't detect, use this default.
+
+const err = (strm, errorCode) => {
+  strm.msg = messages[errorCode];
+  return errorCode;
+};
+
+const rank = (f) => {
+  return ((f) * 2) - ((f) > 4 ? 9 : 0);
+};
+
+const zero = (buf) => {
+  let len = buf.length; while (--len >= 0) { buf[len] = 0; }
+};
+
+/* ===========================================================================
+ * Slide the hash table when sliding the window down (could be avoided with 32
+ * bit values at the expense of memory usage). We slide even when level == 0 to
+ * keep the hash table consistent if we switch back to level > 0 later.
+ */
+const slide_hash = (s) => {
+  let n, m;
+  let p;
+  let wsize = s.w_size;
+
+  n = s.hash_size;
+  p = n;
+  do {
+    m = s.head[--p];
+    s.head[p] = (m >= wsize ? m - wsize : 0);
+  } while (--n);
+  n = wsize;
+//#ifndef FASTEST
+  p = n;
+  do {
+    m = s.prev[--p];
+    s.prev[p] = (m >= wsize ? m - wsize : 0);
+    /* If n is not on any hash chain, prev[n] is garbage but
+     * its value will never be used.
+     */
+  } while (--n);
+//#endif
+};
+
+/* eslint-disable new-cap */
+let HASH_ZLIB = (s, prev, data) => ((prev << s.hash_shift) ^ data) & s.hash_mask;
+// This hash causes less collisions, https://github.com/nodeca/pako/issues/135
+// But breaks binary compatibility
+//let HASH_FAST = (s, prev, data) => ((prev << 8) + (prev >> 8) + (data << 4)) & s.hash_mask;
+let HASH = HASH_ZLIB;
+
+
+/* =========================================================================
+ * Flush as much pending output as possible. All deflate() output, except for
+ * some deflate_stored() output, goes through this function so some
+ * applications may wish to modify it to avoid allocating a large
+ * strm->next_out buffer and copying into it. (See also read_buf()).
+ */
+const flush_pending = (strm) => {
+  const s = strm.state;
+
+  //_tr_flush_bits(s);
+  let len = s.pending;
+  if (len > strm.avail_out) {
+    len = strm.avail_out;
+  }
+  if (len === 0) { return; }
+
+  strm.output.set(s.pending_buf.subarray(s.pending_out, s.pending_out + len), strm.next_out);
+  strm.next_out  += len;
+  s.pending_out  += len;
+  strm.total_out += len;
+  strm.avail_out -= len;
+  s.pending      -= len;
+  if (s.pending === 0) {
+    s.pending_out = 0;
+  }
+};
+
+
+const flush_block_only = (s, last) => {
+  _tr_flush_block(s, (s.block_start >= 0 ? s.block_start : -1), s.strstart - s.block_start, last);
+  s.block_start = s.strstart;
+  flush_pending(s.strm);
+};
+
+
+const put_byte = (s, b) => {
+  s.pending_buf[s.pending++] = b;
+};
+
+
+/* =========================================================================
+ * Put a short in the pending buffer. The 16-bit value is put in MSB order.
+ * IN assertion: the stream state is correct and there is enough room in
+ * pending_buf.
+ */
+const putShortMSB = (s, b) => {
+
+  //  put_byte(s, (Byte)(b >> 8));
+//  put_byte(s, (Byte)(b & 0xff));
+  s.pending_buf[s.pending++] = (b >>> 8) & 0xff;
+  s.pending_buf[s.pending++] = b & 0xff;
+};
+
+
+/* ===========================================================================
+ * Read a new buffer from the current input stream, update the adler32
+ * and total number of bytes read.  All deflate() input goes through
+ * this function so some applications may wish to modify it to avoid
+ * allocating a large strm->input buffer and copying from it.
+ * (See also flush_pending()).
+ */
+const read_buf = (strm, buf, start, size) => {
+
+  let len = strm.avail_in;
+
+  if (len > size) { len = size; }
+  if (len === 0) { return 0; }
+
+  strm.avail_in -= len;
+
+  // zmemcpy(buf, strm->next_in, len);
+  buf.set(strm.input.subarray(strm.next_in, strm.next_in + len), start);
+  if (strm.state.wrap === 1) {
+    strm.adler = adler32_1(strm.adler, buf, len, start);
+  }
+
+  else if (strm.state.wrap === 2) {
+    strm.adler = crc32_1(strm.adler, buf, len, start);
+  }
+
+  strm.next_in += len;
+  strm.total_in += len;
+
+  return len;
+};
+
+
+/* ===========================================================================
+ * Set match_start to the longest match starting at the given string and
+ * return its length. Matches shorter or equal to prev_length are discarded,
+ * in which case the result is equal to prev_length and match_start is
+ * garbage.
+ * IN assertions: cur_match is the head of the hash chain for the current
+ *   string (strstart) and its distance is <= MAX_DIST, and prev_length >= 1
+ * OUT assertion: the match length is not greater than s->lookahead.
+ */
+const longest_match = (s, cur_match) => {
+
+  let chain_length = s.max_chain_length;      /* max hash chain length */
+  let scan = s.strstart; /* current string */
+  let match;                       /* matched string */
+  let len;                           /* length of current match */
+  let best_len = s.prev_length;              /* best match length so far */
+  let nice_match = s.nice_match;             /* stop if match long enough */
+  const limit = (s.strstart > (s.w_size - MIN_LOOKAHEAD)) ?
+      s.strstart - (s.w_size - MIN_LOOKAHEAD) : 0/*NIL*/;
+
+  const _win = s.window; // shortcut
+
+  const wmask = s.w_mask;
+  const prev  = s.prev;
+
+  /* Stop when cur_match becomes <= limit. To simplify the code,
+   * we prevent matches with the string of window index 0.
+   */
+
+  const strend = s.strstart + MAX_MATCH;
+  let scan_end1  = _win[scan + best_len - 1];
+  let scan_end   = _win[scan + best_len];
+
+  /* The code is optimized for HASH_BITS >= 8 and MAX_MATCH-2 multiple of 16.
+   * It is easy to get rid of this optimization if necessary.
+   */
+  // Assert(s->hash_bits >= 8 && MAX_MATCH == 258, "Code too clever");
+
+  /* Do not waste too much time if we already have a good match: */
+  if (s.prev_length >= s.good_match) {
+    chain_length >>= 2;
+  }
+  /* Do not look for matches beyond the end of the input. This is necessary
+   * to make deflate deterministic.
+   */
+  if (nice_match > s.lookahead) { nice_match = s.lookahead; }
+
+  // Assert((ulg)s->strstart <= s->window_size-MIN_LOOKAHEAD, "need lookahead");
+
+  do {
+    // Assert(cur_match < s->strstart, "no future");
+    match = cur_match;
+
+    /* Skip to next match if the match length cannot increase
+     * or if the match length is less than 2.  Note that the checks below
+     * for insufficient lookahead only occur occasionally for performance
+     * reasons.  Therefore uninitialized memory will be accessed, and
+     * conditional jumps will be made that depend on those values.
+     * However the length of the match is limited to the lookahead, so
+     * the output of deflate is not affected by the uninitialized values.
+     */
+
+    if (_win[match + best_len]     !== scan_end  ||
+        _win[match + best_len - 1] !== scan_end1 ||
+        _win[match]                !== _win[scan] ||
+        _win[++match]              !== _win[scan + 1]) {
+      continue;
+    }
+
+    /* The check at best_len-1 can be removed because it will be made
+     * again later. (This heuristic is not always a win.)
+     * It is not necessary to compare scan[2] and match[2] since they
+     * are always equal when the other bytes match, given that
+     * the hash keys are equal and that HASH_BITS >= 8.
+     */
+    scan += 2;
+    match++;
+    // Assert(*scan == *match, "match[2]?");
+
+    /* We check for insufficient lookahead only every 8th comparison;
+     * the 256th check will be made at strstart+258.
+     */
+    do {
+      /*jshint noempty:false*/
+    } while (_win[++scan] === _win[++match] && _win[++scan] === _win[++match] &&
+             _win[++scan] === _win[++match] && _win[++scan] === _win[++match] &&
+             _win[++scan] === _win[++match] && _win[++scan] === _win[++match] &&
+             _win[++scan] === _win[++match] && _win[++scan] === _win[++match] &&
+             scan < strend);
+
+    // Assert(scan <= s->window+(unsigned)(s->window_size-1), "wild scan");
+
+    len = MAX_MATCH - (strend - scan);
+    scan = strend - MAX_MATCH;
+
+    if (len > best_len) {
+      s.match_start = cur_match;
+      best_len = len;
+      if (len >= nice_match) {
+        break;
+      }
+      scan_end1  = _win[scan + best_len - 1];
+      scan_end   = _win[scan + best_len];
+    }
+  } while ((cur_match = prev[cur_match & wmask]) > limit && --chain_length !== 0);
+
+  if (best_len <= s.lookahead) {
+    return best_len;
+  }
+  return s.lookahead;
+};
+
+
+/* ===========================================================================
+ * Fill the window when the lookahead becomes insufficient.
+ * Updates strstart and lookahead.
+ *
+ * IN assertion: lookahead < MIN_LOOKAHEAD
+ * OUT assertions: strstart <= window_size-MIN_LOOKAHEAD
+ *    At least one byte has been read, or avail_in == 0; reads are
+ *    performed for at least two bytes (required for the zip translate_eol
+ *    option -- not supported here).
+ */
+const fill_window = (s) => {
+
+  const _w_size = s.w_size;
+  let n, more, str;
+
+  //Assert(s->lookahead < MIN_LOOKAHEAD, "already enough lookahead");
+
+  do {
+    more = s.window_size - s.lookahead - s.strstart;
+
+    // JS ints have 32 bit, block below not needed
+    /* Deal with !@#$% 64K limit: */
+    //if (sizeof(int) <= 2) {
+    //    if (more == 0 && s->strstart == 0 && s->lookahead == 0) {
+    //        more = wsize;
+    //
+    //  } else if (more == (unsigned)(-1)) {
+    //        /* Very unlikely, but possible on 16 bit machine if
+    //         * strstart == 0 && lookahead == 1 (input done a byte at time)
+    //         */
+    //        more--;
+    //    }
+    //}
+
+
+    /* If the window is almost full and there is insufficient lookahead,
+     * move the upper half to the lower one to make room in the upper half.
+     */
+    if (s.strstart >= _w_size + (_w_size - MIN_LOOKAHEAD)) {
+
+      s.window.set(s.window.subarray(_w_size, _w_size + _w_size - more), 0);
+      s.match_start -= _w_size;
+      s.strstart -= _w_size;
+      /* we now have strstart >= MAX_DIST */
+      s.block_start -= _w_size;
+      if (s.insert > s.strstart) {
+        s.insert = s.strstart;
+      }
+      slide_hash(s);
+      more += _w_size;
+    }
+    if (s.strm.avail_in === 0) {
+      break;
+    }
+
+    /* If there was no sliding:
+     *    strstart <= WSIZE+MAX_DIST-1 && lookahead <= MIN_LOOKAHEAD - 1 &&
+     *    more == window_size - lookahead - strstart
+     * => more >= window_size - (MIN_LOOKAHEAD-1 + WSIZE + MAX_DIST-1)
+     * => more >= window_size - 2*WSIZE + 2
+     * In the BIG_MEM or MMAP case (not yet supported),
+     *   window_size == input_size + MIN_LOOKAHEAD  &&
+     *   strstart + s->lookahead <= input_size => more >= MIN_LOOKAHEAD.
+     * Otherwise, window_size == 2*WSIZE so more >= 2.
+     * If there was sliding, more >= WSIZE. So in all cases, more >= 2.
+     */
+    //Assert(more >= 2, "more < 2");
+    n = read_buf(s.strm, s.window, s.strstart + s.lookahead, more);
+    s.lookahead += n;
+
+    /* Initialize the hash value now that we have some input: */
+    if (s.lookahead + s.insert >= MIN_MATCH) {
+      str = s.strstart - s.insert;
+      s.ins_h = s.window[str];
+
+      /* UPDATE_HASH(s, s->ins_h, s->window[str + 1]); */
+      s.ins_h = HASH(s, s.ins_h, s.window[str + 1]);
+//#if MIN_MATCH != 3
+//        Call update_hash() MIN_MATCH-3 more times
+//#endif
+      while (s.insert) {
+        /* UPDATE_HASH(s, s->ins_h, s->window[str + MIN_MATCH-1]); */
+        s.ins_h = HASH(s, s.ins_h, s.window[str + MIN_MATCH - 1]);
+
+        s.prev[str & s.w_mask] = s.head[s.ins_h];
+        s.head[s.ins_h] = str;
+        str++;
+        s.insert--;
+        if (s.lookahead + s.insert < MIN_MATCH) {
+          break;
+        }
+      }
+    }
+    /* If the whole input has less than MIN_MATCH bytes, ins_h is garbage,
+     * but this is not important since only literal bytes will be emitted.
+     */
+
+  } while (s.lookahead < MIN_LOOKAHEAD && s.strm.avail_in !== 0);
+
+  /* If the WIN_INIT bytes after the end of the current data have never been
+   * written, then zero those bytes in order to avoid memory check reports of
+   * the use of uninitialized (or uninitialised as Julian writes) bytes by
+   * the longest match routines.  Update the high water mark for the next
+   * time through here.  WIN_INIT is set to MAX_MATCH since the longest match
+   * routines allow scanning to strstart + MAX_MATCH, ignoring lookahead.
+   */
+//  if (s.high_water < s.window_size) {
+//    const curr = s.strstart + s.lookahead;
+//    let init = 0;
+//
+//    if (s.high_water < curr) {
+//      /* Previous high water mark below current data -- zero WIN_INIT
+//       * bytes or up to end of window, whichever is less.
+//       */
+//      init = s.window_size - curr;
+//      if (init > WIN_INIT)
+//        init = WIN_INIT;
+//      zmemzero(s->window + curr, (unsigned)init);
+//      s->high_water = curr + init;
+//    }
+//    else if (s->high_water < (ulg)curr + WIN_INIT) {
+//      /* High water mark at or above current data, but below current data
+//       * plus WIN_INIT -- zero out to current data plus WIN_INIT, or up
+//       * to end of window, whichever is less.
+//       */
+//      init = (ulg)curr + WIN_INIT - s->high_water;
+//      if (init > s->window_size - s->high_water)
+//        init = s->window_size - s->high_water;
+//      zmemzero(s->window + s->high_water, (unsigned)init);
+//      s->high_water += init;
+//    }
+//  }
+//
+//  Assert((ulg)s->strstart <= s->window_size - MIN_LOOKAHEAD,
+//    "not enough room for search");
+};
+
+/* ===========================================================================
+ * Copy without compression as much as possible from the input stream, return
+ * the current block state.
+ *
+ * In case deflateParams() is used to later switch to a non-zero compression
+ * level, s->matches (otherwise unused when storing) keeps track of the number
+ * of hash table slides to perform. If s->matches is 1, then one hash table
+ * slide will be done when switching. If s->matches is 2, the maximum value
+ * allowed here, then the hash table will be cleared, since two or more slides
+ * is the same as a clear.
+ *
+ * deflate_stored() is written to minimize the number of times an input byte is
+ * copied. It is most efficient with large input and output buffers, which
+ * maximizes the opportunites to have a single copy from next_in to next_out.
+ */
+const deflate_stored = (s, flush) => {
+
+  /* Smallest worthy block size when not flushing or finishing. By default
+   * this is 32K. This can be as small as 507 bytes for memLevel == 1. For
+   * large input and output buffers, the stored block size will be larger.
+   */
+  let min_block = s.pending_buf_size - 5 > s.w_size ? s.w_size : s.pending_buf_size - 5;
+
+  /* Copy as many min_block or larger stored blocks directly to next_out as
+   * possible. If flushing, copy the remaining available input to next_out as
+   * stored blocks, if there is enough space.
+   */
+  let len, left, have, last = 0;
+  let used = s.strm.avail_in;
+  do {
+    /* Set len to the maximum size block that we can copy directly with the
+     * available input data and output space. Set left to how much of that
+     * would be copied from what's left in the window.
+     */
+    len = 65535/* MAX_STORED */;     /* maximum deflate stored block length */
+    have = (s.bi_valid + 42) >> 3;     /* number of header bytes */
+    if (s.strm.avail_out < have) {         /* need room for header */
+      break;
+    }
+      /* maximum stored block length that will fit in avail_out: */
+    have = s.strm.avail_out - have;
+    left = s.strstart - s.block_start;  /* bytes left in window */
+    if (len > left + s.strm.avail_in) {
+      len = left + s.strm.avail_in;   /* limit len to the input */
+    }
+    if (len > have) {
+      len = have;             /* limit len to the output */
+    }
+
+    /* If the stored block would be less than min_block in length, or if
+     * unable to copy all of the available input when flushing, then try
+     * copying to the window and the pending buffer instead. Also don't
+     * write an empty block when flushing -- deflate() does that.
+     */
+    if (len < min_block && ((len === 0 && flush !== Z_FINISH$3) ||
+                        flush === Z_NO_FLUSH$2 ||
+                        len !== left + s.strm.avail_in)) {
+      break;
+    }
+
+    /* Make a dummy stored block in pending to get the header bytes,
+     * including any pending bits. This also updates the debugging counts.
+     */
+    last = flush === Z_FINISH$3 && len === left + s.strm.avail_in ? 1 : 0;
+    _tr_stored_block(s, 0, 0, last);
+
+    /* Replace the lengths in the dummy stored block with len. */
+    s.pending_buf[s.pending - 4] = len;
+    s.pending_buf[s.pending - 3] = len >> 8;
+    s.pending_buf[s.pending - 2] = ~len;
+    s.pending_buf[s.pending - 1] = ~len >> 8;
+
+    /* Write the stored block header bytes. */
+    flush_pending(s.strm);
+
+//#ifdef ZLIB_DEBUG
+//    /* Update debugging counts for the data about to be copied. */
+//    s->compressed_len += len << 3;
+//    s->bits_sent += len << 3;
+//#endif
+
+    /* Copy uncompressed bytes from the window to next_out. */
+    if (left) {
+      if (left > len) {
+        left = len;
+      }
+      //zmemcpy(s->strm->next_out, s->window + s->block_start, left);
+      s.strm.output.set(s.window.subarray(s.block_start, s.block_start + left), s.strm.next_out);
+      s.strm.next_out += left;
+      s.strm.avail_out -= left;
+      s.strm.total_out += left;
+      s.block_start += left;
+      len -= left;
+    }
+
+    /* Copy uncompressed bytes directly from next_in to next_out, updating
+     * the check value.
+     */
+    if (len) {
+      read_buf(s.strm, s.strm.output, s.strm.next_out, len);
+      s.strm.next_out += len;
+      s.strm.avail_out -= len;
+      s.strm.total_out += len;
+    }
+  } while (last === 0);
+
+  /* Update the sliding window with the last s->w_size bytes of the copied
+   * data, or append all of the copied data to the existing window if less
+   * than s->w_size bytes were copied. Also update the number of bytes to
+   * insert in the hash tables, in the event that deflateParams() switches to
+   * a non-zero compression level.
+   */
+  used -= s.strm.avail_in;    /* number of input bytes directly copied */
+  if (used) {
+    /* If any input was used, then no unused input remains in the window,
+     * therefore s->block_start == s->strstart.
+     */
+    if (used >= s.w_size) {  /* supplant the previous history */
+      s.matches = 2;     /* clear hash */
+      //zmemcpy(s->window, s->strm->next_in - s->w_size, s->w_size);
+      s.window.set(s.strm.input.subarray(s.strm.next_in - s.w_size, s.strm.next_in), 0);
+      s.strstart = s.w_size;
+      s.insert = s.strstart;
+    }
+    else {
+      if (s.window_size - s.strstart <= used) {
+        /* Slide the window down. */
+        s.strstart -= s.w_size;
+        //zmemcpy(s->window, s->window + s->w_size, s->strstart);
+        s.window.set(s.window.subarray(s.w_size, s.w_size + s.strstart), 0);
+        if (s.matches < 2) {
+          s.matches++;   /* add a pending slide_hash() */
+        }
+        if (s.insert > s.strstart) {
+          s.insert = s.strstart;
+        }
+      }
+      //zmemcpy(s->window + s->strstart, s->strm->next_in - used, used);
+      s.window.set(s.strm.input.subarray(s.strm.next_in - used, s.strm.next_in), s.strstart);
+      s.strstart += used;
+      s.insert += used > s.w_size - s.insert ? s.w_size - s.insert : used;
+    }
+    s.block_start = s.strstart;
+  }
+  if (s.high_water < s.strstart) {
+    s.high_water = s.strstart;
+  }
+
+  /* If the last block was written to next_out, then done. */
+  if (last) {
+    return BS_FINISH_DONE;
+  }
+
+  /* If flushing and all input has been consumed, then done. */
+  if (flush !== Z_NO_FLUSH$2 && flush !== Z_FINISH$3 &&
+    s.strm.avail_in === 0 && s.strstart === s.block_start) {
+    return BS_BLOCK_DONE;
+  }
+
+  /* Fill the window with any remaining input. */
+  have = s.window_size - s.strstart;
+  if (s.strm.avail_in > have && s.block_start >= s.w_size) {
+    /* Slide the window down. */
+    s.block_start -= s.w_size;
+    s.strstart -= s.w_size;
+    //zmemcpy(s->window, s->window + s->w_size, s->strstart);
+    s.window.set(s.window.subarray(s.w_size, s.w_size + s.strstart), 0);
+    if (s.matches < 2) {
+      s.matches++;       /* add a pending slide_hash() */
+    }
+    have += s.w_size;      /* more space now */
+    if (s.insert > s.strstart) {
+      s.insert = s.strstart;
+    }
+  }
+  if (have > s.strm.avail_in) {
+    have = s.strm.avail_in;
+  }
+  if (have) {
+    read_buf(s.strm, s.window, s.strstart, have);
+    s.strstart += have;
+    s.insert += have > s.w_size - s.insert ? s.w_size - s.insert : have;
+  }
+  if (s.high_water < s.strstart) {
+    s.high_water = s.strstart;
+  }
+
+  /* There was not enough avail_out to write a complete worthy or flushed
+   * stored block to next_out. Write a stored block to pending instead, if we
+   * have enough input for a worthy block, or if flushing and there is enough
+   * room for the remaining input as a stored block in the pending buffer.
+   */
+  have = (s.bi_valid + 42) >> 3;     /* number of header bytes */
+    /* maximum stored block length that will fit in pending: */
+  have = s.pending_buf_size - have > 65535/* MAX_STORED */ ? 65535/* MAX_STORED */ : s.pending_buf_size - have;
+  min_block = have > s.w_size ? s.w_size : have;
+  left = s.strstart - s.block_start;
+  if (left >= min_block ||
+     ((left || flush === Z_FINISH$3) && flush !== Z_NO_FLUSH$2 &&
+     s.strm.avail_in === 0 && left <= have)) {
+    len = left > have ? have : left;
+    last = flush === Z_FINISH$3 && s.strm.avail_in === 0 &&
+         len === left ? 1 : 0;
+    _tr_stored_block(s, s.block_start, len, last);
+    s.block_start += len;
+    flush_pending(s.strm);
+  }
+
+  /* We've done all we can with the available input and output. */
+  return last ? BS_FINISH_STARTED : BS_NEED_MORE;
+};
+
+
+/* ===========================================================================
+ * Compress as much as possible from the input stream, return the current
+ * block state.
+ * This function does not perform lazy evaluation of matches and inserts
+ * new strings in the dictionary only for unmatched strings or for short
+ * matches. It is used only for the fast compression options.
+ */
+const deflate_fast = (s, flush) => {
+
+  let hash_head;        /* head of the hash chain */
+  let bflush;           /* set if current block must be flushed */
+
+  for (;;) {
+    /* Make sure that we always have enough lookahead, except
+     * at the end of the input file. We need MAX_MATCH bytes
+     * for the next match, plus MIN_MATCH bytes to insert the
+     * string following the next match.
+     */
+    if (s.lookahead < MIN_LOOKAHEAD) {
+      fill_window(s);
+      if (s.lookahead < MIN_LOOKAHEAD && flush === Z_NO_FLUSH$2) {
+        return BS_NEED_MORE;
+      }
+      if (s.lookahead === 0) {
+        break; /* flush the current block */
+      }
+    }
+
+    /* Insert the string window[strstart .. strstart+2] in the
+     * dictionary, and set hash_head to the head of the hash chain:
+     */
+    hash_head = 0/*NIL*/;
+    if (s.lookahead >= MIN_MATCH) {
+      /*** INSERT_STRING(s, s.strstart, hash_head); ***/
+      s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + MIN_MATCH - 1]);
+      hash_head = s.prev[s.strstart & s.w_mask] = s.head[s.ins_h];
+      s.head[s.ins_h] = s.strstart;
+      /***/
+    }
+
+    /* Find the longest match, discarding those <= prev_length.
+     * At this point we have always match_length < MIN_MATCH
+     */
+    if (hash_head !== 0/*NIL*/ && ((s.strstart - hash_head) <= (s.w_size - MIN_LOOKAHEAD))) {
+      /* To simplify the code, we prevent matches with the string
+       * of window index 0 (in particular we have to avoid a match
+       * of the string with itself at the start of the input file).
+       */
+      s.match_length = longest_match(s, hash_head);
+      /* longest_match() sets match_start */
+    }
+    if (s.match_length >= MIN_MATCH) {
+      // check_match(s, s.strstart, s.match_start, s.match_length); // for debug only
+
+      /*** _tr_tally_dist(s, s.strstart - s.match_start,
+                     s.match_length - MIN_MATCH, bflush); ***/
+      bflush = _tr_tally(s, s.strstart - s.match_start, s.match_length - MIN_MATCH);
+
+      s.lookahead -= s.match_length;
+
+      /* Insert new strings in the hash table only if the match length
+       * is not too large. This saves time but degrades compression.
+       */
+      if (s.match_length <= s.max_lazy_match/*max_insert_length*/ && s.lookahead >= MIN_MATCH) {
+        s.match_length--; /* string at strstart already in table */
+        do {
+          s.strstart++;
+          /*** INSERT_STRING(s, s.strstart, hash_head); ***/
+          s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + MIN_MATCH - 1]);
+          hash_head = s.prev[s.strstart & s.w_mask] = s.head[s.ins_h];
+          s.head[s.ins_h] = s.strstart;
+          /***/
+          /* strstart never exceeds WSIZE-MAX_MATCH, so there are
+           * always MIN_MATCH bytes ahead.
+           */
+        } while (--s.match_length !== 0);
+        s.strstart++;
+      } else
+      {
+        s.strstart += s.match_length;
+        s.match_length = 0;
+        s.ins_h = s.window[s.strstart];
+        /* UPDATE_HASH(s, s.ins_h, s.window[s.strstart+1]); */
+        s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + 1]);
+
+//#if MIN_MATCH != 3
+//                Call UPDATE_HASH() MIN_MATCH-3 more times
+//#endif
+        /* If lookahead < MIN_MATCH, ins_h is garbage, but it does not
+         * matter since it will be recomputed at next deflate call.
+         */
+      }
+    } else {
+      /* No match, output a literal byte */
+      //Tracevv((stderr,"%c", s.window[s.strstart]));
+      /*** _tr_tally_lit(s, s.window[s.strstart], bflush); ***/
+      bflush = _tr_tally(s, 0, s.window[s.strstart]);
+
+      s.lookahead--;
+      s.strstart++;
+    }
+    if (bflush) {
+      /*** FLUSH_BLOCK(s, 0); ***/
+      flush_block_only(s, false);
+      if (s.strm.avail_out === 0) {
+        return BS_NEED_MORE;
+      }
+      /***/
+    }
+  }
+  s.insert = ((s.strstart < (MIN_MATCH - 1)) ? s.strstart : MIN_MATCH - 1);
+  if (flush === Z_FINISH$3) {
+    /*** FLUSH_BLOCK(s, 1); ***/
+    flush_block_only(s, true);
+    if (s.strm.avail_out === 0) {
+      return BS_FINISH_STARTED;
+    }
+    /***/
+    return BS_FINISH_DONE;
+  }
+  if (s.sym_next) {
+    /*** FLUSH_BLOCK(s, 0); ***/
+    flush_block_only(s, false);
+    if (s.strm.avail_out === 0) {
+      return BS_NEED_MORE;
+    }
+    /***/
+  }
+  return BS_BLOCK_DONE;
+};
+
+/* ===========================================================================
+ * Same as above, but achieves better compression. We use a lazy
+ * evaluation for matches: a match is finally adopted only if there is
+ * no better match at the next window position.
+ */
+const deflate_slow = (s, flush) => {
+
+  let hash_head;          /* head of hash chain */
+  let bflush;              /* set if current block must be flushed */
+
+  let max_insert;
+
+  /* Process the input block. */
+  for (;;) {
+    /* Make sure that we always have enough lookahead, except
+     * at the end of the input file. We need MAX_MATCH bytes
+     * for the next match, plus MIN_MATCH bytes to insert the
+     * string following the next match.
+     */
+    if (s.lookahead < MIN_LOOKAHEAD) {
+      fill_window(s);
+      if (s.lookahead < MIN_LOOKAHEAD && flush === Z_NO_FLUSH$2) {
+        return BS_NEED_MORE;
+      }
+      if (s.lookahead === 0) { break; } /* flush the current block */
+    }
+
+    /* Insert the string window[strstart .. strstart+2] in the
+     * dictionary, and set hash_head to the head of the hash chain:
+     */
+    hash_head = 0/*NIL*/;
+    if (s.lookahead >= MIN_MATCH) {
+      /*** INSERT_STRING(s, s.strstart, hash_head); ***/
+      s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + MIN_MATCH - 1]);
+      hash_head = s.prev[s.strstart & s.w_mask] = s.head[s.ins_h];
+      s.head[s.ins_h] = s.strstart;
+      /***/
+    }
+
+    /* Find the longest match, discarding those <= prev_length.
+     */
+    s.prev_length = s.match_length;
+    s.prev_match = s.match_start;
+    s.match_length = MIN_MATCH - 1;
+
+    if (hash_head !== 0/*NIL*/ && s.prev_length < s.max_lazy_match &&
+        s.strstart - hash_head <= (s.w_size - MIN_LOOKAHEAD)/*MAX_DIST(s)*/) {
+      /* To simplify the code, we prevent matches with the string
+       * of window index 0 (in particular we have to avoid a match
+       * of the string with itself at the start of the input file).
+       */
+      s.match_length = longest_match(s, hash_head);
+      /* longest_match() sets match_start */
+
+      if (s.match_length <= 5 &&
+         (s.strategy === Z_FILTERED || (s.match_length === MIN_MATCH && s.strstart - s.match_start > 4096/*TOO_FAR*/))) {
+
+        /* If prev_match is also MIN_MATCH, match_start is garbage
+         * but we will ignore the current match anyway.
+         */
+        s.match_length = MIN_MATCH - 1;
+      }
+    }
+    /* If there was a match at the previous step and the current
+     * match is not better, output the previous match:
+     */
+    if (s.prev_length >= MIN_MATCH && s.match_length <= s.prev_length) {
+      max_insert = s.strstart + s.lookahead - MIN_MATCH;
+      /* Do not insert strings in hash table beyond this. */
+
+      //check_match(s, s.strstart-1, s.prev_match, s.prev_length);
+
+      /***_tr_tally_dist(s, s.strstart - 1 - s.prev_match,
+                     s.prev_length - MIN_MATCH, bflush);***/
+      bflush = _tr_tally(s, s.strstart - 1 - s.prev_match, s.prev_length - MIN_MATCH);
+      /* Insert in hash table all strings up to the end of the match.
+       * strstart-1 and strstart are already inserted. If there is not
+       * enough lookahead, the last two strings are not inserted in
+       * the hash table.
+       */
+      s.lookahead -= s.prev_length - 1;
+      s.prev_length -= 2;
+      do {
+        if (++s.strstart <= max_insert) {
+          /*** INSERT_STRING(s, s.strstart, hash_head); ***/
+          s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + MIN_MATCH - 1]);
+          hash_head = s.prev[s.strstart & s.w_mask] = s.head[s.ins_h];
+          s.head[s.ins_h] = s.strstart;
+          /***/
+        }
+      } while (--s.prev_length !== 0);
+      s.match_available = 0;
+      s.match_length = MIN_MATCH - 1;
+      s.strstart++;
+
+      if (bflush) {
+        /*** FLUSH_BLOCK(s, 0); ***/
+        flush_block_only(s, false);
+        if (s.strm.avail_out === 0) {
+          return BS_NEED_MORE;
+        }
+        /***/
+      }
+
+    } else if (s.match_available) {
+      /* If there was no match at the previous position, output a
+       * single literal. If there was a match but the current match
+       * is longer, truncate the previous match to a single literal.
+       */
+      //Tracevv((stderr,"%c", s->window[s->strstart-1]));
+      /*** _tr_tally_lit(s, s.window[s.strstart-1], bflush); ***/
+      bflush = _tr_tally(s, 0, s.window[s.strstart - 1]);
+
+      if (bflush) {
+        /*** FLUSH_BLOCK_ONLY(s, 0) ***/
+        flush_block_only(s, false);
+        /***/
+      }
+      s.strstart++;
+      s.lookahead--;
+      if (s.strm.avail_out === 0) {
+        return BS_NEED_MORE;
+      }
+    } else {
+      /* There is no previous match to compare with, wait for
+       * the next step to decide.
+       */
+      s.match_available = 1;
+      s.strstart++;
+      s.lookahead--;
+    }
+  }
+  //Assert (flush != Z_NO_FLUSH, "no flush?");
+  if (s.match_available) {
+    //Tracevv((stderr,"%c", s->window[s->strstart-1]));
+    /*** _tr_tally_lit(s, s.window[s.strstart-1], bflush); ***/
+    bflush = _tr_tally(s, 0, s.window[s.strstart - 1]);
+
+    s.match_available = 0;
+  }
+  s.insert = s.strstart < MIN_MATCH - 1 ? s.strstart : MIN_MATCH - 1;
+  if (flush === Z_FINISH$3) {
+    /*** FLUSH_BLOCK(s, 1); ***/
+    flush_block_only(s, true);
+    if (s.strm.avail_out === 0) {
+      return BS_FINISH_STARTED;
+    }
+    /***/
+    return BS_FINISH_DONE;
+  }
+  if (s.sym_next) {
+    /*** FLUSH_BLOCK(s, 0); ***/
+    flush_block_only(s, false);
+    if (s.strm.avail_out === 0) {
+      return BS_NEED_MORE;
+    }
+    /***/
+  }
+
+  return BS_BLOCK_DONE;
+};
+
+
+/* ===========================================================================
+ * For Z_RLE, simply look for runs of bytes, generate matches only of distance
+ * one.  Do not maintain a hash table.  (It will be regenerated if this run of
+ * deflate switches away from Z_RLE.)
+ */
+const deflate_rle = (s, flush) => {
+
+  let bflush;            /* set if current block must be flushed */
+  let prev;              /* byte at distance one to match */
+  let scan, strend;      /* scan goes up to strend for length of run */
+
+  const _win = s.window;
+
+  for (;;) {
+    /* Make sure that we always have enough lookahead, except
+     * at the end of the input file. We need MAX_MATCH bytes
+     * for the longest run, plus one for the unrolled loop.
+     */
+    if (s.lookahead <= MAX_MATCH) {
+      fill_window(s);
+      if (s.lookahead <= MAX_MATCH && flush === Z_NO_FLUSH$2) {
+        return BS_NEED_MORE;
+      }
+      if (s.lookahead === 0) { break; } /* flush the current block */
+    }
+
+    /* See how many times the previous byte repeats */
+    s.match_length = 0;
+    if (s.lookahead >= MIN_MATCH && s.strstart > 0) {
+      scan = s.strstart - 1;
+      prev = _win[scan];
+      if (prev === _win[++scan] && prev === _win[++scan] && prev === _win[++scan]) {
+        strend = s.strstart + MAX_MATCH;
+        do {
+          /*jshint noempty:false*/
+        } while (prev === _win[++scan] && prev === _win[++scan] &&
+                 prev === _win[++scan] && prev === _win[++scan] &&
+                 prev === _win[++scan] && prev === _win[++scan] &&
+                 prev === _win[++scan] && prev === _win[++scan] &&
+                 scan < strend);
+        s.match_length = MAX_MATCH - (strend - scan);
+        if (s.match_length > s.lookahead) {
+          s.match_length = s.lookahead;
+        }
+      }
+      //Assert(scan <= s->window+(uInt)(s->window_size-1), "wild scan");
+    }
+
+    /* Emit match if have run of MIN_MATCH or longer, else emit literal */
+    if (s.match_length >= MIN_MATCH) {
+      //check_match(s, s.strstart, s.strstart - 1, s.match_length);
+
+      /*** _tr_tally_dist(s, 1, s.match_length - MIN_MATCH, bflush); ***/
+      bflush = _tr_tally(s, 1, s.match_length - MIN_MATCH);
+
+      s.lookahead -= s.match_length;
+      s.strstart += s.match_length;
+      s.match_length = 0;
+    } else {
+      /* No match, output a literal byte */
+      //Tracevv((stderr,"%c", s->window[s->strstart]));
+      /*** _tr_tally_lit(s, s.window[s.strstart], bflush); ***/
+      bflush = _tr_tally(s, 0, s.window[s.strstart]);
+
+      s.lookahead--;
+      s.strstart++;
+    }
+    if (bflush) {
+      /*** FLUSH_BLOCK(s, 0); ***/
+      flush_block_only(s, false);
+      if (s.strm.avail_out === 0) {
+        return BS_NEED_MORE;
+      }
+      /***/
+    }
+  }
+  s.insert = 0;
+  if (flush === Z_FINISH$3) {
+    /*** FLUSH_BLOCK(s, 1); ***/
+    flush_block_only(s, true);
+    if (s.strm.avail_out === 0) {
+      return BS_FINISH_STARTED;
+    }
+    /***/
+    return BS_FINISH_DONE;
+  }
+  if (s.sym_next) {
+    /*** FLUSH_BLOCK(s, 0); ***/
+    flush_block_only(s, false);
+    if (s.strm.avail_out === 0) {
+      return BS_NEED_MORE;
+    }
+    /***/
+  }
+  return BS_BLOCK_DONE;
+};
+
+/* ===========================================================================
+ * For Z_HUFFMAN_ONLY, do not look for matches.  Do not maintain a hash table.
+ * (It will be regenerated if this run of deflate switches away from Huffman.)
+ */
+const deflate_huff = (s, flush) => {
+
+  let bflush;             /* set if current block must be flushed */
+
+  for (;;) {
+    /* Make sure that we have a literal to write. */
+    if (s.lookahead === 0) {
+      fill_window(s);
+      if (s.lookahead === 0) {
+        if (flush === Z_NO_FLUSH$2) {
+          return BS_NEED_MORE;
+        }
+        break;      /* flush the current block */
+      }
+    }
+
+    /* Output a literal byte */
+    s.match_length = 0;
+    //Tracevv((stderr,"%c", s->window[s->strstart]));
+    /*** _tr_tally_lit(s, s.window[s.strstart], bflush); ***/
+    bflush = _tr_tally(s, 0, s.window[s.strstart]);
+    s.lookahead--;
+    s.strstart++;
+    if (bflush) {
+      /*** FLUSH_BLOCK(s, 0); ***/
+      flush_block_only(s, false);
+      if (s.strm.avail_out === 0) {
+        return BS_NEED_MORE;
+      }
+      /***/
+    }
+  }
+  s.insert = 0;
+  if (flush === Z_FINISH$3) {
+    /*** FLUSH_BLOCK(s, 1); ***/
+    flush_block_only(s, true);
+    if (s.strm.avail_out === 0) {
+      return BS_FINISH_STARTED;
+    }
+    /***/
+    return BS_FINISH_DONE;
+  }
+  if (s.sym_next) {
+    /*** FLUSH_BLOCK(s, 0); ***/
+    flush_block_only(s, false);
+    if (s.strm.avail_out === 0) {
+      return BS_NEED_MORE;
+    }
+    /***/
+  }
+  return BS_BLOCK_DONE;
+};
+
+/* Values for max_lazy_match, good_match and max_chain_length, depending on
+ * the desired pack level (0..9). The values given below have been tuned to
+ * exclude worst case performance for pathological files. Better values may be
+ * found for specific files.
+ */
+function Config(good_length, max_lazy, nice_length, max_chain, func) {
+
+  this.good_length = good_length;
+  this.max_lazy = max_lazy;
+  this.nice_length = nice_length;
+  this.max_chain = max_chain;
+  this.func = func;
+}
+
+const configuration_table = [
+  /*      good lazy nice chain */
+  new Config(0, 0, 0, 0, deflate_stored),          /* 0 store only */
+  new Config(4, 4, 8, 4, deflate_fast),            /* 1 max speed, no lazy matches */
+  new Config(4, 5, 16, 8, deflate_fast),           /* 2 */
+  new Config(4, 6, 32, 32, deflate_fast),          /* 3 */
+
+  new Config(4, 4, 16, 16, deflate_slow),          /* 4 lazy matches */
+  new Config(8, 16, 32, 32, deflate_slow),         /* 5 */
+  new Config(8, 16, 128, 128, deflate_slow),       /* 6 */
+  new Config(8, 32, 128, 256, deflate_slow),       /* 7 */
+  new Config(32, 128, 258, 1024, deflate_slow),    /* 8 */
+  new Config(32, 258, 258, 4096, deflate_slow)     /* 9 max compression */
+];
+
+
+/* ===========================================================================
+ * Initialize the "longest match" routines for a new zlib stream
+ */
+const lm_init = (s) => {
+
+  s.window_size = 2 * s.w_size;
+
+  /*** CLEAR_HASH(s); ***/
+  zero(s.head); // Fill with NIL (= 0);
+
+  /* Set the default configuration parameters:
+   */
+  s.max_lazy_match = configuration_table[s.level].max_lazy;
+  s.good_match = configuration_table[s.level].good_length;
+  s.nice_match = configuration_table[s.level].nice_length;
+  s.max_chain_length = configuration_table[s.level].max_chain;
+
+  s.strstart = 0;
+  s.block_start = 0;
+  s.lookahead = 0;
+  s.insert = 0;
+  s.match_length = s.prev_length = MIN_MATCH - 1;
+  s.match_available = 0;
+  s.ins_h = 0;
+};
+
+
+function DeflateState() {
+  this.strm = null;            /* pointer back to this zlib stream */
+  this.status = 0;            /* as the name implies */
+  this.pending_buf = null;      /* output still pending */
+  this.pending_buf_size = 0;  /* size of pending_buf */
+  this.pending_out = 0;       /* next pending byte to output to the stream */
+  this.pending = 0;           /* nb of bytes in the pending buffer */
+  this.wrap = 0;              /* bit 0 true for zlib, bit 1 true for gzip */
+  this.gzhead = null;         /* gzip header information to write */
+  this.gzindex = 0;           /* where in extra, name, or comment */
+  this.method = Z_DEFLATED$2; /* can only be DEFLATED */
+  this.last_flush = -1;   /* value of flush param for previous deflate call */
+
+  this.w_size = 0;  /* LZ77 window size (32K by default) */
+  this.w_bits = 0;  /* log2(w_size)  (8..16) */
+  this.w_mask = 0;  /* w_size - 1 */
+
+  this.window = null;
+  /* Sliding window. Input bytes are read into the second half of the window,
+   * and move to the first half later to keep a dictionary of at least wSize
+   * bytes. With this organization, matches are limited to a distance of
+   * wSize-MAX_MATCH bytes, but this ensures that IO is always
+   * performed with a length multiple of the block size.
+   */
+
+  this.window_size = 0;
+  /* Actual size of window: 2*wSize, except when the user input buffer
+   * is directly used as sliding window.
+   */
+
+  this.prev = null;
+  /* Link to older string with same hash index. To limit the size of this
+   * array to 64K, this link is maintained only for the last 32K strings.
+   * An index in this array is thus a window index modulo 32K.
+   */
+
+  this.head = null;   /* Heads of the hash chains or NIL. */
+
+  this.ins_h = 0;       /* hash index of string to be inserted */
+  this.hash_size = 0;   /* number of elements in hash table */
+  this.hash_bits = 0;   /* log2(hash_size) */
+  this.hash_mask = 0;   /* hash_size-1 */
+
+  this.hash_shift = 0;
+  /* Number of bits by which ins_h must be shifted at each input
+   * step. It must be such that after MIN_MATCH steps, the oldest
+   * byte no longer takes part in the hash key, that is:
+   *   hash_shift * MIN_MATCH >= hash_bits
+   */
+
+  this.block_start = 0;
+  /* Window position at the beginning of the current output block. Gets
+   * negative when the window is moved backwards.
+   */
+
+  this.match_length = 0;      /* length of best match */
+  this.prev_match = 0;        /* previous match */
+  this.match_available = 0;   /* set if previous match exists */
+  this.strstart = 0;          /* start of string to insert */
+  this.match_start = 0;       /* start of matching string */
+  this.lookahead = 0;         /* number of valid bytes ahead in window */
+
+  this.prev_length = 0;
+  /* Length of the best match at previous step. Matches not greater than this
+   * are discarded. This is used in the lazy match evaluation.
+   */
+
+  this.max_chain_length = 0;
+  /* To speed up deflation, hash chains are never searched beyond this
+   * length.  A higher limit improves compression ratio but degrades the
+   * speed.
+   */
+
+  this.max_lazy_match = 0;
+  /* Attempt to find a better match only when the current match is strictly
+   * smaller than this value. This mechanism is used only for compression
+   * levels >= 4.
+   */
+  // That's alias to max_lazy_match, don't use directly
+  //this.max_insert_length = 0;
+  /* Insert new strings in the hash table only if the match length is not
+   * greater than this length. This saves time but degrades compression.
+   * max_insert_length is used only for compression levels <= 3.
+   */
+
+  this.level = 0;     /* compression level (1..9) */
+  this.strategy = 0;  /* favor or force Huffman coding*/
+
+  this.good_match = 0;
+  /* Use a faster search when the previous match is longer than this */
+
+  this.nice_match = 0; /* Stop searching when current match exceeds this */
+
+              /* used by trees.c: */
+
+  /* Didn't use ct_data typedef below to suppress compiler warning */
+
+  // struct ct_data_s dyn_ltree[HEAP_SIZE];   /* literal and length tree */
+  // struct ct_data_s dyn_dtree[2*D_CODES+1]; /* distance tree */
+  // struct ct_data_s bl_tree[2*BL_CODES+1];  /* Huffman tree for bit lengths */
+
+  // Use flat array of DOUBLE size, with interleaved fata,
+  // because JS does not support effective
+  this.dyn_ltree  = new Uint16Array(HEAP_SIZE * 2);
+  this.dyn_dtree  = new Uint16Array((2 * D_CODES + 1) * 2);
+  this.bl_tree    = new Uint16Array((2 * BL_CODES + 1) * 2);
+  zero(this.dyn_ltree);
+  zero(this.dyn_dtree);
+  zero(this.bl_tree);
+
+  this.l_desc   = null;         /* desc. for literal tree */
+  this.d_desc   = null;         /* desc. for distance tree */
+  this.bl_desc  = null;         /* desc. for bit length tree */
+
+  //ush bl_count[MAX_BITS+1];
+  this.bl_count = new Uint16Array(MAX_BITS + 1);
+  /* number of codes at each bit length for an optimal tree */
+
+  //int heap[2*L_CODES+1];      /* heap used to build the Huffman trees */
+  this.heap = new Uint16Array(2 * L_CODES + 1);  /* heap used to build the Huffman trees */
+  zero(this.heap);
+
+  this.heap_len = 0;               /* number of elements in the heap */
+  this.heap_max = 0;               /* element of largest frequency */
+  /* The sons of heap[n] are heap[2*n] and heap[2*n+1]. heap[0] is not used.
+   * The same heap array is used to build all trees.
+   */
+
+  this.depth = new Uint16Array(2 * L_CODES + 1); //uch depth[2*L_CODES+1];
+  zero(this.depth);
+  /* Depth of each subtree used as tie breaker for trees of equal frequency
+   */
+
+  this.sym_buf = 0;        /* buffer for distances and literals/lengths */
+
+  this.lit_bufsize = 0;
+  /* Size of match buffer for literals/lengths.  There are 4 reasons for
+   * limiting lit_bufsize to 64K:
+   *   - frequencies can be kept in 16 bit counters
+   *   - if compression is not successful for the first block, all input
+   *     data is still in the window so we can still emit a stored block even
+   *     when input comes from standard input.  (This can also be done for
+   *     all blocks if lit_bufsize is not greater than 32K.)
+   *   - if compression is not successful for a file smaller than 64K, we can
+   *     even emit a stored file instead of a stored block (saving 5 bytes).
+   *     This is applicable only for zip (not gzip or zlib).
+   *   - creating new Huffman trees less frequently may not provide fast
+   *     adaptation to changes in the input data statistics. (Take for
+   *     example a binary file with poorly compressible code followed by
+   *     a highly compressible string table.) Smaller buffer sizes give
+   *     fast adaptation but have of course the overhead of transmitting
+   *     trees more frequently.
+   *   - I can't count above 4
+   */
+
+  this.sym_next = 0;      /* running index in sym_buf */
+  this.sym_end = 0;       /* symbol table full when sym_next reaches this */
+
+  this.opt_len = 0;       /* bit length of current block with optimal trees */
+  this.static_len = 0;    /* bit length of current block with static trees */
+  this.matches = 0;       /* number of string matches in current block */
+  this.insert = 0;        /* bytes at end of window left to insert */
+
+
+  this.bi_buf = 0;
+  /* Output buffer. bits are inserted starting at the bottom (least
+   * significant bits).
+   */
+  this.bi_valid = 0;
+  /* Number of valid bits in bi_buf.  All bits above the last valid bit
+   * are always zero.
+   */
+
+  // Used for window memory init. We safely ignore it for JS. That makes
+  // sense only for pointers and memory check tools.
+  //this.high_water = 0;
+  /* High water mark offset in window for initialized bytes -- bytes above
+   * this are set to zero in order to avoid memory check warnings when
+   * longest match routines access bytes past the input.  This is then
+   * updated to the new high water mark.
+   */
+}
+
+
+/* =========================================================================
+ * Check for a valid deflate stream state. Return 0 if ok, 1 if not.
+ */
+const deflateStateCheck = (strm) => {
+
+  if (!strm) {
+    return 1;
+  }
+  const s = strm.state;
+  if (!s || s.strm !== strm || (s.status !== INIT_STATE &&
+//#ifdef GZIP
+                                s.status !== GZIP_STATE &&
+//#endif
+                                s.status !== EXTRA_STATE &&
+                                s.status !== NAME_STATE &&
+                                s.status !== COMMENT_STATE &&
+                                s.status !== HCRC_STATE &&
+                                s.status !== BUSY_STATE &&
+                                s.status !== FINISH_STATE)) {
+    return 1;
+  }
+  return 0;
+};
+
+
+const deflateResetKeep = (strm) => {
+
+  if (deflateStateCheck(strm)) {
+    return err(strm, Z_STREAM_ERROR$2);
+  }
+
+  strm.total_in = strm.total_out = 0;
+  strm.data_type = Z_UNKNOWN;
+
+  const s = strm.state;
+  s.pending = 0;
+  s.pending_out = 0;
+
+  if (s.wrap < 0) {
+    s.wrap = -s.wrap;
+    /* was made negative by deflate(..., Z_FINISH); */
+  }
+  s.status =
+//#ifdef GZIP
+    s.wrap === 2 ? GZIP_STATE :
+//#endif
+    s.wrap ? INIT_STATE : BUSY_STATE;
+  strm.adler = (s.wrap === 2) ?
+    0  // crc32(0, Z_NULL, 0)
+  :
+    1; // adler32(0, Z_NULL, 0)
+  s.last_flush = -2;
+  _tr_init(s);
+  return Z_OK$3;
+};
+
+
+const deflateReset = (strm) => {
+
+  const ret = deflateResetKeep(strm);
+  if (ret === Z_OK$3) {
+    lm_init(strm.state);
+  }
+  return ret;
+};
+
+
+const deflateSetHeader = (strm, head) => {
+
+  if (deflateStateCheck(strm) || strm.state.wrap !== 2) {
+    return Z_STREAM_ERROR$2;
+  }
+  strm.state.gzhead = head;
+  return Z_OK$3;
+};
+
+
+const deflateInit2 = (strm, level, method, windowBits, memLevel, strategy) => {
+
+  if (!strm) { // === Z_NULL
+    return Z_STREAM_ERROR$2;
+  }
+  let wrap = 1;
+
+  if (level === Z_DEFAULT_COMPRESSION$1) {
+    level = 6;
+  }
+
+  if (windowBits < 0) { /* suppress zlib wrapper */
+    wrap = 0;
+    windowBits = -windowBits;
+  }
+
+  else if (windowBits > 15) {
+    wrap = 2;           /* write gzip wrapper instead */
+    windowBits -= 16;
+  }
+
+
+  if (memLevel < 1 || memLevel > MAX_MEM_LEVEL || method !== Z_DEFLATED$2 ||
+    windowBits < 8 || windowBits > 15 || level < 0 || level > 9 ||
+    strategy < 0 || strategy > Z_FIXED || (windowBits === 8 && wrap !== 1)) {
+    return err(strm, Z_STREAM_ERROR$2);
+  }
+
+
+  if (windowBits === 8) {
+    windowBits = 9;
+  }
+  /* until 256-byte window bug fixed */
+
+  const s = new DeflateState();
+
+  strm.state = s;
+  s.strm = strm;
+  s.status = INIT_STATE;     /* to pass state test in deflateReset() */
+
+  s.wrap = wrap;
+  s.gzhead = null;
+  s.w_bits = windowBits;
+  s.w_size = 1 << s.w_bits;
+  s.w_mask = s.w_size - 1;
+
+  s.hash_bits = memLevel + 7;
+  s.hash_size = 1 << s.hash_bits;
+  s.hash_mask = s.hash_size - 1;
+  s.hash_shift = ~~((s.hash_bits + MIN_MATCH - 1) / MIN_MATCH);
+
+  s.window = new Uint8Array(s.w_size * 2);
+  s.head = new Uint16Array(s.hash_size);
+  s.prev = new Uint16Array(s.w_size);
+
+  // Don't need mem init magic for JS.
+  //s.high_water = 0;  /* nothing written to s->window yet */
+
+  s.lit_bufsize = 1 << (memLevel + 6); /* 16K elements by default */
+
+  /* We overlay pending_buf and sym_buf. This works since the average size
+   * for length/distance pairs over any compressed block is assured to be 31
+   * bits or less.
+   *
+   * Analysis: The longest fixed codes are a length code of 8 bits plus 5
+   * extra bits, for lengths 131 to 257. The longest fixed distance codes are
+   * 5 bits plus 13 extra bits, for distances 16385 to 32768. The longest
+   * possible fixed-codes length/distance pair is then 31 bits total.
+   *
+   * sym_buf starts one-fourth of the way into pending_buf. So there are
+   * three bytes in sym_buf for every four bytes in pending_buf. Each symbol
+   * in sym_buf is three bytes -- two for the distance and one for the
+   * literal/length. As each symbol is consumed, the pointer to the next
+   * sym_buf value to read moves forward three bytes. From that symbol, up to
+   * 31 bits are written to pending_buf. The closest the written pending_buf
+   * bits gets to the next sym_buf symbol to read is just before the last
+   * code is written. At that time, 31*(n-2) bits have been written, just
+   * after 24*(n-2) bits have been consumed from sym_buf. sym_buf starts at
+   * 8*n bits into pending_buf. (Note that the symbol buffer fills when n-1
+   * symbols are written.) The closest the writing gets to what is unread is
+   * then n+14 bits. Here n is lit_bufsize, which is 16384 by default, and
+   * can range from 128 to 32768.
+   *
+   * Therefore, at a minimum, there are 142 bits of space between what is
+   * written and what is read in the overlain buffers, so the symbols cannot
+   * be overwritten by the compressed data. That space is actually 139 bits,
+   * due to the three-bit fixed-code block header.
+   *
+   * That covers the case where either Z_FIXED is specified, forcing fixed
+   * codes, or when the use of fixed codes is chosen, because that choice
+   * results in a smaller compressed block than dynamic codes. That latter
+   * condition then assures that the above analysis also covers all dynamic
+   * blocks. A dynamic-code block will only be chosen to be emitted if it has
+   * fewer bits than a fixed-code block would for the same set of symbols.
+   * Therefore its average symbol length is assured to be less than 31. So
+   * the compressed data for a dynamic block also cannot overwrite the
+   * symbols from which it is being constructed.
+   */
+
+  s.pending_buf_size = s.lit_bufsize * 4;
+  s.pending_buf = new Uint8Array(s.pending_buf_size);
+
+  // It is offset from `s.pending_buf` (size is `s.lit_bufsize * 2`)
+  //s->sym_buf = s->pending_buf + s->lit_bufsize;
+  s.sym_buf = s.lit_bufsize;
+
+  //s->sym_end = (s->lit_bufsize - 1) * 3;
+  s.sym_end = (s.lit_bufsize - 1) * 3;
+  /* We avoid equality with lit_bufsize*3 because of wraparound at 64K
+   * on 16 bit machines and because stored blocks are restricted to
+   * 64K-1 bytes.
+   */
+
+  s.level = level;
+  s.strategy = strategy;
+  s.method = method;
+
+  return deflateReset(strm);
+};
+
+const deflateInit = (strm, level) => {
+
+  return deflateInit2(strm, level, Z_DEFLATED$2, MAX_WBITS$1, DEF_MEM_LEVEL, Z_DEFAULT_STRATEGY$1);
+};
+
+
+/* ========================================================================= */
+const deflate$2 = (strm, flush) => {
+
+  if (deflateStateCheck(strm) || flush > Z_BLOCK$1 || flush < 0) {
+    return strm ? err(strm, Z_STREAM_ERROR$2) : Z_STREAM_ERROR$2;
+  }
+
+  const s = strm.state;
+
+  if (!strm.output ||
+      (strm.avail_in !== 0 && !strm.input) ||
+      (s.status === FINISH_STATE && flush !== Z_FINISH$3)) {
+    return err(strm, (strm.avail_out === 0) ? Z_BUF_ERROR$1 : Z_STREAM_ERROR$2);
+  }
+
+  const old_flush = s.last_flush;
+  s.last_flush = flush;
+
+  /* Flush as much pending output as possible */
+  if (s.pending !== 0) {
+    flush_pending(strm);
+    if (strm.avail_out === 0) {
+      /* Since avail_out is 0, deflate will be called again with
+       * more output space, but possibly with both pending and
+       * avail_in equal to zero. There won't be anything to do,
+       * but this is not an error situation so make sure we
+       * return OK instead of BUF_ERROR at next call of deflate:
+       */
+      s.last_flush = -1;
+      return Z_OK$3;
+    }
+
+    /* Make sure there is something to do and avoid duplicate consecutive
+     * flushes. For repeated and useless calls with Z_FINISH, we keep
+     * returning Z_STREAM_END instead of Z_BUF_ERROR.
+     */
+  } else if (strm.avail_in === 0 && rank(flush) <= rank(old_flush) &&
+    flush !== Z_FINISH$3) {
+    return err(strm, Z_BUF_ERROR$1);
+  }
+
+  /* User must not provide more input after the first FINISH: */
+  if (s.status === FINISH_STATE && strm.avail_in !== 0) {
+    return err(strm, Z_BUF_ERROR$1);
+  }
+
+  /* Write the header */
+  if (s.status === INIT_STATE && s.wrap === 0) {
+    s.status = BUSY_STATE;
+  }
+  if (s.status === INIT_STATE) {
+    /* zlib header */
+    let header = (Z_DEFLATED$2 + ((s.w_bits - 8) << 4)) << 8;
+    let level_flags = -1;
+
+    if (s.strategy >= Z_HUFFMAN_ONLY || s.level < 2) {
+      level_flags = 0;
+    } else if (s.level < 6) {
+      level_flags = 1;
+    } else if (s.level === 6) {
+      level_flags = 2;
+    } else {
+      level_flags = 3;
+    }
+    header |= (level_flags << 6);
+    if (s.strstart !== 0) { header |= PRESET_DICT; }
+    header += 31 - (header % 31);
+
+    putShortMSB(s, header);
+
+    /* Save the adler32 of the preset dictionary: */
+    if (s.strstart !== 0) {
+      putShortMSB(s, strm.adler >>> 16);
+      putShortMSB(s, strm.adler & 0xffff);
+    }
+    strm.adler = 1; // adler32(0L, Z_NULL, 0);
+    s.status = BUSY_STATE;
+
+    /* Compression must start with an empty pending buffer */
+    flush_pending(strm);
+    if (s.pending !== 0) {
+      s.last_flush = -1;
+      return Z_OK$3;
+    }
+  }
+//#ifdef GZIP
+  if (s.status === GZIP_STATE) {
+    /* gzip header */
+    strm.adler = 0;  //crc32(0L, Z_NULL, 0);
+    put_byte(s, 31);
+    put_byte(s, 139);
+    put_byte(s, 8);
+    if (!s.gzhead) { // s->gzhead == Z_NULL
+      put_byte(s, 0);
+      put_byte(s, 0);
+      put_byte(s, 0);
+      put_byte(s, 0);
+      put_byte(s, 0);
+      put_byte(s, s.level === 9 ? 2 :
+                  (s.strategy >= Z_HUFFMAN_ONLY || s.level < 2 ?
+                   4 : 0));
+      put_byte(s, OS_CODE);
+      s.status = BUSY_STATE;
+
+      /* Compression must start with an empty pending buffer */
+      flush_pending(strm);
+      if (s.pending !== 0) {
+        s.last_flush = -1;
+        return Z_OK$3;
+      }
+    }
+    else {
+      put_byte(s, (s.gzhead.text ? 1 : 0) +
+                  (s.gzhead.hcrc ? 2 : 0) +
+                  (!s.gzhead.extra ? 0 : 4) +
+                  (!s.gzhead.name ? 0 : 8) +
+                  (!s.gzhead.comment ? 0 : 16)
+      );
+      put_byte(s, s.gzhead.time & 0xff);
+      put_byte(s, (s.gzhead.time >> 8) & 0xff);
+      put_byte(s, (s.gzhead.time >> 16) & 0xff);
+      put_byte(s, (s.gzhead.time >> 24) & 0xff);
+      put_byte(s, s.level === 9 ? 2 :
+                  (s.strategy >= Z_HUFFMAN_ONLY || s.level < 2 ?
+                   4 : 0));
+      put_byte(s, s.gzhead.os & 0xff);
+      if (s.gzhead.extra && s.gzhead.extra.length) {
+        put_byte(s, s.gzhead.extra.length & 0xff);
+        put_byte(s, (s.gzhead.extra.length >> 8) & 0xff);
+      }
+      if (s.gzhead.hcrc) {
+        strm.adler = crc32_1(strm.adler, s.pending_buf, s.pending, 0);
+      }
+      s.gzindex = 0;
+      s.status = EXTRA_STATE;
+    }
+  }
+  if (s.status === EXTRA_STATE) {
+    if (s.gzhead.extra/* != Z_NULL*/) {
+      let beg = s.pending;   /* start of bytes to update crc */
+      let left = (s.gzhead.extra.length & 0xffff) - s.gzindex;
+      while (s.pending + left > s.pending_buf_size) {
+        let copy = s.pending_buf_size - s.pending;
+        // zmemcpy(s.pending_buf + s.pending,
+        //    s.gzhead.extra + s.gzindex, copy);
+        s.pending_buf.set(s.gzhead.extra.subarray(s.gzindex, s.gzindex + copy), s.pending);
+        s.pending = s.pending_buf_size;
+        //--- HCRC_UPDATE(beg) ---//
+        if (s.gzhead.hcrc && s.pending > beg) {
+          strm.adler = crc32_1(strm.adler, s.pending_buf, s.pending - beg, beg);
+        }
+        //---//
+        s.gzindex += copy;
+        flush_pending(strm);
+        if (s.pending !== 0) {
+          s.last_flush = -1;
+          return Z_OK$3;
+        }
+        beg = 0;
+        left -= copy;
+      }
+      // JS specific: s.gzhead.extra may be TypedArray or Array for backward compatibility
+      //              TypedArray.slice and TypedArray.from don't exist in IE10-IE11
+      let gzhead_extra = new Uint8Array(s.gzhead.extra);
+      // zmemcpy(s->pending_buf + s->pending,
+      //     s->gzhead->extra + s->gzindex, left);
+      s.pending_buf.set(gzhead_extra.subarray(s.gzindex, s.gzindex + left), s.pending);
+      s.pending += left;
+      //--- HCRC_UPDATE(beg) ---//
+      if (s.gzhead.hcrc && s.pending > beg) {
+        strm.adler = crc32_1(strm.adler, s.pending_buf, s.pending - beg, beg);
+      }
+      //---//
+      s.gzindex = 0;
+    }
+    s.status = NAME_STATE;
+  }
+  if (s.status === NAME_STATE) {
+    if (s.gzhead.name/* != Z_NULL*/) {
+      let beg = s.pending;   /* start of bytes to update crc */
+      let val;
+      do {
+        if (s.pending === s.pending_buf_size) {
+          //--- HCRC_UPDATE(beg) ---//
+          if (s.gzhead.hcrc && s.pending > beg) {
+            strm.adler = crc32_1(strm.adler, s.pending_buf, s.pending - beg, beg);
+          }
+          //---//
+          flush_pending(strm);
+          if (s.pending !== 0) {
+            s.last_flush = -1;
+            return Z_OK$3;
+          }
+          beg = 0;
+        }
+        // JS specific: little magic to add zero terminator to end of string
+        if (s.gzindex < s.gzhead.name.length) {
+          val = s.gzhead.name.charCodeAt(s.gzindex++) & 0xff;
+        } else {
+          val = 0;
+        }
+        put_byte(s, val);
+      } while (val !== 0);
+      //--- HCRC_UPDATE(beg) ---//
+      if (s.gzhead.hcrc && s.pending > beg) {
+        strm.adler = crc32_1(strm.adler, s.pending_buf, s.pending - beg, beg);
+      }
+      //---//
+      s.gzindex = 0;
+    }
+    s.status = COMMENT_STATE;
+  }
+  if (s.status === COMMENT_STATE) {
+    if (s.gzhead.comment/* != Z_NULL*/) {
+      let beg = s.pending;   /* start of bytes to update crc */
+      let val;
+      do {
+        if (s.pending === s.pending_buf_size) {
+          //--- HCRC_UPDATE(beg) ---//
+          if (s.gzhead.hcrc && s.pending > beg) {
+            strm.adler = crc32_1(strm.adler, s.pending_buf, s.pending - beg, beg);
+          }
+          //---//
+          flush_pending(strm);
+          if (s.pending !== 0) {
+            s.last_flush = -1;
+            return Z_OK$3;
+          }
+          beg = 0;
+        }
+        // JS specific: little magic to add zero terminator to end of string
+        if (s.gzindex < s.gzhead.comment.length) {
+          val = s.gzhead.comment.charCodeAt(s.gzindex++) & 0xff;
+        } else {
+          val = 0;
+        }
+        put_byte(s, val);
+      } while (val !== 0);
+      //--- HCRC_UPDATE(beg) ---//
+      if (s.gzhead.hcrc && s.pending > beg) {
+        strm.adler = crc32_1(strm.adler, s.pending_buf, s.pending - beg, beg);
+      }
+      //---//
+    }
+    s.status = HCRC_STATE;
+  }
+  if (s.status === HCRC_STATE) {
+    if (s.gzhead.hcrc) {
+      if (s.pending + 2 > s.pending_buf_size) {
+        flush_pending(strm);
+        if (s.pending !== 0) {
+          s.last_flush = -1;
+          return Z_OK$3;
+        }
+      }
+      put_byte(s, strm.adler & 0xff);
+      put_byte(s, (strm.adler >> 8) & 0xff);
+      strm.adler = 0; //crc32(0L, Z_NULL, 0);
+    }
+    s.status = BUSY_STATE;
+
+    /* Compression must start with an empty pending buffer */
+    flush_pending(strm);
+    if (s.pending !== 0) {
+      s.last_flush = -1;
+      return Z_OK$3;
+    }
+  }
+//#endif
+
+  /* Start a new block or continue the current one.
+   */
+  if (strm.avail_in !== 0 || s.lookahead !== 0 ||
+    (flush !== Z_NO_FLUSH$2 && s.status !== FINISH_STATE)) {
+    let bstate = s.level === 0 ? deflate_stored(s, flush) :
+                 s.strategy === Z_HUFFMAN_ONLY ? deflate_huff(s, flush) :
+                 s.strategy === Z_RLE ? deflate_rle(s, flush) :
+                 configuration_table[s.level].func(s, flush);
+
+    if (bstate === BS_FINISH_STARTED || bstate === BS_FINISH_DONE) {
+      s.status = FINISH_STATE;
+    }
+    if (bstate === BS_NEED_MORE || bstate === BS_FINISH_STARTED) {
+      if (strm.avail_out === 0) {
+        s.last_flush = -1;
+        /* avoid BUF_ERROR next call, see above */
+      }
+      return Z_OK$3;
+      /* If flush != Z_NO_FLUSH && avail_out == 0, the next call
+       * of deflate should use the same flush parameter to make sure
+       * that the flush is complete. So we don't have to output an
+       * empty block here, this will be done at next call. This also
+       * ensures that for a very small output buffer, we emit at most
+       * one empty block.
+       */
+    }
+    if (bstate === BS_BLOCK_DONE) {
+      if (flush === Z_PARTIAL_FLUSH) {
+        _tr_align(s);
+      }
+      else if (flush !== Z_BLOCK$1) { /* FULL_FLUSH or SYNC_FLUSH */
+
+        _tr_stored_block(s, 0, 0, false);
+        /* For a full flush, this empty block will be recognized
+         * as a special marker by inflate_sync().
+         */
+        if (flush === Z_FULL_FLUSH$1) {
+          /*** CLEAR_HASH(s); ***/             /* forget history */
+          zero(s.head); // Fill with NIL (= 0);
+
+          if (s.lookahead === 0) {
+            s.strstart = 0;
+            s.block_start = 0;
+            s.insert = 0;
+          }
+        }
+      }
+      flush_pending(strm);
+      if (strm.avail_out === 0) {
+        s.last_flush = -1; /* avoid BUF_ERROR at next call, see above */
+        return Z_OK$3;
+      }
+    }
+  }
+
+  if (flush !== Z_FINISH$3) { return Z_OK$3; }
+  if (s.wrap <= 0) { return Z_STREAM_END$3; }
+
+  /* Write the trailer */
+  if (s.wrap === 2) {
+    put_byte(s, strm.adler & 0xff);
+    put_byte(s, (strm.adler >> 8) & 0xff);
+    put_byte(s, (strm.adler >> 16) & 0xff);
+    put_byte(s, (strm.adler >> 24) & 0xff);
+    put_byte(s, strm.total_in & 0xff);
+    put_byte(s, (strm.total_in >> 8) & 0xff);
+    put_byte(s, (strm.total_in >> 16) & 0xff);
+    put_byte(s, (strm.total_in >> 24) & 0xff);
+  }
+  else
+  {
+    putShortMSB(s, strm.adler >>> 16);
+    putShortMSB(s, strm.adler & 0xffff);
+  }
+
+  flush_pending(strm);
+  /* If avail_out is zero, the application will call deflate again
+   * to flush the rest.
+   */
+  if (s.wrap > 0) { s.wrap = -s.wrap; }
+  /* write the trailer only once! */
+  return s.pending !== 0 ? Z_OK$3 : Z_STREAM_END$3;
+};
+
+
+const deflateEnd = (strm) => {
+
+  if (deflateStateCheck(strm)) {
+    return Z_STREAM_ERROR$2;
+  }
+
+  const status = strm.state.status;
+
+  strm.state = null;
+
+  return status === BUSY_STATE ? err(strm, Z_DATA_ERROR$2) : Z_OK$3;
+};
+
+
+/* =========================================================================
+ * Initializes the compression dictionary from the given byte
+ * sequence without producing any compressed output.
+ */
+const deflateSetDictionary = (strm, dictionary) => {
+
+  let dictLength = dictionary.length;
+
+  if (deflateStateCheck(strm)) {
+    return Z_STREAM_ERROR$2;
+  }
+
+  const s = strm.state;
+  const wrap = s.wrap;
+
+  if (wrap === 2 || (wrap === 1 && s.status !== INIT_STATE) || s.lookahead) {
+    return Z_STREAM_ERROR$2;
+  }
+
+  /* when using zlib wrappers, compute Adler-32 for provided dictionary */
+  if (wrap === 1) {
+    /* adler32(strm->adler, dictionary, dictLength); */
+    strm.adler = adler32_1(strm.adler, dictionary, dictLength, 0);
+  }
+
+  s.wrap = 0;   /* avoid computing Adler-32 in read_buf */
+
+  /* if dictionary would fill window, just replace the history */
+  if (dictLength >= s.w_size) {
+    if (wrap === 0) {            /* already empty otherwise */
+      /*** CLEAR_HASH(s); ***/
+      zero(s.head); // Fill with NIL (= 0);
+      s.strstart = 0;
+      s.block_start = 0;
+      s.insert = 0;
+    }
+    /* use the tail */
+    // dictionary = dictionary.slice(dictLength - s.w_size);
+    let tmpDict = new Uint8Array(s.w_size);
+    tmpDict.set(dictionary.subarray(dictLength - s.w_size, dictLength), 0);
+    dictionary = tmpDict;
+    dictLength = s.w_size;
+  }
+  /* insert dictionary into window and hash */
+  const avail = strm.avail_in;
+  const next = strm.next_in;
+  const input = strm.input;
+  strm.avail_in = dictLength;
+  strm.next_in = 0;
+  strm.input = dictionary;
+  fill_window(s);
+  while (s.lookahead >= MIN_MATCH) {
+    let str = s.strstart;
+    let n = s.lookahead - (MIN_MATCH - 1);
+    do {
+      /* UPDATE_HASH(s, s->ins_h, s->window[str + MIN_MATCH-1]); */
+      s.ins_h = HASH(s, s.ins_h, s.window[str + MIN_MATCH - 1]);
+
+      s.prev[str & s.w_mask] = s.head[s.ins_h];
+
+      s.head[s.ins_h] = str;
+      str++;
+    } while (--n);
+    s.strstart = str;
+    s.lookahead = MIN_MATCH - 1;
+    fill_window(s);
+  }
+  s.strstart += s.lookahead;
+  s.block_start = s.strstart;
+  s.insert = s.lookahead;
+  s.lookahead = 0;
+  s.match_length = s.prev_length = MIN_MATCH - 1;
+  s.match_available = 0;
+  strm.next_in = next;
+  strm.input = input;
+  strm.avail_in = avail;
+  s.wrap = wrap;
+  return Z_OK$3;
+};
+
+
+var deflateInit_1 = deflateInit;
+var deflateInit2_1 = deflateInit2;
+var deflateReset_1 = deflateReset;
+var deflateResetKeep_1 = deflateResetKeep;
+var deflateSetHeader_1 = deflateSetHeader;
+var deflate_2$1 = deflate$2;
+var deflateEnd_1 = deflateEnd;
+var deflateSetDictionary_1 = deflateSetDictionary;
+var deflateInfo = 'pako deflate (from Nodeca project)';
+
+/* Not implemented
+module.exports.deflateBound = deflateBound;
+module.exports.deflateCopy = deflateCopy;
+module.exports.deflateGetDictionary = deflateGetDictionary;
+module.exports.deflateParams = deflateParams;
+module.exports.deflatePending = deflatePending;
+module.exports.deflatePrime = deflatePrime;
+module.exports.deflateTune = deflateTune;
+*/
+
+var deflate_1$2 = {
+	deflateInit: deflateInit_1,
+	deflateInit2: deflateInit2_1,
+	deflateReset: deflateReset_1,
+	deflateResetKeep: deflateResetKeep_1,
+	deflateSetHeader: deflateSetHeader_1,
+	deflate: deflate_2$1,
+	deflateEnd: deflateEnd_1,
+	deflateSetDictionary: deflateSetDictionary_1,
+	deflateInfo: deflateInfo
+};
+
+const _has = (obj, key) => {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+};
+
+var assign = function (obj /*from1, from2, from3, ...*/) {
+  const sources = Array.prototype.slice.call(arguments, 1);
+  while (sources.length) {
+    const source = sources.shift();
+    if (!source) { continue; }
+
+    if (typeof source !== 'object') {
+      throw new TypeError(source + 'must be non-object');
+    }
+
+    for (const p in source) {
+      if (_has(source, p)) {
+        obj[p] = source[p];
+      }
+    }
+  }
+
+  return obj;
+};
+
+
+// Join array of chunks to single array.
+var flattenChunks = (chunks) => {
+  // calculate data length
+  let len = 0;
+
+  for (let i = 0, l = chunks.length; i < l; i++) {
+    len += chunks[i].length;
+  }
+
+  // join chunks
+  const result = new Uint8Array(len);
+
+  for (let i = 0, pos = 0, l = chunks.length; i < l; i++) {
+    let chunk = chunks[i];
+    result.set(chunk, pos);
+    pos += chunk.length;
+  }
+
+  return result;
+};
+
+var common = {
+	assign: assign,
+	flattenChunks: flattenChunks
+};
+
+// String encode/decode helpers
+
+
+// Quick check if we can use fast array to bin string conversion
+//
+// - apply(Array) can fail on Android 2.2
+// - apply(Uint8Array) can fail on iOS 5.1 Safari
+//
+let STR_APPLY_UIA_OK = true;
+
+try { String.fromCharCode.apply(null, new Uint8Array(1)); } catch (__) { STR_APPLY_UIA_OK = false; }
+
+
+// Table with utf8 lengths (calculated by first byte of sequence)
+// Note, that 5 & 6-byte values and some 4-byte values can not be represented in JS,
+// because max possible codepoint is 0x10ffff
+const _utf8len = new Uint8Array(256);
+for (let q = 0; q < 256; q++) {
+  _utf8len[q] = (q >= 252 ? 6 : q >= 248 ? 5 : q >= 240 ? 4 : q >= 224 ? 3 : q >= 192 ? 2 : 1);
+}
+_utf8len[254] = _utf8len[254] = 1; // Invalid sequence start
+
+
+// convert string to array (typed, when possible)
+var string2buf = (str) => {
+  if (typeof TextEncoder === 'function' && TextEncoder.prototype.encode) {
+    return new TextEncoder().encode(str);
+  }
+
+  let buf, c, c2, m_pos, i, str_len = str.length, buf_len = 0;
+
+  // count binary size
+  for (m_pos = 0; m_pos < str_len; m_pos++) {
+    c = str.charCodeAt(m_pos);
+    if ((c & 0xfc00) === 0xd800 && (m_pos + 1 < str_len)) {
+      c2 = str.charCodeAt(m_pos + 1);
+      if ((c2 & 0xfc00) === 0xdc00) {
+        c = 0x10000 + ((c - 0xd800) << 10) + (c2 - 0xdc00);
+        m_pos++;
+      }
+    }
+    buf_len += c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
+  }
+
+  // allocate buffer
+  buf = new Uint8Array(buf_len);
+
+  // convert
+  for (i = 0, m_pos = 0; i < buf_len; m_pos++) {
+    c = str.charCodeAt(m_pos);
+    if ((c & 0xfc00) === 0xd800 && (m_pos + 1 < str_len)) {
+      c2 = str.charCodeAt(m_pos + 1);
+      if ((c2 & 0xfc00) === 0xdc00) {
+        c = 0x10000 + ((c - 0xd800) << 10) + (c2 - 0xdc00);
+        m_pos++;
+      }
+    }
+    if (c < 0x80) {
+      /* one byte */
+      buf[i++] = c;
+    } else if (c < 0x800) {
+      /* two bytes */
+      buf[i++] = 0xC0 | (c >>> 6);
+      buf[i++] = 0x80 | (c & 0x3f);
+    } else if (c < 0x10000) {
+      /* three bytes */
+      buf[i++] = 0xE0 | (c >>> 12);
+      buf[i++] = 0x80 | (c >>> 6 & 0x3f);
+      buf[i++] = 0x80 | (c & 0x3f);
+    } else {
+      /* four bytes */
+      buf[i++] = 0xf0 | (c >>> 18);
+      buf[i++] = 0x80 | (c >>> 12 & 0x3f);
+      buf[i++] = 0x80 | (c >>> 6 & 0x3f);
+      buf[i++] = 0x80 | (c & 0x3f);
+    }
+  }
+
+  return buf;
+};
+
+// Helper
+const buf2binstring = (buf, len) => {
+  // On Chrome, the arguments in a function call that are allowed is `65534`.
+  // If the length of the buffer is smaller than that, we can use this optimization,
+  // otherwise we will take a slower path.
+  if (len < 65534) {
+    if (buf.subarray && STR_APPLY_UIA_OK) {
+      return String.fromCharCode.apply(null, buf.length === len ? buf : buf.subarray(0, len));
+    }
+  }
+
+  let result = '';
+  for (let i = 0; i < len; i++) {
+    result += String.fromCharCode(buf[i]);
+  }
+  return result;
+};
+
+
+// convert array to string
+var buf2string = (buf, max) => {
+  const len = max || buf.length;
+
+  if (typeof TextDecoder === 'function' && TextDecoder.prototype.decode) {
+    return new TextDecoder().decode(buf.subarray(0, max));
+  }
+
+  let i, out;
+
+  // Reserve max possible length (2 words per char)
+  // NB: by unknown reasons, Array is significantly faster for
+  //     String.fromCharCode.apply than Uint16Array.
+  const utf16buf = new Array(len * 2);
+
+  for (out = 0, i = 0; i < len;) {
+    let c = buf[i++];
+    // quick process ascii
+    if (c < 0x80) { utf16buf[out++] = c; continue; }
+
+    let c_len = _utf8len[c];
+    // skip 5 & 6 byte codes
+    if (c_len > 4) { utf16buf[out++] = 0xfffd; i += c_len - 1; continue; }
+
+    // apply mask on first byte
+    c &= c_len === 2 ? 0x1f : c_len === 3 ? 0x0f : 0x07;
+    // join the rest
+    while (c_len > 1 && i < len) {
+      c = (c << 6) | (buf[i++] & 0x3f);
+      c_len--;
+    }
+
+    // terminated by end of string?
+    if (c_len > 1) { utf16buf[out++] = 0xfffd; continue; }
+
+    if (c < 0x10000) {
+      utf16buf[out++] = c;
+    } else {
+      c -= 0x10000;
+      utf16buf[out++] = 0xd800 | ((c >> 10) & 0x3ff);
+      utf16buf[out++] = 0xdc00 | (c & 0x3ff);
+    }
+  }
+
+  return buf2binstring(utf16buf, out);
+};
+
+
+// Calculate max possible position in utf8 buffer,
+// that will not break sequence. If that's not possible
+// - (very small limits) return max size as is.
+//
+// buf[] - utf8 bytes array
+// max   - length limit (mandatory);
+var utf8border = (buf, max) => {
+
+  max = max || buf.length;
+  if (max > buf.length) { max = buf.length; }
+
+  // go back from last position, until start of sequence found
+  let pos = max - 1;
+  while (pos >= 0 && (buf[pos] & 0xC0) === 0x80) { pos--; }
+
+  // Very small and broken sequence,
+  // return max, because we should return something anyway.
+  if (pos < 0) { return max; }
+
+  // If we came to start of buffer - that means buffer is too small,
+  // return max too.
+  if (pos === 0) { return max; }
+
+  return (pos + _utf8len[buf[pos]] > max) ? pos : max;
+};
+
+var strings = {
+	string2buf: string2buf,
+	buf2string: buf2string,
+	utf8border: utf8border
+};
+
+// (C) 1995-2013 Jean-loup Gailly and Mark Adler
+// (C) 2014-2017 Vitaly Puzrin and Andrey Tupitsin
+//
+// This software is provided 'as-is', without any express or implied
+// warranty. In no event will the authors be held liable for any damages
+// arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//   claim that you wrote the original software. If you use this software
+//   in a product, an acknowledgment in the product documentation would be
+//   appreciated but is not required.
+// 2. Altered source versions must be plainly marked as such, and must not be
+//   misrepresented as being the original software.
+// 3. This notice may not be removed or altered from any source distribution.
+
+function ZStream() {
+  /* next input byte */
+  this.input = null; // JS specific, because we have no pointers
+  this.next_in = 0;
+  /* number of bytes available at input */
+  this.avail_in = 0;
+  /* total number of input bytes read so far */
+  this.total_in = 0;
+  /* next output byte should be put there */
+  this.output = null; // JS specific, because we have no pointers
+  this.next_out = 0;
+  /* remaining free space at output */
+  this.avail_out = 0;
+  /* total number of bytes output so far */
+  this.total_out = 0;
+  /* last error message, NULL if no error */
+  this.msg = ''/*Z_NULL*/;
+  /* not visible by applications */
+  this.state = null;
+  /* best guess about the data type: binary or text */
+  this.data_type = 2/*Z_UNKNOWN*/;
+  /* adler32 value of the uncompressed data */
+  this.adler = 0;
+}
+
+var zstream = ZStream;
+
+const toString$1 = Object.prototype.toString;
+
+/* Public constants ==========================================================*/
+/* ===========================================================================*/
+
+const {
+  Z_NO_FLUSH: Z_NO_FLUSH$1, Z_SYNC_FLUSH, Z_FULL_FLUSH, Z_FINISH: Z_FINISH$2,
+  Z_OK: Z_OK$2, Z_STREAM_END: Z_STREAM_END$2,
+  Z_DEFAULT_COMPRESSION,
+  Z_DEFAULT_STRATEGY,
+  Z_DEFLATED: Z_DEFLATED$1
+} = constants$2;
+
+/* ===========================================================================*/
+
+
+/**
+ * class Deflate
+ *
+ * Generic JS-style wrapper for zlib calls. If you don't need
+ * streaming behaviour - use more simple functions: [[deflate]],
+ * [[deflateRaw]] and [[gzip]].
+ **/
+
+/* internal
+ * Deflate.chunks -> Array
+ *
+ * Chunks of output data, if [[Deflate#onData]] not overridden.
+ **/
+
+/**
+ * Deflate.result -> Uint8Array
+ *
+ * Compressed result, generated by default [[Deflate#onData]]
+ * and [[Deflate#onEnd]] handlers. Filled after you push last chunk
+ * (call [[Deflate#push]] with `Z_FINISH` / `true` param).
+ **/
+
+/**
+ * Deflate.err -> Number
+ *
+ * Error code after deflate finished. 0 (Z_OK) on success.
+ * You will not need it in real life, because deflate errors
+ * are possible only on wrong options or bad `onData` / `onEnd`
+ * custom handlers.
+ **/
+
+/**
+ * Deflate.msg -> String
+ *
+ * Error message, if [[Deflate.err]] != 0
+ **/
+
+
+/**
+ * new Deflate(options)
+ * - options (Object): zlib deflate options.
+ *
+ * Creates new deflator instance with specified params. Throws exception
+ * on bad params. Supported options:
+ *
+ * - `level`
+ * - `windowBits`
+ * - `memLevel`
+ * - `strategy`
+ * - `dictionary`
+ *
+ * [http://zlib.net/manual.html#Advanced](http://zlib.net/manual.html#Advanced)
+ * for more information on these.
+ *
+ * Additional options, for internal needs:
+ *
+ * - `chunkSize` - size of generated data chunks (16K by default)
+ * - `raw` (Boolean) - do raw deflate
+ * - `gzip` (Boolean) - create gzip wrapper
+ * - `header` (Object) - custom header for gzip
+ *   - `text` (Boolean) - true if compressed data believed to be text
+ *   - `time` (Number) - modification time, unix timestamp
+ *   - `os` (Number) - operation system code
+ *   - `extra` (Array) - array of bytes with extra data (max 65536)
+ *   - `name` (String) - file name (binary string)
+ *   - `comment` (String) - comment (binary string)
+ *   - `hcrc` (Boolean) - true if header crc should be added
+ *
+ * ##### Example:
+ *
+ * ```javascript
+ * const pako = require('pako')
+ *   , chunk1 = new Uint8Array([1,2,3,4,5,6,7,8,9])
+ *   , chunk2 = new Uint8Array([10,11,12,13,14,15,16,17,18,19]);
+ *
+ * const deflate = new pako.Deflate({ level: 3});
+ *
+ * deflate.push(chunk1, false);
+ * deflate.push(chunk2, true);  // true -> last chunk
+ *
+ * if (deflate.err) { throw new Error(deflate.err); }
+ *
+ * console.log(deflate.result);
+ * ```
+ **/
+function Deflate$1(options) {
+  this.options = common.assign({
+    level: Z_DEFAULT_COMPRESSION,
+    method: Z_DEFLATED$1,
+    chunkSize: 16384,
+    windowBits: 15,
+    memLevel: 8,
+    strategy: Z_DEFAULT_STRATEGY
+  }, options || {});
+
+  let opt = this.options;
+
+  if (opt.raw && (opt.windowBits > 0)) {
+    opt.windowBits = -opt.windowBits;
+  }
+
+  else if (opt.gzip && (opt.windowBits > 0) && (opt.windowBits < 16)) {
+    opt.windowBits += 16;
+  }
+
+  this.err    = 0;      // error code, if happens (0 = Z_OK)
+  this.msg    = '';     // error message
+  this.ended  = false;  // used to avoid multiple onEnd() calls
+  this.chunks = [];     // chunks of compressed data
+
+  this.strm = new zstream();
+  this.strm.avail_out = 0;
+
+  let status = deflate_1$2.deflateInit2(
+    this.strm,
+    opt.level,
+    opt.method,
+    opt.windowBits,
+    opt.memLevel,
+    opt.strategy
+  );
+
+  if (status !== Z_OK$2) {
+    throw new Error(messages[status]);
+  }
+
+  if (opt.header) {
+    deflate_1$2.deflateSetHeader(this.strm, opt.header);
+  }
+
+  if (opt.dictionary) {
+    let dict;
+    // Convert data if needed
+    if (typeof opt.dictionary === 'string') {
+      // If we need to compress text, change encoding to utf8.
+      dict = strings.string2buf(opt.dictionary);
+    } else if (toString$1.call(opt.dictionary) === '[object ArrayBuffer]') {
+      dict = new Uint8Array(opt.dictionary);
+    } else {
+      dict = opt.dictionary;
+    }
+
+    status = deflate_1$2.deflateSetDictionary(this.strm, dict);
+
+    if (status !== Z_OK$2) {
+      throw new Error(messages[status]);
+    }
+
+    this._dict_set = true;
+  }
+}
+
+/**
+ * Deflate#push(data[, flush_mode]) -> Boolean
+ * - data (Uint8Array|ArrayBuffer|String): input data. Strings will be
+ *   converted to utf8 byte sequence.
+ * - flush_mode (Number|Boolean): 0..6 for corresponding Z_NO_FLUSH..Z_TREE modes.
+ *   See constants. Skipped or `false` means Z_NO_FLUSH, `true` means Z_FINISH.
+ *
+ * Sends input data to deflate pipe, generating [[Deflate#onData]] calls with
+ * new compressed chunks. Returns `true` on success. The last data block must
+ * have `flush_mode` Z_FINISH (or `true`). That will flush internal pending
+ * buffers and call [[Deflate#onEnd]].
+ *
+ * On fail call [[Deflate#onEnd]] with error code and return false.
+ *
+ * ##### Example
+ *
+ * ```javascript
+ * push(chunk, false); // push one of data chunks
+ * ...
+ * push(chunk, true);  // push last chunk
+ * ```
+ **/
+Deflate$1.prototype.push = function (data, flush_mode) {
+  const strm = this.strm;
+  const chunkSize = this.options.chunkSize;
+  let status, _flush_mode;
+
+  if (this.ended) { return false; }
+
+  if (flush_mode === ~~flush_mode) _flush_mode = flush_mode;
+  else _flush_mode = flush_mode === true ? Z_FINISH$2 : Z_NO_FLUSH$1;
+
+  // Convert data if needed
+  if (typeof data === 'string') {
+    // If we need to compress text, change encoding to utf8.
+    strm.input = strings.string2buf(data);
+  } else if (toString$1.call(data) === '[object ArrayBuffer]') {
+    strm.input = new Uint8Array(data);
+  } else {
+    strm.input = data;
+  }
+
+  strm.next_in = 0;
+  strm.avail_in = strm.input.length;
+
+  for (;;) {
+    if (strm.avail_out === 0) {
+      strm.output = new Uint8Array(chunkSize);
+      strm.next_out = 0;
+      strm.avail_out = chunkSize;
+    }
+
+    // Make sure avail_out > 6 to avoid repeating markers
+    if ((_flush_mode === Z_SYNC_FLUSH || _flush_mode === Z_FULL_FLUSH) && strm.avail_out <= 6) {
+      this.onData(strm.output.subarray(0, strm.next_out));
+      strm.avail_out = 0;
+      continue;
+    }
+
+    status = deflate_1$2.deflate(strm, _flush_mode);
+
+    // Ended => flush and finish
+    if (status === Z_STREAM_END$2) {
+      if (strm.next_out > 0) {
+        this.onData(strm.output.subarray(0, strm.next_out));
+      }
+      status = deflate_1$2.deflateEnd(this.strm);
+      this.onEnd(status);
+      this.ended = true;
+      return status === Z_OK$2;
+    }
+
+    // Flush if out buffer full
+    if (strm.avail_out === 0) {
+      this.onData(strm.output);
+      continue;
+    }
+
+    // Flush if requested and has data
+    if (_flush_mode > 0 && strm.next_out > 0) {
+      this.onData(strm.output.subarray(0, strm.next_out));
+      strm.avail_out = 0;
+      continue;
+    }
+
+    if (strm.avail_in === 0) break;
+  }
+
+  return true;
+};
+
+
+/**
+ * Deflate#onData(chunk) -> Void
+ * - chunk (Uint8Array): output data.
+ *
+ * By default, stores data blocks in `chunks[]` property and glue
+ * those in `onEnd`. Override this handler, if you need another behaviour.
+ **/
+Deflate$1.prototype.onData = function (chunk) {
+  this.chunks.push(chunk);
+};
+
+
+/**
+ * Deflate#onEnd(status) -> Void
+ * - status (Number): deflate status. 0 (Z_OK) on success,
+ *   other if not.
+ *
+ * Called once after you tell deflate that the input stream is
+ * complete (Z_FINISH). By default - join collected chunks,
+ * free memory and fill `results` / `err` properties.
+ **/
+Deflate$1.prototype.onEnd = function (status) {
+  // On success - join
+  if (status === Z_OK$2) {
+    this.result = common.flattenChunks(this.chunks);
+  }
+  this.chunks = [];
+  this.err = status;
+  this.msg = this.strm.msg;
+};
+
+
+/**
+ * deflate(data[, options]) -> Uint8Array
+ * - data (Uint8Array|ArrayBuffer|String): input data to compress.
+ * - options (Object): zlib deflate options.
+ *
+ * Compress `data` with deflate algorithm and `options`.
+ *
+ * Supported options are:
+ *
+ * - level
+ * - windowBits
+ * - memLevel
+ * - strategy
+ * - dictionary
+ *
+ * [http://zlib.net/manual.html#Advanced](http://zlib.net/manual.html#Advanced)
+ * for more information on these.
+ *
+ * Sugar (options):
+ *
+ * - `raw` (Boolean) - say that we work with raw stream, if you don't wish to specify
+ *   negative windowBits implicitly.
+ *
+ * ##### Example:
+ *
+ * ```javascript
+ * const pako = require('pako')
+ * const data = new Uint8Array([1,2,3,4,5,6,7,8,9]);
+ *
+ * console.log(pako.deflate(data));
+ * ```
+ **/
+function deflate$1(input, options) {
+  const deflator = new Deflate$1(options);
+
+  deflator.push(input, true);
+
+  // That will never happens, if you don't cheat with options :)
+  if (deflator.err) { throw deflator.msg || messages[deflator.err]; }
+
+  return deflator.result;
+}
+var deflate_2 = deflate$1;
+
+var deflate_1$1 = {
+	deflate: deflate_2};
+
+const { deflate} = deflate_1$1;
+var deflate_1 = deflate;
+
+const lut = {
+    b: { u: DataView.prototype.getInt8, p: DataView.prototype.setInt8, bytes: 1 },
+    B: {
+        u: DataView.prototype.getUint8,
+        p: DataView.prototype.setUint8,
+        bytes: 1,
+    },
+    h: {
+        u: DataView.prototype.getInt16,
+        p: DataView.prototype.setInt16,
+        bytes: 2,
+    },
+    H: {
+        u: DataView.prototype.getUint16,
+        p: DataView.prototype.setUint16,
+        bytes: 2,
+    },
+    i: {
+        u: DataView.prototype.getInt32,
+        p: DataView.prototype.setInt32,
+        bytes: 4,
+    },
+    I: {
+        u: DataView.prototype.getUint32,
+        p: DataView.prototype.setUint32,
+        bytes: 4,
+    },
+};
+const pack = (format, ...data) => {
+    let pointer = 0;
+    if (format.replace(/[<>]/, "").length != data.length) {
+        throw "Pack format to Argument count mismatch";
+    }
+    const bytes = [];
+    let littleEndian = true;
+    for (let i = 0; i < format.length; i++) {
+        if (format[i] == "<") {
+            littleEndian = true;
+        }
+        else if (format[i] == ">") {
+            littleEndian = false;
+        }
+        else {
+            pushBytes(format[i], data[pointer]);
+            pointer++;
+        }
+    }
+    function pushBytes(formatChar, value) {
+        if (!(formatChar in lut)) {
+            throw "Unhandled character '" + formatChar + "' in pack format";
+        }
+        const dataSize = lut[formatChar].bytes;
+        const view = new DataView(new ArrayBuffer(dataSize));
+        const dataViewFn = lut[formatChar].p.bind(view);
+        dataViewFn(0, value, littleEndian);
+        for (let i = 0; i < dataSize; i++) {
+            bytes.push(view.getUint8(i));
+        }
+    }
+    return bytes;
+};
+const unpack = (format, bytes) => {
+    let pointer = 0;
+    const data = [];
+    let littleEndian = true;
+    for (const c of format) {
+        if (c == "<") {
+            littleEndian = true;
+        }
+        else if (c == ">") {
+            littleEndian = false;
+        }
+        else {
+            pushData(c);
+        }
+    }
+    function pushData(formatChar) {
+        if (!(formatChar in lut)) {
+            throw "Unhandled character '" + formatChar + "' in unpack format";
+        }
+        const dataSize = lut[formatChar].bytes;
+        const view = new DataView(new ArrayBuffer(dataSize));
+        for (let i = 0; i < dataSize; i++) {
+            view.setUint8(i, bytes[pointer + i] & 0xff);
+        }
+        const dataViewFn = lut[formatChar].u.bind(view);
+        data.push(dataViewFn(0, littleEndian));
+        pointer += dataSize;
+    }
+    return data;
+};
+
+/// <reference types="@types/w3c-web-serial" />
+class ESPLoader extends EventTarget {
+    /**
+     * Check if device is using USB-JTAG or USB-OTG (not external serial chip)
+     * Returns undefined if not yet determined
+     */
+    get isUsbJtagOrOtg() {
+        return this._parent ? this._parent._isUsbJtagOrOtg : this._isUsbJtagOrOtg;
+    }
+    constructor(port, logger, _parent) {
+        super();
+        this.port = port;
+        this.logger = logger;
+        this._parent = _parent;
+        this.__chipName = null;
+        this.__chipRevision = null;
+        this.__chipVariant = null;
+        this._efuses = new Array(4).fill(0);
+        this._flashsize = 4 * 1024 * 1024;
+        this.debug = false;
+        this.IS_STUB = false;
+        this.connected = true;
+        this.flashSize = null;
+        this.currentBaudRate = ESP_ROM_BAUD;
+        this.SLIP_END = 0xc0;
+        this.SLIP_ESC = 0xdb;
+        this.SLIP_ESC_END = 0xdc;
+        this.SLIP_ESC_ESC = 0xdd;
+        this._isESP32S2NativeUSB = false;
+        this._initializationSucceeded = false;
+        this.__commandLock = Promise.resolve([0, []]);
+        this.__isReconfiguring = false;
+        this.__abandonCurrentOperation = false;
+        this._suppressDisconnect = false;
+        this.__consoleMode = false;
+        this._isUsbJtagOrOtg = undefined;
+        // Adaptive speed adjustment for flash read operations
+        this.__adaptiveBlockMultiplier = 1;
+        this.__adaptiveMaxInFlightMultiplier = 1;
+        this.__consecutiveSuccessfulChunks = 0;
+        this.__lastAdaptiveAdjustment = 0;
+        this.__isCDCDevice = false;
+        this.state_DTR = false;
+        this.state_RTS = false;
+        this.__writeChain = Promise.resolve();
+    }
+    // Chip properties with parent delegation
+    // chipFamily accessed before initialization as designed
+    get chipFamily() {
+        return this._parent ? this._parent.chipFamily : this.__chipFamily;
+    }
+    set chipFamily(value) {
+        if (this._parent) {
+            this._parent.chipFamily = value;
+        }
+        else {
+            this.__chipFamily = value;
+        }
+    }
+    get chipName() {
+        return this._parent ? this._parent.chipName : this.__chipName;
+    }
+    set chipName(value) {
+        if (this._parent) {
+            this._parent.chipName = value;
+        }
+        else {
+            this.__chipName = value;
+        }
+    }
+    get chipRevision() {
+        return this._parent ? this._parent.chipRevision : this.__chipRevision;
+    }
+    set chipRevision(value) {
+        if (this._parent) {
+            this._parent.chipRevision = value;
+        }
+        else {
+            this.__chipRevision = value;
+        }
+    }
+    get chipVariant() {
+        return this._parent ? this._parent.chipVariant : this.__chipVariant;
+    }
+    set chipVariant(value) {
+        if (this._parent) {
+            this._parent.chipVariant = value;
+        }
+        else {
+            this.__chipVariant = value;
+        }
+    }
+    // Console mode with parent delegation
+    get _consoleMode() {
+        return this._parent ? this._parent._consoleMode : this.__consoleMode;
+    }
+    set _consoleMode(value) {
+        if (this._parent) {
+            this._parent._consoleMode = value;
+        }
+        else {
+            this.__consoleMode = value;
+        }
+    }
+    // Public setter for console mode (used by script.js)
+    setConsoleMode(value) {
+        this._consoleMode = value;
+    }
+    get _inputBuffer() {
+        if (this._parent) {
+            return this._parent._inputBuffer;
+        }
+        if (this.__inputBuffer === undefined) {
+            throw new Error("_inputBuffer accessed before initialization");
+        }
+        return this.__inputBuffer;
+    }
+    get _inputBufferReadIndex() {
+        return this._parent
+            ? this._parent._inputBufferReadIndex
+            : this.__inputBufferReadIndex || 0;
+    }
+    set _inputBufferReadIndex(value) {
+        if (this._parent) {
+            this._parent._inputBufferReadIndex = value;
+        }
+        else {
+            this.__inputBufferReadIndex = value;
+        }
+    }
+    // Get available bytes in buffer (from read index to end)
+    get _inputBufferAvailable() {
+        return this._inputBuffer.length - this._inputBufferReadIndex;
+    }
+    // Read one byte from buffer (ring-buffer style with index pointer)
+    _readByte() {
+        if (this._inputBufferReadIndex >= this._inputBuffer.length) {
+            return undefined;
+        }
+        return this._inputBuffer[this._inputBufferReadIndex++];
+    }
+    // Clear input buffer and reset read index
+    _clearInputBuffer() {
+        this._inputBuffer.length = 0;
+        this._inputBufferReadIndex = 0;
+    }
+    // Compact buffer when read index gets too large (prevent memory growth)
+    _compactInputBuffer() {
+        if (this._inputBufferReadIndex > 1000 &&
+            this._inputBufferReadIndex > this._inputBuffer.length / 2) {
+            // Remove already-read bytes and reset index
+            this._inputBuffer.splice(0, this._inputBufferReadIndex);
+            this._inputBufferReadIndex = 0;
+        }
+    }
+    get _totalBytesRead() {
+        return this._parent
+            ? this._parent._totalBytesRead
+            : this.__totalBytesRead || 0;
+    }
+    set _totalBytesRead(value) {
+        if (this._parent) {
+            this._parent._totalBytesRead = value;
+        }
+        else {
+            this.__totalBytesRead = value;
+        }
+    }
+    get _commandLock() {
+        return this._parent ? this._parent._commandLock : this.__commandLock;
+    }
+    set _commandLock(value) {
+        if (this._parent) {
+            this._parent._commandLock = value;
+        }
+        else {
+            this.__commandLock = value;
+        }
+    }
+    get _isReconfiguring() {
+        return this._parent
+            ? this._parent._isReconfiguring
+            : this.__isReconfiguring;
+    }
+    set _isReconfiguring(value) {
+        if (this._parent) {
+            this._parent._isReconfiguring = value;
+        }
+        else {
+            this.__isReconfiguring = value;
+        }
+    }
+    get _abandonCurrentOperation() {
+        return this._parent
+            ? this._parent._abandonCurrentOperation
+            : this.__abandonCurrentOperation;
+    }
+    set _abandonCurrentOperation(value) {
+        if (this._parent) {
+            this._parent._abandonCurrentOperation = value;
+        }
+        else {
+            this.__abandonCurrentOperation = value;
+        }
+    }
+    get _adaptiveBlockMultiplier() {
+        return this._parent
+            ? this._parent._adaptiveBlockMultiplier
+            : this.__adaptiveBlockMultiplier;
+    }
+    set _adaptiveBlockMultiplier(value) {
+        if (this._parent) {
+            this._parent._adaptiveBlockMultiplier = value;
+        }
+        else {
+            this.__adaptiveBlockMultiplier = value;
+        }
+    }
+    get _adaptiveMaxInFlightMultiplier() {
+        return this._parent
+            ? this._parent._adaptiveMaxInFlightMultiplier
+            : this.__adaptiveMaxInFlightMultiplier;
+    }
+    set _adaptiveMaxInFlightMultiplier(value) {
+        if (this._parent) {
+            this._parent._adaptiveMaxInFlightMultiplier = value;
+        }
+        else {
+            this.__adaptiveMaxInFlightMultiplier = value;
+        }
+    }
+    get _consecutiveSuccessfulChunks() {
+        return this._parent
+            ? this._parent._consecutiveSuccessfulChunks
+            : this.__consecutiveSuccessfulChunks;
+    }
+    set _consecutiveSuccessfulChunks(value) {
+        if (this._parent) {
+            this._parent._consecutiveSuccessfulChunks = value;
+        }
+        else {
+            this.__consecutiveSuccessfulChunks = value;
+        }
+    }
+    get _lastAdaptiveAdjustment() {
+        return this._parent
+            ? this._parent._lastAdaptiveAdjustment
+            : this.__lastAdaptiveAdjustment;
+    }
+    set _lastAdaptiveAdjustment(value) {
+        if (this._parent) {
+            this._parent._lastAdaptiveAdjustment = value;
+        }
+        else {
+            this.__lastAdaptiveAdjustment = value;
+        }
+    }
+    get _isCDCDevice() {
+        return this._parent ? this._parent._isCDCDevice : this.__isCDCDevice;
+    }
+    set _isCDCDevice(value) {
+        if (this._parent) {
+            this._parent._isCDCDevice = value;
+        }
+        else {
+            this.__isCDCDevice = value;
+        }
+    }
+    detectUSBSerialChip(vendorId, productId) {
+        // Common USB-Serial chip vendors and their products
+        const chips = {
+            0x1a86: {
+                // QinHeng Electronics
+                0x7522: { name: "CH340", maxBaudrate: 460800 },
+                0x7523: { name: "CH340", maxBaudrate: 460800 },
+                0x7584: { name: "CH340", maxBaudrate: 460800 },
+                0x5523: { name: "CH341", maxBaudrate: 2000000 },
+                0x55d3: { name: "CH343", maxBaudrate: 6000000 },
+                0x55d4: { name: "CH9102", maxBaudrate: 6000000 },
+                0x55d8: { name: "CH9101", maxBaudrate: 3000000 },
+            },
+            0x10c4: {
+                // Silicon Labs
+                0xea60: { name: "CP2102(n)", maxBaudrate: 3000000 },
+                0xea70: { name: "CP2105", maxBaudrate: 2000000 },
+                0xea71: { name: "CP2108", maxBaudrate: 2000000 },
+            },
+            0x0403: {
+                // FTDI
+                0x6001: { name: "FT232R", maxBaudrate: 3000000 },
+                0x6010: { name: "FT2232", maxBaudrate: 3000000 },
+                0x6011: { name: "FT4232", maxBaudrate: 3000000 },
+                0x6014: { name: "FT232H", maxBaudrate: 12000000 },
+                0x6015: { name: "FT230X", maxBaudrate: 3000000 },
+            },
+            0x303a: {
+                // Espressif (native USB)
+                0x2: { name: "ESP32-S2 Native USB", maxBaudrate: 2000000 },
+                0x12: { name: "ESP32-P4 Native USB", maxBaudrate: 2000000 },
+                0x1001: { name: "ESP32 Native USB", maxBaudrate: 2000000 },
+            },
+        };
+        const vendor = chips[vendorId];
+        if (vendor && vendor[productId]) {
+            return vendor[productId];
+        }
+        return {
+            name: `Unknown (VID: 0x${vendorId.toString(16)}, PID: 0x${productId.toString(16)})`,
+        };
+    }
+    async initialize() {
+        if (!this._parent) {
+            this.__inputBuffer = [];
+            this.__inputBufferReadIndex = 0;
+            this.__totalBytesRead = 0;
+            // Detect and log USB-Serial chip info
+            const portInfo = this.port.getInfo();
+            if (portInfo.usbVendorId && portInfo.usbProductId) {
+                const chipInfo = this.detectUSBSerialChip(portInfo.usbVendorId, portInfo.usbProductId);
+                this.logger.log(`USB-Serial: ${chipInfo.name} (VID: 0x${portInfo.usbVendorId.toString(16)}, PID: 0x${portInfo.usbProductId.toString(16)})`);
+                if (chipInfo.maxBaudrate) {
+                    this._maxUSBSerialBaudrate = chipInfo.maxBaudrate;
+                    this.logger.log(`Max baudrate: ${chipInfo.maxBaudrate}`);
+                }
+                // Detect ESP32-S2 Native USB
+                if (portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x2) {
+                    this._isESP32S2NativeUSB = true;
+                }
+                // Detect CDC devices for adaptive speed adjustment
+                // Espressif Native USB (VID: 0x303a) or CH343 (VID: 0x1a86, PID: 0x55d3)
+                if (portInfo.usbVendorId === 0x303a ||
+                    (portInfo.usbVendorId === 0x1a86 && portInfo.usbProductId === 0x55d3)) {
+                    this._isCDCDevice = true;
+                }
+            }
+            // Don't await this promise so it doesn't block rest of method.
+            this.readLoop();
+        }
+        // Try to connect with different reset strategies
+        await this.connectWithResetStrategies();
+        // Detect chip type
+        await this.detectChip();
+        // Detect if device is using USB-JTAG/Serial or USB-OTG (not external serial chip)
+        // This is needed to determine the correct reset strategy for console mode
+        try {
+            this._isUsbJtagOrOtg = await this.detectUsbConnectionType();
+            this.logger.debug(`USB connection type: ${this._isUsbJtagOrOtg ? "USB-JTAG/OTG" : "External Serial Chip"}`);
+        }
+        catch (err) {
+            this.logger.debug(`Could not detect USB connection type: ${err}`);
+            // Leave as undefined if detection fails
+        }
+        // Read the OTP data for this chip and store into this.efuses array
+        const FlAddr = getSpiFlashAddresses(this.getChipFamily());
+        const AddrMAC = FlAddr.macFuse;
+        for (let i = 0; i < 4; i++) {
+            this._efuses[i] = await this.readRegister(AddrMAC + 4 * i);
+        }
+        this.logger.log(`Chip type ${this.chipName}`);
+        this.logger.debug(`Bootloader flash offset: 0x${FlAddr.flashOffs.toString(16)}`);
+        // Mark initialization as successful
+        this._initializationSucceeded = true;
+    }
+    /**
+     * Detect chip type using GET_SECURITY_INFO (for newer chips) or magic value (for older chips)
+     */
+    async detectChip() {
+        try {
+            // Try GET_SECURITY_INFO command first (ESP32-C3 and later)
+            const securityInfo = await this.getSecurityInfo();
+            const chipId = securityInfo.chipId;
+            const chipInfo = CHIP_ID_TO_INFO[chipId];
+            if (chipInfo) {
+                this.chipName = chipInfo.name;
+                this.chipFamily = chipInfo.family;
+                // Get chip revision for ESP32-P4 and ESP32-C3
+                if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+                    this.chipRevision = await this.getChipRevision();
+                    this.logger.debug(`ESP32-P4 revision: ${this.chipRevision}`);
+                    // Set chip variant based on revision
+                    if (this.chipRevision >= 300) {
+                        this.chipVariant = "rev300";
+                    }
+                    else {
+                        this.chipVariant = "rev0";
+                    }
+                    this.logger.debug(`ESP32-P4 variant: ${this.chipVariant}`);
+                }
+                else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+                    this.chipRevision = await this.getChipRevision();
+                    this.logger.debug(`ESP32-C3 revision: ${this.chipRevision}`);
+                }
+                this.logger.debug(`Detected chip via IMAGE_CHIP_ID: ${chipId} (${this.chipName})`);
+                return;
+            }
+            this.logger.debug(`Unknown IMAGE_CHIP_ID: ${chipId}, falling back to magic value detection`);
+        }
+        catch (error) {
+            // GET_SECURITY_INFO not supported, fall back to magic value detection
+            this.logger.debug(`GET_SECURITY_INFO failed, using magic value detection: ${error}`);
+            // Drain input buffer for CP210x compatibility on Windows
+            // This ensures all error responses are cleared before continuing
+            await this.drainInputBuffer(200);
+            // Clear input buffer and re-sync to recover from failed command
+            this._clearInputBuffer();
+            await sleep(SYNC_TIMEOUT);
+            // Re-sync with the chip to ensure clean communication
+            try {
+                await this.sync();
+            }
+            catch (syncErr) {
+                this.logger.debug(`Re-sync after GET_SECURITY_INFO failure: ${syncErr}`);
+            }
+        }
+        // Fallback: Use magic value detection for ESP8266, ESP32, ESP32-S2
+        const chipMagicValue = await this.readRegister(CHIP_DETECT_MAGIC_REG_ADDR);
+        const chip = CHIP_DETECT_MAGIC_VALUES[chipMagicValue >>> 0];
+        if (chip === undefined) {
+            throw new Error(`Unknown Chip: Hex: ${toHex(chipMagicValue >>> 0, 8).toLowerCase()} Number: ${chipMagicValue}`);
+        }
+        this.chipName = chip.name;
+        this.chipFamily = chip.family;
+        if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+            this.chipRevision = await this.getChipRevision();
+            if (this.chipRevision >= 300) {
+                this.chipVariant = "rev300";
+            }
+            else {
+                this.chipVariant = "rev0";
+            }
+            this.logger.debug(`ESP32-P4 variant: ${this.chipVariant}`);
+        }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+            this.chipRevision = await this.getChipRevision();
+        }
+        this.logger.debug(`Detected chip via magic value: ${toHex(chipMagicValue >>> 0, 8)} (${this.chipName})`);
+    }
+    /**
+     * Get chip revision for ESP32-P4
+     */
+    async getChipRevision() {
+        if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+            // Read from EFUSE_BLOCK1 to get chip revision
+            // Word 2 contains revision info for ESP32-P4
+            const word2 = await this.readRegister(ESP32P4_EFUSE_BLOCK1_ADDR + 8);
+            // Minor revision: bits [3:0]
+            const minorRev = word2 & 0x0f;
+            // Major revision: bits [23] << 2 | bits [5:4]
+            const majorRev = (((word2 >> 23) & 1) << 2) | ((word2 >> 4) & 0x03);
+            // Revision is major * 100 + minor
+            return majorRev * 100 + minorRev;
+        }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+            return await this.getChipRevisionC3();
+        }
+        return 0;
+    }
+    /**
+     * Get security info including chip ID (ESP32-C3 and later)
+     */
+    async getSecurityInfo() {
+        const [, responseData] = await this.checkCommand(ESP_GET_SECURITY_INFO, [], 0);
+        // Some chips/ROM versions return empty response or don't support this command
+        if (responseData.length === 0) {
+            throw new Error(`GET_SECURITY_INFO not supported or returned empty response`);
+        }
+        if (responseData.length < 12) {
+            throw new Error(`Invalid security info response length: ${responseData.length} (expected at least 12 bytes)`);
+        }
+        const flags = unpack("<I", responseData.slice(0, 4))[0];
+        const flashCryptCnt = responseData[4];
+        const keyPurposes = Array.from(responseData.slice(5, 12));
+        const chipId = responseData.length >= 16
+            ? unpack("<I", responseData.slice(12, 16))[0]
+            : 0;
+        const apiVersion = responseData.length >= 20
+            ? unpack("<I", responseData.slice(16, 20))[0]
+            : 0;
+        return {
+            flags,
+            flashCryptCnt,
+            keyPurposes,
+            chipId,
+            apiVersion,
+        };
+    }
+    /**
+     * Get MAC address from efuses
+     */
+    async getMacAddress() {
+        if (!this._initializationSucceeded) {
+            throw new Error("getMacAddress() requires initialize() to have completed successfully");
+        }
+        const macBytes = this.macAddr(); // chip-family-aware
+        return macBytes
+            .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
+            .join(":");
+    }
+    /**
+     * @name readLoop
+     * Reads data from the input stream and places it in the inputBuffer
+     */
+    async readLoop() {
+        if (this.debug) {
+            this.logger.debug("Starting read loop");
+        }
+        this._reader = this.port.readable.getReader();
+        try {
+            let keepReading = true;
+            while (keepReading) {
+                const { value, done } = await this._reader.read();
+                if (done) {
+                    this._reader.releaseLock();
+                    keepReading = false;
+                    break;
+                }
+                if (!value || value.length === 0) {
+                    continue;
+                }
+                // Always read from browser's serial buffer immediately
+                // to prevent browser buffer overflow. Don't apply back-pressure here.
+                const chunk = Array.from(value);
+                Array.prototype.push.apply(this._inputBuffer, chunk);
+                // Track total bytes read from serial port
+                this._totalBytesRead += value.length;
+            }
+        }
+        catch {
+            //      this.logger.error("Read loop got disconnected");
+        }
+        finally {
+            // Always reset reconfiguring flag when read loop ends
+            // This prevents "Cannot write during port reconfiguration" errors
+            // when the read loop dies unexpectedly
+            this._isReconfiguring = false;
+            // Release reader if still locked
+            if (this._reader) {
+                try {
+                    this._reader.releaseLock();
+                    this.logger.debug("Reader released in readLoop cleanup");
+                }
+                catch (err) {
+                    this.logger.debug(`Reader release error in readLoop: ${err}`);
+                }
+                this._reader = undefined;
+            }
+        }
+        // Disconnected!
+        this.connected = false;
+        // Check if this is ESP32-S2 Native USB that needs port reselection
+        // Only trigger reconnect if initialization did NOT succeed (wrong port)
+        if (this._isESP32S2NativeUSB && !this._initializationSucceeded) {
+            this.logger.log("ESP32-S2 Native USB detected - requesting port reselection");
+            this.dispatchEvent(new CustomEvent("esp32s2-usb-reconnect", {
+                detail: { message: "ESP32-S2 Native USB requires port reselection" },
+            }));
+        }
+        // Only dispatch disconnect event if not suppressed
+        if (!this._suppressDisconnect) {
+            this.dispatchEvent(new Event("disconnect"));
+        }
+        this._suppressDisconnect = false;
+        this.logger.debug("Finished read loop");
+    }
+    sleep(ms = 100) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+    // ============================================================================
+    // Web Serial (Desktop) - DTR/RTS Signal Handling & Reset Strategies
+    // ============================================================================
+    async setRTS(state) {
+        // Check if port is open before trying to set signals
+        if (!this.port.writable) {
+            this.logger.debug("Port is closed - skipping setRTS");
+            return;
+        }
+        await this.port.setSignals({ requestToSend: state });
+        // Work-around for adapters on Windows using the usbser.sys driver:
+        // generate a dummy change to DTR so that the set-control-line-state
+        // request is sent with the updated RTS state and the same DTR state
+        // Referenced to esptool.py
+        await this.setDTR(this.state_DTR);
+    }
+    async setDTR(state) {
+        this.state_DTR = state;
+        // Check if port is open before trying to set signals
+        if (!this.port.writable) {
+            this.logger.debug("Port is closed - skipping setDTR");
+            return;
+        }
+        await this.port.setSignals({ dataTerminalReady: state });
+    }
+    async setDTRandRTS(dtr, rts) {
+        this.state_DTR = dtr;
+        this.state_RTS = rts;
+        // Check if port is open before trying to set signals
+        if (!this.port.writable) {
+            this.logger.debug("Port is closed - skipping setDTRandRTS");
+            return;
+        }
+        await this.port.setSignals({
+            dataTerminalReady: dtr,
+            requestToSend: rts,
+        });
+    }
+    /**
+     * @name hardResetUSBJTAGSerial
+     * USB-JTAG/Serial reset for Web Serial (Desktop)
+     */
+    async hardResetUSBJTAGSerial() {
+        await this.setRTS(false);
+        await this.setDTR(false); // Idle
+        await this.sleep(100);
+        await this.setDTR(true); // Set IO0
+        await this.setRTS(false);
+        await this.sleep(100);
+        await this.setRTS(true); // Reset
+        await this.setDTR(false);
+        await this.setRTS(true);
+        await this.sleep(100);
+        await this.setDTR(false);
+        await this.setRTS(false); // Chip out of reset
+        await this.sleep(200);
+    }
+    /**
+     * @name hardResetClassic
+     * Classic reset for Web Serial (Desktop) DTR = IO0, RTS = EN
+     */
+    async hardResetClassic() {
+        await this.setDTR(false); // IO0=HIGH
+        await this.setRTS(true); // EN=LOW, chip in reset
+        await this.sleep(100);
+        await this.setDTR(true); // IO0=LOW
+        await this.setRTS(false); // EN=HIGH, chip out of reset
+        await this.sleep(50);
+        await this.setDTR(false); // IO0=HIGH, done
+        await this.sleep(200);
+    }
+    /**
+     * Reset to firmware mode (not bootloader) for Web Serial
+     * Keeps IO0=HIGH during reset so chip boots into firmware
+     */
+    async hardResetToFirmware() {
+        await this.setDTR(false); // IO0=HIGH
+        await this.setRTS(true); // EN=LOW, chip in reset
+        await this.sleep(100);
+        await this.setRTS(false); // EN=HIGH, chip out of reset (IO0 stays HIGH)
+        await this.sleep(50);
+        await this.sleep(200);
+    }
+    /**
+     * Reset to firmware mode (not bootloader) for WebUSB
+     * Keeps IO0=HIGH during reset so chip boots into firmware
+     */
+    async hardResetToFirmwareWebUSB() {
+        await this.setDTRWebUSB(false); // IO0=HIGH
+        await this.setRTSWebUSB(true); // EN=LOW, chip in reset
+        await this.sleep(100);
+        await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset (IO0 stays HIGH)
+        await this.sleep(50);
+        await this.sleep(200);
+    }
+    /**
+     * @name hardResetUnixTight
+     * Unix Tight reset for Web Serial (Desktop) - sets DTR and RTS simultaneously
+     */
+    async hardResetUnixTight() {
+        await this.setDTRandRTS(true, true);
+        await this.setDTRandRTS(false, false);
+        await this.setDTRandRTS(false, true); // IO0=HIGH & EN=LOW, chip in reset
+        await this.sleep(100);
+        await this.setDTRandRTS(true, false); // IO0=LOW & EN=HIGH, chip out of reset
+        await this.sleep(50);
+        await this.setDTRandRTS(false, false); // IO0=HIGH, done
+        await this.setDTR(false); // Needed in some environments to ensure IO0=HIGH
+        await this.sleep(200);
+    }
+    // ============================================================================
+    // WebUSB (Android) - DTR/RTS Signal Handling & Reset Strategies
+    // ============================================================================
+    async setRTSWebUSB(state) {
+        this.state_RTS = state;
+        // Check if port is open before trying to set signals
+        if (!this.port.writable) {
+            this.logger.debug("Port is closed - skipping setRTSWebUSB");
+            return;
+        }
+        // Always specify both signals to avoid flipping the other line
+        // The WebUSB setSignals() now preserves unspecified signals, but being explicit is safer
+        await this.port.setSignals({
+            requestToSend: state,
+            dataTerminalReady: this.state_DTR,
+        });
+    }
+    async setDTRWebUSB(state) {
+        this.state_DTR = state;
+        // Check if port is open before trying to set signals
+        if (!this.port.writable) {
+            this.logger.debug("Port is closed - skipping setDTRWebUSB");
+            return;
+        }
+        // Always specify both signals to avoid flipping the other line
+        await this.port.setSignals({
+            dataTerminalReady: state,
+            requestToSend: this.state_RTS, // Explicitly preserve current RTS state
+        });
+    }
+    async setDTRandRTSWebUSB(dtr, rts) {
+        this.state_DTR = dtr;
+        this.state_RTS = rts;
+        // Check if port is open before trying to set signals
+        if (!this.port.writable) {
+            this.logger.debug("Port is closed - skipping setDTRandRTSWebUSB");
+            return;
+        }
+        await this.port.setSignals({
+            dataTerminalReady: dtr,
+            requestToSend: rts,
+        });
+    }
+    /**
+     * @name hardResetUSBJTAGSerialWebUSB
+     * USB-JTAG/Serial reset for WebUSB (Android)
+     */
+    async hardResetUSBJTAGSerialWebUSB() {
+        await this.setRTSWebUSB(false);
+        await this.setDTRWebUSB(false); // Idle
+        await this.sleep(100);
+        await this.setDTRWebUSB(true); // Set IO0
+        await this.setRTSWebUSB(false);
+        await this.sleep(100);
+        await this.setRTSWebUSB(true); // Reset
+        await this.setDTRWebUSB(false);
+        await this.setRTSWebUSB(true);
+        await this.sleep(100);
+        await this.setDTRWebUSB(false);
+        await this.setRTSWebUSB(false); // Chip out of reset
+        await this.sleep(200);
+    }
+    /**
+     * @name hardResetUSBJTAGSerialInvertedDTRWebUSB
+     * USB-JTAG/Serial reset with inverted DTR for WebUSB (Android)
+     */
+    async hardResetUSBJTAGSerialInvertedDTRWebUSB() {
+        await this.setRTSWebUSB(false);
+        await this.setDTRWebUSB(true); // Idle (DTR inverted)
+        await this.sleep(100);
+        await this.setDTRWebUSB(false); // Set IO0 (DTR inverted)
+        await this.setRTSWebUSB(false);
+        await this.sleep(100);
+        await this.setRTSWebUSB(true); // Reset
+        await this.setDTRWebUSB(true); // (DTR inverted)
+        await this.setRTSWebUSB(true);
+        await this.sleep(100);
+        await this.setDTRWebUSB(true); // (DTR inverted)
+        await this.setRTSWebUSB(false); // Chip out of reset
+        await this.sleep(200);
+    }
+    /**
+     * @name hardResetClassicWebUSB
+     * Classic reset for WebUSB (Android)
+     */
+    async hardResetClassicWebUSB() {
+        await this.setDTRWebUSB(false); // IO0=HIGH
+        await this.setRTSWebUSB(true); // EN=LOW, chip in reset
+        await this.sleep(100);
+        await this.setDTRWebUSB(true); // IO0=LOW
+        await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset
+        await this.sleep(50);
+        await this.setDTRWebUSB(false); // IO0=HIGH, done
+        await this.sleep(200);
+    }
+    /**
+     * @name hardResetUnixTightWebUSB
+     * Unix Tight reset for WebUSB (Android) - sets DTR and RTS simultaneously
+     */
+    async hardResetUnixTightWebUSB() {
+        await this.setDTRandRTSWebUSB(false, false);
+        await this.setDTRandRTSWebUSB(true, true);
+        await this.setDTRandRTSWebUSB(false, true); // IO0=HIGH & EN=LOW, chip in reset
+        await this.sleep(100);
+        await this.setDTRandRTSWebUSB(true, false); // IO0=LOW & EN=HIGH, chip out of reset
+        await this.sleep(50);
+        await this.setDTRandRTSWebUSB(false, false); // IO0=HIGH, done
+        await this.setDTRWebUSB(false); // Ensure IO0=HIGH
+        await this.sleep(200);
+    }
+    /**
+     * @name hardResetClassicLongDelayWebUSB
+     * Classic reset with longer delays for WebUSB (Android)
+     * Specifically for CP2102/CH340 which may need more time
+     */
+    async hardResetClassicLongDelayWebUSB() {
+        await this.setDTRWebUSB(false); // IO0=HIGH
+        await this.setRTSWebUSB(true); // EN=LOW, chip in reset
+        await this.sleep(500); // Extra long delay
+        await this.setDTRWebUSB(true); // IO0=LOW
+        await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset
+        await this.sleep(200);
+        await this.setDTRWebUSB(false); // IO0=HIGH, done
+        await this.sleep(500); // Extra long delay
+    }
+    /**
+     * @name hardResetClassicShortDelayWebUSB
+     * Classic reset with shorter delays for WebUSB (Android)
+     */
+    async hardResetClassicShortDelayWebUSB() {
+        await this.setDTRWebUSB(false); // IO0=HIGH
+        await this.setRTSWebUSB(true); // EN=LOW, chip in reset
+        await this.sleep(50);
+        await this.setDTRWebUSB(true); // IO0=LOW
+        await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset
+        await this.sleep(25);
+        await this.setDTRWebUSB(false); // IO0=HIGH, done
+        await this.sleep(100);
+    }
+    /**
+     * @name hardResetInvertedWebUSB
+     * Inverted reset sequence for WebUSB (Android) - both signals inverted
+     */
+    async hardResetInvertedWebUSB() {
+        await this.setDTRWebUSB(true); // IO0=HIGH (inverted)
+        await this.setRTSWebUSB(false); // EN=LOW, chip in reset (inverted)
+        await this.sleep(100);
+        await this.setDTRWebUSB(false); // IO0=LOW (inverted)
+        await this.setRTSWebUSB(true); // EN=HIGH, chip out of reset (inverted)
+        await this.sleep(50);
+        await this.setDTRWebUSB(true); // IO0=HIGH, done (inverted)
+        await this.sleep(200);
+    }
+    /**
+     * @name hardResetInvertedDTRWebUSB
+     * Only DTR inverted for WebUSB (Android)
+     */
+    async hardResetInvertedDTRWebUSB() {
+        await this.setDTRWebUSB(true); // IO0=HIGH (DTR inverted)
+        await this.setRTSWebUSB(true); // EN=LOW, chip in reset (RTS normal)
+        await this.sleep(100);
+        await this.setDTRWebUSB(false); // IO0=LOW (DTR inverted)
+        await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset (RTS normal)
+        await this.sleep(50);
+        await this.setDTRWebUSB(true); // IO0=HIGH, done (DTR inverted)
+        await this.sleep(200);
+    }
+    /**
+     * @name hardResetInvertedRTSWebUSB
+     * Only RTS inverted for WebUSB (Android)
+     */
+    async hardResetInvertedRTSWebUSB() {
+        await this.setDTRWebUSB(false); // IO0=HIGH (DTR normal)
+        await this.setRTSWebUSB(false); // EN=LOW, chip in reset (RTS inverted)
+        await this.sleep(100);
+        await this.setDTRWebUSB(true); // IO0=LOW (DTR normal)
+        await this.setRTSWebUSB(true); // EN=HIGH, chip out of reset (RTS inverted)
+        await this.sleep(50);
+        await this.setDTRWebUSB(false); // IO0=HIGH, done (DTR normal)
+        await this.sleep(200);
+    }
+    /**
+     * Check if we're using WebUSB (Android) or Web Serial (Desktop)
+     */
+    isWebUSB() {
+        // WebUSBSerial class has isWebUSB flag - this is the most reliable check
+        return this.port.isWebUSB === true;
+    }
+    /**
+     * @name connectWithResetStrategies
+     * Try different reset strategies to enter bootloader mode
+     * Similar to esptool.py's connect() method with multiple reset strategies
+     */
+    async connectWithResetStrategies() {
+        const portInfo = this.port.getInfo();
+        const isUSBJTAGSerial = portInfo.usbProductId === USB_JTAG_SERIAL_PID;
+        const isEspressifUSB = portInfo.usbVendorId === 0x303a;
+        //    this.logger.log(
+        //      `Detected USB: VID=0x${portInfo.usbVendorId?.toString(16) || "unknown"}, PID=0x${portInfo.usbProductId?.toString(16) || "unknown"}`,
+        //    );
+        // Define reset strategies to try in order
+        const resetStrategies = [];
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const self = this;
+        // Detect if this is a USB-Serial chip (needs different sync approach)
+        const isUSBSerialChip = !isUSBJTAGSerial && !isEspressifUSB;
+        // WebUSB (Android) uses different reset methods than Web Serial (Desktop)
+        if (this.isWebUSB()) {
+            // For USB-Serial chips (CP2102, CH340, etc.), try inverted strategies first
+            // Detect specific chip types once
+            const isCP2102 = portInfo.usbVendorId === 0x10c4;
+            const isCH34x = portInfo.usbVendorId === 0x1a86;
+            // Check for ESP32-S2 Native USB (VID: 0x303a, PID: 0x0002)
+            const isESP32S2NativeUSB = portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x0002;
+            // WebUSB Strategy 1: USB-JTAG/Serial reset (for Native USB only)
+            if (isUSBJTAGSerial || isEspressifUSB) {
+                if (isESP32S2NativeUSB) {
+                    // ESP32-S2 Native USB: Try multiple strategies
+                    // The device might be in JTAG mode OR CDC mode
+                    // Strategy 1: USB-JTAG/Serial (works in CDC mode on Desktop)
+                    resetStrategies.push({
+                        name: "USB-JTAG/Serial (WebUSB) - ESP32-S2",
+                        fn: async () => {
+                            return await self.hardResetUSBJTAGSerialWebUSB();
+                        },
+                    });
+                    // Strategy 2: USB-JTAG/Serial Inverted DTR (works in JTAG mode)
+                    resetStrategies.push({
+                        name: "USB-JTAG/Serial Inverted DTR (WebUSB) - ESP32-S2",
+                        fn: async () => {
+                            return await self.hardResetUSBJTAGSerialInvertedDTRWebUSB();
+                        },
+                    });
+                    // Strategy 3: UnixTight (CDC fallback)
+                    resetStrategies.push({
+                        name: "UnixTight (WebUSB) - ESP32-S2 CDC",
+                        fn: async () => {
+                            return await self.hardResetUnixTightWebUSB();
+                        },
+                    });
+                    // Strategy 4: Classic reset (CDC fallback)
+                    resetStrategies.push({
+                        name: "Classic (WebUSB) - ESP32-S2 CDC",
+                        fn: async () => {
+                            return await self.hardResetClassicWebUSB();
+                        },
+                    });
+                }
+                else {
+                    // Other USB-JTAG chips: Try Inverted DTR first - works best for ESP32-H2 and other JTAG chips
+                    resetStrategies.push({
+                        name: "USB-JTAG/Serial Inverted DTR (WebUSB)",
+                        fn: async () => {
+                            return await self.hardResetUSBJTAGSerialInvertedDTRWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "USB-JTAG/Serial (WebUSB)",
+                        fn: async () => {
+                            return await self.hardResetUSBJTAGSerialWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Inverted DTR Classic (WebUSB)",
+                        fn: async () => {
+                            return await self.hardResetInvertedDTRWebUSB();
+                        },
+                    });
+                }
+            }
+            // For USB-Serial chips, try inverted strategies first
+            if (isUSBSerialChip) {
+                if (isCH34x) {
+                    // CH340/CH343: UnixTight works best (like CP2102)
+                    resetStrategies.push({
+                        name: "UnixTight (WebUSB) - CH34x",
+                        fn: async () => {
+                            return await self.hardResetUnixTightWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Classic (WebUSB) - CH34x",
+                        fn: async () => {
+                            return await self.hardResetClassicWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Inverted Both (WebUSB) - CH34x",
+                        fn: async () => {
+                            return await self.hardResetInvertedWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Inverted RTS (WebUSB) - CH34x",
+                        fn: async () => {
+                            return await self.hardResetInvertedRTSWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Inverted DTR (WebUSB) - CH34x",
+                        fn: async () => {
+                            return await self.hardResetInvertedDTRWebUSB();
+                        },
+                    });
+                }
+                else if (isCP2102) {
+                    // CP2102: UnixTight works best (tested and confirmed)
+                    // Try it first, then fallback to other strategies
+                    resetStrategies.push({
+                        name: "UnixTight (WebUSB) - CP2102",
+                        fn: async () => {
+                            return await self.hardResetUnixTightWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Classic (WebUSB) - CP2102",
+                        fn: async () => {
+                            return await self.hardResetClassicWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Inverted Both (WebUSB) - CP2102",
+                        fn: async () => {
+                            return await self.hardResetInvertedWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Inverted RTS (WebUSB) - CP2102",
+                        fn: async () => {
+                            return await self.hardResetInvertedRTSWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Inverted DTR (WebUSB) - CP2102",
+                        fn: async () => {
+                            return await self.hardResetInvertedDTRWebUSB();
+                        },
+                    });
+                }
+                else {
+                    // For other USB-Serial chips, try UnixTight first, then multiple strategies
+                    resetStrategies.push({
+                        name: "UnixTight (WebUSB)",
+                        fn: async () => {
+                            return await self.hardResetUnixTightWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Classic (WebUSB)",
+                        fn: async function () {
+                            return await self.hardResetClassicWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Inverted Both (WebUSB)",
+                        fn: async function () {
+                            return await self.hardResetInvertedWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Inverted RTS (WebUSB)",
+                        fn: async function () {
+                            return await self.hardResetInvertedRTSWebUSB();
+                        },
+                    });
+                    resetStrategies.push({
+                        name: "Inverted DTR (WebUSB)",
+                        fn: async function () {
+                            return await self.hardResetInvertedDTRWebUSB();
+                        },
+                    });
+                }
+            }
+            // Add general fallback strategies only for non-CP2102 and non-ESP32-S2 Native USB chips
+            if (!isCP2102 && !isESP32S2NativeUSB) {
+                // Classic reset (for chips not handled above)
+                if (portInfo.usbVendorId !== 0x1a86) {
+                    resetStrategies.push({
+                        name: "Classic (WebUSB)",
+                        fn: async function () {
+                            return await self.hardResetClassicWebUSB();
+                        },
+                    });
+                }
+                // UnixTight reset (sets DTR/RTS simultaneously)
+                resetStrategies.push({
+                    name: "UnixTight (WebUSB)",
+                    fn: async function () {
+                        return await self.hardResetUnixTightWebUSB();
+                    },
+                });
+                // WebUSB Strategy: Classic with long delays
+                resetStrategies.push({
+                    name: "Classic Long Delay (WebUSB)",
+                    fn: async function () {
+                        return await self.hardResetClassicLongDelayWebUSB();
+                    },
+                });
+                // WebUSB Strategy: Classic with short delays
+                resetStrategies.push({
+                    name: "Classic Short Delay (WebUSB)",
+                    fn: async function () {
+                        return await self.hardResetClassicShortDelayWebUSB();
+                    },
+                });
+                // WebUSB Strategy: USB-JTAG/Serial fallback
+                if (!isUSBJTAGSerial && !isEspressifUSB) {
+                    resetStrategies.push({
+                        name: "USB-JTAG/Serial fallback (WebUSB)",
+                        fn: async function () {
+                            return await self.hardResetUSBJTAGSerialWebUSB();
+                        },
+                    });
+                }
+            }
+        }
+        else {
+            // Strategy: USB-JTAG/Serial reset
+            if (isUSBJTAGSerial || isEspressifUSB) {
+                resetStrategies.push({
+                    name: "USB-JTAG/Serial",
+                    fn: async function () {
+                        return await self.hardResetUSBJTAGSerial();
+                    },
+                });
+            }
+            // Strategy: UnixTight reset
+            resetStrategies.push({
+                name: "UnixTight",
+                fn: async function () {
+                    return await self.hardResetUnixTight();
+                },
+            });
+            // Strategy: USB-JTAG/Serial fallback
+            if (!isUSBJTAGSerial && !isEspressifUSB) {
+                resetStrategies.push({
+                    name: "USB-JTAG/Serial (fallback)",
+                    fn: async function () {
+                        return await self.hardResetUSBJTAGSerial();
+                    },
+                });
+            }
+        }
+        let lastError = null;
+        // Try each reset strategy with timeout
+        for (const strategy of resetStrategies) {
+            try {
+                // Check if port is still open, if not, skip this strategy
+                if (!this.connected || !this.port.writable) {
+                    this.logger.debug(`Port disconnected, skipping ${strategy.name} reset`);
+                    continue;
+                }
+                // Clear abandon flag before starting new strategy
+                this._abandonCurrentOperation = false;
+                await strategy.fn();
+                // Try to sync after reset
+                // USB-Serial / native USB chips needs different sync approaches
+                if (isUSBSerialChip) {
+                    // USB-Serial chips: Use timeout strategy (2 seconds)
+                    //          this.logger.log(`USB-Serial chip detected, using sync with timeout.`);
+                    const syncSuccess = await this.syncWithTimeout(2000);
+                    if (syncSuccess) {
+                        // Sync succeeded
+                        this.logger.log(`Connected USB Serial successfully with ${strategy.name} reset.`);
+                        return;
+                    }
+                    else {
+                        throw new Error("Sync timeout or abandoned");
+                    }
+                }
+                else {
+                    // Native USB chips
+                    // Note: We use Promise.race with sync() directly instead of syncWithTimeout()
+                    // because syncWithTimeout causes CDC/JTAG devices to hang for unknown reasons.
+                    // The abandon flag in readPacket() prevents overlapping I/O.
+                    //          this.logger.log(`Native USB chip detected, using CDC/JTAG sync.`);
+                    const syncPromise = this.sync();
+                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Sync timeout")), 1000));
+                    try {
+                        await Promise.race([syncPromise, timeoutPromise]);
+                        // Sync succeeded
+                        this.logger.log(`Connected CDC/JTAG successfully with ${strategy.name} reset.`);
+                        return;
+                    }
+                    catch (error) {
+                        throw new Error("Sync timeout or abandoned");
+                    }
+                }
+            }
+            catch (error) {
+                lastError = error;
+                //        this.logger.debug(
+                //          `${strategy.name} reset failed: ${(error as Error).message}`,
+                //        );
+                // Set abandon flag to stop any in-flight operations
+                this._abandonCurrentOperation = true;
+                // Wait a bit for in-flight operations to abort
+                await sleep(100);
+                // If port got disconnected, we can't try more strategies
+                if (!this.connected || !this.port.writable) {
+                    this.logger.log(`Port disconnected during reset attempt`);
+                    break;
+                }
+                // Clear buffers before trying next strategy
+                this._clearInputBuffer();
+                await this.drainInputBuffer(200);
+                await this.flushSerialBuffers();
+            }
+        }
+        // All strategies failed - reset abandon flag before throwing
+        this._abandonCurrentOperation = false;
+        throw new Error(`Couldn't sync to ESP. Try resetting manually. Last error: ${lastError === null || lastError === void 0 ? void 0 : lastError.message}`);
+    }
+    /**
+     * @name watchdogReset
+     * Watchdog reset for ESP32-S2/S3/C3 with USB-OTG or USB-JTAG/Serial
+     * Uses RTC watchdog timer to reset the chip - works when DTR/RTS signals are not available
+     * This is an alias for rtcWdtResetChipSpecific() for backwards compatibility
+     */
+    async watchdogReset() {
+        await this.rtcWdtResetChipSpecific();
+    }
+    /**
+     * Get chip revision for ESP32-C3
+     * Reads from EFUSE registers and calculates revision
+     */
+    async getChipRevisionC3() {
+        if (this.chipFamily !== CHIP_FAMILY_ESP32C3) {
+            return 0;
+        }
+        // Read EFUSE_RD_MAC_SPI_SYS_3_REG (bits [20:18] = lower 3 bits of revision)
+        const word3 = await this.readRegister(ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG);
+        const low = (word3 >> 18) & 0x07;
+        // Read EFUSE_RD_MAC_SPI_SYS_5_REG (bits [25:23] = upper 3 bits of revision)
+        const word5 = await this.readRegister(ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG);
+        const hi = (word5 >> 23) & 0x07;
+        // Combine: upper 3 bits from word5, lower 3 bits from word3
+        const revision = (hi << 3) | low;
+        return revision;
+    }
+    /**
+     * RTC watchdog timer reset for ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C5, ESP32-C6, and ESP32-P4
+     * Uses specific registers for each chip family
+     * Note: ESP32-H2 does NOT support WDT reset
+     */
+    async rtcWdtResetChipSpecific() {
+        this.logger.debug("Hard resetting with watchdog timer...");
+        let WDTWPROTECT_REG;
+        let WDTCONFIG0_REG;
+        let WDTCONFIG1_REG;
+        let WDT_WKEY;
+        if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+            WDTWPROTECT_REG = ESP32S2_RTC_CNTL_WDTWPROTECT_REG;
+            WDTCONFIG0_REG = ESP32S2_RTC_CNTL_WDTCONFIG0_REG;
+            WDTCONFIG1_REG = ESP32S2_RTC_CNTL_WDTCONFIG1_REG;
+            WDT_WKEY = ESP32S2_RTC_CNTL_WDT_WKEY;
+        }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+            WDTWPROTECT_REG = ESP32S3_RTC_CNTL_WDTWPROTECT_REG;
+            WDTCONFIG0_REG = ESP32S3_RTC_CNTL_WDTCONFIG0_REG;
+            WDTCONFIG1_REG = ESP32S3_RTC_CNTL_WDTCONFIG1_REG;
+            WDT_WKEY = ESP32S3_RTC_CNTL_WDT_WKEY;
+        }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+            WDTWPROTECT_REG = ESP32C3_RTC_CNTL_WDTWPROTECT_REG;
+            WDTCONFIG0_REG = ESP32C3_RTC_CNTL_WDTCONFIG0_REG;
+            WDTCONFIG1_REG = ESP32C3_RTC_CNTL_WDTCONFIG1_REG;
+            WDT_WKEY = ESP32C3_RTC_CNTL_WDT_WKEY;
+        }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32C5 ||
+            this.chipFamily === CHIP_FAMILY_ESP32C6) {
+            // C5 and C6 use LP_WDT (Low Power Watchdog Timer)
+            WDTWPROTECT_REG = ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG;
+            WDTCONFIG0_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG;
+            WDTCONFIG1_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG;
+            WDT_WKEY = ESP32C5_C6_RTC_CNTL_WDT_WKEY;
+        }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+            // P4 uses LP_WDT (Low Power Watchdog Timer)
+            WDTWPROTECT_REG = ESP32P4_RTC_CNTL_WDTWPROTECT_REG;
+            WDTCONFIG0_REG = ESP32P4_RTC_CNTL_WDTCONFIG0_REG;
+            WDTCONFIG1_REG = ESP32P4_RTC_CNTL_WDTCONFIG1_REG;
+            WDT_WKEY = ESP32P4_RTC_CNTL_WDT_WKEY;
+        }
+        else {
+            throw new Error(`rtcWdtResetChipSpecific() is not supported for ${this.chipFamily}`);
+        }
+        // Unlock watchdog registers
+        await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
+        // Set WDT timeout to 2000ms (matches Python esptool)
+        await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);
+        // Enable WDT: bit 31 = enable, bits 28-30 = stage, bit 8 = sys reset, bits 0-2 = prescaler
+        const wdtConfig = (1 << 31) | (5 << 28) | (1 << 8) | 2;
+        await this.writeRegister(WDTCONFIG0_REG, wdtConfig, undefined, 0);
+        // Lock watchdog registers
+        await this.writeRegister(WDTWPROTECT_REG, 0, undefined, 0);
+        // Wait for reset to take effect
+        await this.sleep(500);
+    }
+    /**
+     * Helper: USB-based WDT reset
+     * Returns true if WDT reset was performed, false otherwise
+     */
+    async tryUsbWdtReset(chipName) {
+        const isUsingUsbOtg = await this.detectUsbConnectionType();
+        if (isUsingUsbOtg) {
+            // Use WDT reset for USB-OTG devices
+            await this.rtcWdtResetChipSpecific();
+            this.logger.debug(`${chipName}: RTC WDT reset (USB-JTAG/Serial or USB-OTG detected)`);
+            return true;
+        }
+        else {
+            // Use classic reset for non-USB devices
+            if (this.isWebUSB()) {
+                await this.hardResetClassicWebUSB();
+                this.logger.debug("Classic reset (WebUSB/Android).");
+            }
+            else {
+                await this.hardResetClassic();
+                this.logger.debug("Classic reset.");
+            }
+        }
+        return false;
+    }
+    async hardReset(bootloader = false) {
+        // In console mode, only allow simple hardware reset (no bootloader entry)
+        if (this._consoleMode) {
+            if (bootloader) {
+                this.logger.debug("Skipping bootloader reset - device is in console mode");
+                return;
+            }
+            // Simple hardware reset to restart firmware (IO0=HIGH)
+            this.logger.debug("Performing hardware reset (console mode)...");
+            if (this.isWebUSB()) {
+                await this.hardResetToFirmwareWebUSB();
+            }
+            else {
+                await this.hardResetToFirmware();
+            }
+            this.logger.debug("Hardware reset complete");
+            return;
+        }
+        if (bootloader) {
+            // enter flash mode
+            if (this.port.getInfo().usbProductId === USB_JTAG_SERIAL_PID) {
+                await this.hardResetUSBJTAGSerial();
+                this.logger.debug("USB-JTAG/Serial reset.");
+            }
+            else {
+                // Use different reset strategy for WebUSB (Android) vs Web Serial (Desktop)
+                if (this.isWebUSB()) {
+                    await this.hardResetClassicWebUSB();
+                    this.logger.debug("Classic reset (WebUSB/Android).");
+                }
+                else {
+                    await this.hardResetClassic();
+                    this.logger.debug("Classic reset.");
+                }
+            }
+        }
+        else {
+            // just reset (no bootloader mode)
+            // For ESP32-S2/S3/P4 with USB-OTG or USB-JTAG/Serial, check if watchdog reset is needed
+            this.logger.debug("*** Performing WDT reset strategy ***");
+            if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+                const wdtResetUsed = await this.tryUsbWdtReset("ESP32-S2");
+                if (wdtResetUsed)
+                    return;
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+                const wdtResetUsed = await this.tryUsbWdtReset("ESP32-S3");
+                if (wdtResetUsed)
+                    return;
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+                const wdtResetUsed = await this.tryUsbWdtReset("ESP32-P4");
+                if (wdtResetUsed)
+                    return;
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+                const wdtResetUsed = await this.tryUsbWdtReset("ESP32-C3");
+                if (wdtResetUsed)
+                    return;
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32C5) {
+                const wdtResetUsed = await this.tryUsbWdtReset("ESP32-C5");
+                if (wdtResetUsed)
+                    return;
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32C6) {
+                const wdtResetUsed = await this.tryUsbWdtReset("ESP32-C6");
+                if (wdtResetUsed)
+                    return;
+            }
+            // Standard reset for all other cases
+            if (this.isWebUSB()) {
+                // WebUSB: Use longer delays for better compatibility
+                await this.setRTSWebUSB(true); // EN->LOW
+                await this.sleep(200);
+                await this.setRTSWebUSB(false);
+                await this.sleep(200);
+                this.logger.debug("Hard reset (WebUSB).");
+            }
+            else {
+                // Web Serial: Standard reset
+                await this.setRTS(true); // EN->LOW
+                await this.sleep(100);
+                await this.setRTS(false);
+                this.logger.debug("Hard reset.");
+            }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    /**
+     * @name macAddr
+     * The MAC address burned into the OTP memory of the ESP chip
+     */
+    macAddr() {
+        const macAddr = new Array(6).fill(0);
+        const mac0 = this._efuses[0];
+        const mac1 = this._efuses[1];
+        const mac2 = this._efuses[2];
+        const mac3 = this._efuses[3];
+        let oui;
+        if (this.chipFamily == CHIP_FAMILY_ESP8266) {
+            if (mac3 != 0) {
+                oui = [(mac3 >> 16) & 0xff, (mac3 >> 8) & 0xff, mac3 & 0xff];
+            }
+            else if (((mac1 >> 16) & 0xff) == 0) {
+                oui = [0x18, 0xfe, 0x34];
+            }
+            else if (((mac1 >> 16) & 0xff) == 1) {
+                oui = [0xac, 0xd0, 0x74];
+            }
+            else {
+                throw new Error("Couldnt determine OUI");
+            }
+            macAddr[0] = oui[0];
+            macAddr[1] = oui[1];
+            macAddr[2] = oui[2];
+            macAddr[3] = (mac1 >> 8) & 0xff;
+            macAddr[4] = mac1 & 0xff;
+            macAddr[5] = (mac0 >> 24) & 0xff;
+        }
+        else if (this.chipFamily == CHIP_FAMILY_ESP32) {
+            macAddr[0] = (mac2 >> 8) & 0xff;
+            macAddr[1] = mac2 & 0xff;
+            macAddr[2] = (mac1 >> 24) & 0xff;
+            macAddr[3] = (mac1 >> 16) & 0xff;
+            macAddr[4] = (mac1 >> 8) & 0xff;
+            macAddr[5] = mac1 & 0xff;
+        }
+        else if (this.chipFamily == CHIP_FAMILY_ESP32S2 ||
+            this.chipFamily == CHIP_FAMILY_ESP32S3 ||
+            this.chipFamily == CHIP_FAMILY_ESP32C2 ||
+            this.chipFamily == CHIP_FAMILY_ESP32C3 ||
+            this.chipFamily == CHIP_FAMILY_ESP32C5 ||
+            this.chipFamily == CHIP_FAMILY_ESP32C6 ||
+            this.chipFamily == CHIP_FAMILY_ESP32C61 ||
+            this.chipFamily == CHIP_FAMILY_ESP32H2 ||
+            this.chipFamily == CHIP_FAMILY_ESP32H4 ||
+            this.chipFamily == CHIP_FAMILY_ESP32H21 ||
+            this.chipFamily == CHIP_FAMILY_ESP32P4 ||
+            this.chipFamily == CHIP_FAMILY_ESP32S31) {
+            macAddr[0] = (mac1 >> 8) & 0xff;
+            macAddr[1] = mac1 & 0xff;
+            macAddr[2] = (mac0 >> 24) & 0xff;
+            macAddr[3] = (mac0 >> 16) & 0xff;
+            macAddr[4] = (mac0 >> 8) & 0xff;
+            macAddr[5] = mac0 & 0xff;
+        }
+        else {
+            throw new Error("Unknown chip family");
+        }
+        return macAddr;
+    }
+    async readRegister(reg) {
+        if (this.debug) {
+            this.logger.debug("Reading from Register " + toHex(reg, 8));
+        }
+        const packet = pack("<I", reg);
+        await this.sendCommand(ESP_READ_REG, packet);
+        const [val] = await this.getResponse(ESP_READ_REG);
+        return val;
+    }
+    /**
+     * @name checkCommand
+     * Send a command packet, check that the command succeeded and
+     * return a tuple with the value and data.
+     * See the ESP Serial Protocol for more details on what value/data are
+     *
+     * Commands are serialized to prevent concurrent execution which can cause
+     * WritableStream lock contention on CP210x adapters under Windows
+     */
+    async checkCommand(opcode, buffer, checksum = 0, timeout = DEFAULT_TIMEOUT) {
+        // Serialize command execution to prevent lock contention
+        const executeCommand = async () => {
+            timeout = Math.min(timeout, MAX_TIMEOUT);
+            await this.sendCommand(opcode, buffer, checksum);
+            const [value, responseData] = await this.getResponse(opcode, timeout);
+            if (responseData === null) {
+                throw new Error("Didn't get enough status bytes");
+            }
+            let data = responseData;
+            let statusLen = 0;
+            if (this.IS_STUB || this.chipFamily == CHIP_FAMILY_ESP8266) {
+                statusLen = 2;
+            }
+            else if ([
+                CHIP_FAMILY_ESP32,
+                CHIP_FAMILY_ESP32S2,
+                CHIP_FAMILY_ESP32S3,
+                CHIP_FAMILY_ESP32C2,
+                CHIP_FAMILY_ESP32C3,
+                CHIP_FAMILY_ESP32C5,
+                CHIP_FAMILY_ESP32C6,
+                CHIP_FAMILY_ESP32C61,
+                CHIP_FAMILY_ESP32H2,
+                CHIP_FAMILY_ESP32H4,
+                CHIP_FAMILY_ESP32H21,
+                CHIP_FAMILY_ESP32P4,
+                CHIP_FAMILY_ESP32S31,
+            ].includes(this.chipFamily)) {
+                statusLen = 4;
+            }
+            else {
+                // When chipFamily is not yet set (e.g., during GET_SECURITY_INFO in detectChip),
+                // assume modern chips use 4-byte status
+                if (opcode === ESP_GET_SECURITY_INFO) {
+                    statusLen = 4;
+                }
+                else if ([2, 4].includes(data.length)) {
+                    statusLen = data.length;
+                }
+                else {
+                    // Default to 2-byte status if we can't determine
+                    // This prevents silent data corruption when statusLen would be 0
+                    statusLen = 2;
+                    this.logger.debug(`Unknown chip family, defaulting to 2-byte status (opcode: ${toHex(opcode)}, data.length: ${data.length})`);
+                }
+            }
+            if (data.length < statusLen) {
+                throw new Error("Didn't get enough status bytes");
+            }
+            const status = data.slice(-statusLen, data.length);
+            data = data.slice(0, -statusLen);
+            if (this.debug) {
+                this.logger.debug("status", status);
+                this.logger.debug("value", value);
+                this.logger.debug("data", data);
+            }
+            if (status[0] == 1) {
+                if (status[1] == ROM_INVALID_RECV_MSG) {
+                    // Unsupported command can result in more than one error response
+                    // Use drainInputBuffer for CP210x compatibility on Windows
+                    await this.drainInputBuffer(200);
+                    throw new Error("Invalid (unsupported) command " + toHex(opcode));
+                }
+                else {
+                    throw new Error("Command failure error code " + toHex(status[1]));
+                }
+            }
+            return [value, data];
+        };
+        // Chain command execution through the lock
+        // Use both .then() handlers to ensure lock continues even on error
+        this._commandLock = this._commandLock.then(executeCommand, executeCommand);
+        return this._commandLock;
+    }
+    /**
+     * @name sendCommand
+     * Send a slip-encoded, checksummed command over the UART,
+     * does not check response
+     */
+    async sendCommand(opcode, buffer, checksum = 0) {
+        const packet = slipEncode([
+            ...pack("<BBHI", 0x00, opcode, buffer.length, checksum),
+            ...buffer,
+        ]);
+        if (this.debug) {
+            this.logger.debug(`Writing ${packet.length} byte${packet.length == 1 ? "" : "s"}:`, packet);
+        }
+        await this.writeToStream(packet);
+    }
+    /**
+     * @name readPacket
+     * Generator to read SLIP packets from a serial port.
+     * Yields one full SLIP packet at a time, raises exception on timeout or invalid data.
+     *
+     * Two implementations:
+     * - Burst: CDC devices (Native USB) and CH343 - very fast processing
+     * - Byte-by-byte: CH340, CP2102, and other USB-Serial adapters - stable fast processing
+     */
+    async readPacket(timeout) {
+        let partialPacket = null;
+        let inEscape = false;
+        // CDC devices use burst processing, non-CDC use byte-by-byte
+        if (this._isCDCDevice) {
+            // Burst version: Process all available bytes in one pass for ultra-high-speed transfers
+            // Used for: CDC devices (all platforms) and CH343
+            const startTime = Date.now();
+            while (true) {
+                // Check abandon flag (for reset strategy timeout)
+                if (this._abandonCurrentOperation) {
+                    throw new SlipReadError("Operation abandoned (reset strategy timeout)");
+                }
+                // Check timeout
+                if (Date.now() - startTime > timeout) {
+                    const waitingFor = partialPacket === null ? "header" : "content";
+                    throw new SlipReadError("Timed out waiting for packet " + waitingFor);
+                }
+                // If no data available, wait a bit
+                if (this._inputBufferAvailable === 0) {
+                    await sleep(1);
+                    continue;
+                }
+                // Process all available bytes without going back to outer loop
+                // This is critical for handling high-speed burst transfers
+                while (this._inputBufferAvailable > 0) {
+                    // Periodic timeout check to prevent hang on slow data
+                    if (Date.now() - startTime > timeout) {
+                        const waitingFor = partialPacket === null ? "header" : "content";
+                        throw new SlipReadError("Timed out waiting for packet " + waitingFor);
+                    }
+                    const byte = this._readByte();
+                    if (partialPacket === null) {
+                        // waiting for packet header
+                        if (byte == this.SLIP_END) {
+                            partialPacket = [];
+                        }
+                        else {
+                            if (this.debug) {
+                                this.logger.debug("Read invalid data: " + toHex(byte));
+                                this.logger.debug("Remaining data in serial buffer: " +
+                                    hexFormatter(this._inputBuffer));
+                            }
+                            throw new SlipReadError("Invalid head of packet (" + toHex(byte) + ")");
+                        }
+                    }
+                    else if (inEscape) {
+                        // part-way through escape sequence
+                        inEscape = false;
+                        if (byte == this.SLIP_ESC_END) {
+                            partialPacket.push(this.SLIP_END);
+                        }
+                        else if (byte == this.SLIP_ESC_ESC) {
+                            partialPacket.push(this.SLIP_ESC);
+                        }
+                        else {
+                            if (this.debug) {
+                                this.logger.debug("Read invalid data: " + toHex(byte));
+                                this.logger.debug("Remaining data in serial buffer: " +
+                                    hexFormatter(this._inputBuffer));
+                            }
+                            throw new SlipReadError("Invalid SLIP escape (0xdb, " + toHex(byte) + ")");
+                        }
+                    }
+                    else if (byte == this.SLIP_ESC) {
+                        // start of escape sequence
+                        inEscape = true;
+                    }
+                    else if (byte == this.SLIP_END) {
+                        // end of packet
+                        if (this.debug)
+                            this.logger.debug("Received full packet: " + hexFormatter(partialPacket));
+                        // Compact buffer periodically to prevent memory growth
+                        this._compactInputBuffer();
+                        return partialPacket;
+                    }
+                    else {
+                        // normal byte in packet
+                        partialPacket.push(byte);
+                    }
+                }
+            }
+        }
+        else {
+            // Byte-by-byte version: Stable for non CDC USB-Serial adapters (CH340, CP2102, etc.)
+            let readBytes = [];
+            while (true) {
+                // Check abandon flag (for reset strategy timeout)
+                if (this._abandonCurrentOperation) {
+                    throw new SlipReadError("Operation abandoned (reset strategy timeout)");
+                }
+                const stamp = Date.now();
+                readBytes = [];
+                while (Date.now() - stamp < timeout) {
+                    if (this._inputBufferAvailable > 0) {
+                        readBytes.push(this._readByte());
+                        break;
+                    }
+                    else {
+                        // Reduced sleep time for faster response during high-speed transfers
+                        await sleep(1);
+                    }
+                }
+                if (readBytes.length == 0) {
+                    const waitingFor = partialPacket === null ? "header" : "content";
+                    throw new SlipReadError("Timed out waiting for packet " + waitingFor);
+                }
+                if (this.debug)
+                    this.logger.debug("Read " + readBytes.length + " bytes: " + hexFormatter(readBytes));
+                for (const byte of readBytes) {
+                    if (partialPacket === null) {
+                        // waiting for packet header
+                        if (byte == this.SLIP_END) {
+                            partialPacket = [];
+                        }
+                        else {
+                            if (this.debug) {
+                                this.logger.debug("Read invalid data: " + toHex(byte));
+                                this.logger.debug("Remaining data in serial buffer: " +
+                                    hexFormatter(this._inputBuffer));
+                            }
+                            throw new SlipReadError("Invalid head of packet (" + toHex(byte) + ")");
+                        }
+                    }
+                    else if (inEscape) {
+                        // part-way through escape sequence
+                        inEscape = false;
+                        if (byte == this.SLIP_ESC_END) {
+                            partialPacket.push(this.SLIP_END);
+                        }
+                        else if (byte == this.SLIP_ESC_ESC) {
+                            partialPacket.push(this.SLIP_ESC);
+                        }
+                        else {
+                            if (this.debug) {
+                                this.logger.debug("Read invalid data: " + toHex(byte));
+                                this.logger.debug("Remaining data in serial buffer: " +
+                                    hexFormatter(this._inputBuffer));
+                            }
+                            throw new SlipReadError("Invalid SLIP escape (0xdb, " + toHex(byte) + ")");
+                        }
+                    }
+                    else if (byte == this.SLIP_ESC) {
+                        // start of escape sequence
+                        inEscape = true;
+                    }
+                    else if (byte == this.SLIP_END) {
+                        // end of packet
+                        if (this.debug)
+                            this.logger.debug("Received full packet: " + hexFormatter(partialPacket));
+                        // Compact buffer periodically to prevent memory growth
+                        this._compactInputBuffer();
+                        return partialPacket;
+                    }
+                    else {
+                        // normal byte in packet
+                        partialPacket.push(byte);
+                    }
+                }
+            }
+        }
+    }
+    /**
+     * @name getResponse
+     * Read response data and decodes the slip packet, then parses
+     * out the value/data and returns as a tuple of (value, data) where
+     * each is a list of bytes
+     */
+    async getResponse(opcode, timeout = DEFAULT_TIMEOUT) {
+        for (let i = 0; i < 100; i++) {
+            const packet = await this.readPacket(timeout);
+            if (packet.length < 8) {
+                continue;
+            }
+            const [resp, opRet, , val] = unpack("<BBHI", packet.slice(0, 8));
+            if (resp != 1) {
+                continue;
+            }
+            const data = packet.slice(8);
+            if (opcode == null || opRet == opcode) {
+                return [val, data];
+            }
+            if (data[0] != 0 && data[1] == ROM_INVALID_RECV_MSG) {
+                // Unsupported command can result in more than one error response
+                // Use drainInputBuffer for CP210x compatibility on Windows
+                await this.drainInputBuffer(200);
+                throw new Error(`Invalid (unsupported) command ${toHex(opcode)}`);
+            }
+        }
+        throw new Error("Response doesn't match request");
+    }
+    /**
+     * @name checksum
+     * Calculate checksum of a blob, as it is defined by the ROM
+     */
+    checksum(data, state = ESP_CHECKSUM_MAGIC) {
+        for (const b of data) {
+            state ^= b;
+        }
+        return state;
+    }
+    async setBaudrate(baud) {
+        try {
+            // Send ESP_ROM_BAUD(115200) as the old one if running STUB otherwise 0
+            const buffer = pack("<II", baud, this.IS_STUB ? ESP_ROM_BAUD : 0);
+            await this.checkCommand(ESP_CHANGE_BAUDRATE, buffer);
+        }
+        catch (e) {
+            this.logger.error(`Baudrate change error: ${e}`);
+            throw new Error(`Unable to change the baud rate to ${baud}: No response from set baud rate command.`);
+        }
+        if (this._parent) {
+            await this._parent.reconfigurePort(baud);
+        }
+        else {
+            await this.reconfigurePort(baud);
+        }
+        // Wait for port to be ready after baudrate change
+        await sleep(SYNC_TIMEOUT);
+        // Track current baudrate for reconnect
+        if (this._parent) {
+            this._parent.currentBaudRate = baud;
+        }
+        else {
+            this.currentBaudRate = baud;
+        }
+        // Warn if baudrate exceeds USB-Serial chip capability
+        const maxBaud = this._parent
+            ? this._parent._maxUSBSerialBaudrate
+            : this._maxUSBSerialBaudrate;
+        if (maxBaud && baud > maxBaud) {
+            this.logger.log(`⚠️  WARNING: Baudrate ${baud} exceeds USB-Serial chip limit (${maxBaud})!`);
+            this.logger.log(`⚠️  This may cause data corruption or connection failures!`);
+        }
+        this.logger.log(`Changed baud rate to ${baud}`);
+    }
+    async reconfigurePort(baud) {
+        var _a;
+        // Block new writes during the entire reconfiguration (all paths)
+        this._isReconfiguring = true;
+        try {
+            // Wait for pending writes to complete
+            try {
+                await this._writeChain;
+            }
+            catch (err) {
+                this.logger.debug(`Pending write error during reconfigure: ${err}`);
+            }
+            // WebUSB: Check if we should use setBaudRate() or close/reopen
+            if (this.isWebUSB()) {
+                const portInfo = this.port.getInfo();
+                const isCH343 = portInfo.usbVendorId === 0x1a86 && portInfo.usbProductId === 0x55d3;
+                // CH343 is a CDC device and MUST use close/reopen
+                // Other chips (CH340, CP2102, FTDI) MUST use setBaudRate()
+                if (!isCH343 &&
+                    typeof this.port.setBaudRate === "function") {
+                    //          this.logger.log(
+                    //            `[WebUSB] Changing baudrate to ${baud} using setBaudRate()...`,
+                    //          );
+                    await this.port.setBaudRate(baud);
+                    //          this.logger.log(`[WebUSB] Baudrate changed to ${baud}`);
+                    // Give the chip time to adjust to new baudrate
+                    await sleep(100);
+                    return;
+                }
+                else if (isCH343) {
+                    //          this.logger.log(
+                    //            `[WebUSB] CH343 detected - using close/reopen for baudrate change`,
+                    //          );
+                }
+            }
+            // Web Serial or CH343: Close and reopen port
+            // Release persistent writer before closing
+            if (this._writer) {
+                try {
+                    this._writer.releaseLock();
+                }
+                catch (err) {
+                    this.logger.debug(`Writer release error during reconfigure: ${err}`);
+                }
+                this._writer = undefined;
+            }
+            // SerialPort does not allow to be reconfigured while open so we close and re-open
+            // reader.cancel() causes the Promise returned by the read() operation running on
+            // the readLoop to return immediately with { value: undefined, done: true } and thus
+            // breaking the loop and exiting readLoop();
+            await ((_a = this._reader) === null || _a === void 0 ? void 0 : _a.cancel());
+            await this.port.close();
+            // Reopen Port
+            await this.port.open({ baudRate: baud });
+            // Clear buffer again
+            await this.flushSerialBuffers();
+            // Restart Readloop
+            this.readLoop();
+        }
+        catch (e) {
+            //      this.logger.error(`Reconfigure port error: ${e}`);
+            //      throw new Error(`Unable to change the baud rate to ${baud}: ${e}`);
+        }
+        finally {
+            // Always reset flag, even on error or early return
+            this._isReconfiguring = false;
+        }
+    }
+    /**
+     * @name syncWithTimeout
+     * Sync with timeout that can be abandoned (for reset strategy loop)
+     * This is internally time-bounded and checks the abandon flag
+     */
+    async syncWithTimeout(timeoutMs) {
+        const startTime = Date.now();
+        for (let i = 0; i < 5; i++) {
+            // Check if we've exceeded the timeout
+            if (Date.now() - startTime > timeoutMs) {
+                return false;
+            }
+            // Check abandon flag
+            if (this._abandonCurrentOperation) {
+                return false;
+            }
+            this._clearInputBuffer();
+            try {
+                const response = await this._sync();
+                if (response) {
+                    await sleep(SYNC_TIMEOUT);
+                    return true;
+                }
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            }
+            catch (e) {
+                // Check abandon flag after error
+                if (this._abandonCurrentOperation) {
+                    return false;
+                }
+            }
+            await sleep(SYNC_TIMEOUT);
+        }
+        return false;
+    }
+    /**
+     * @name sync
+     * Put into ROM bootload mode & attempt to synchronize with the
+     * ESP ROM bootloader, we will retry a few times
+     */
+    async sync() {
+        for (let i = 0; i < 5; i++) {
+            this._clearInputBuffer();
+            const response = await this._sync();
+            if (response) {
+                await sleep(SYNC_TIMEOUT);
+                return true;
+            }
+            await sleep(SYNC_TIMEOUT);
+        }
+        throw new Error("Couldn't sync to ESP. Try resetting.");
+    }
+    /**
+     * @name _sync
+     * Perform a soft-sync using AT sync packets, does not perform
+     * any hardware resetting
+     */
+    async _sync() {
+        await this.sendCommand(ESP_SYNC, SYNC_PACKET);
+        for (let i = 0; i < 8; i++) {
+            try {
+                const [, data] = await this.getResponse(ESP_SYNC, SYNC_TIMEOUT);
+                if (data.length > 1 && data[0] == 0 && data[1] == 0) {
+                    return true;
+                }
+            }
+            catch (e) {
+                if (this.debug) {
+                    this.logger.debug(`Sync attempt ${i + 1} failed: ${e}`);
+                }
+            }
+        }
+        return false;
+    }
+    /**
+     * @name getFlashWriteSize
+     * Get the Flash write size based on the chip
+     */
+    getFlashWriteSize() {
+        if (this.IS_STUB) {
+            return STUB_FLASH_WRITE_SIZE;
+        }
+        return FLASH_WRITE_SIZE;
+    }
+    /**
+     * @name flashData
+     * Program a full, uncompressed binary file into SPI Flash at
+     *   a given offset. If an ESP32 and md5 string is passed in, will also
+     *   verify memory. ESP8266 does not have checksum memory verification in
+     *   ROM
+     */
+    async flashData(binaryData, updateProgress, offset = 0, compress = false) {
+        if (binaryData.byteLength >= 8) {
+            // unpack the (potential) image header
+            const header = Array.from(new Uint8Array(binaryData, 0, 4));
+            const headerMagic = header[0];
+            const headerFlashMode = header[2];
+            const headerFlashSizeFreq = header[3];
+            this.logger.log(`Image header, Magic=${toHex(headerMagic)}, FlashMode=${toHex(headerFlashMode)}, FlashSizeFreq=${toHex(headerFlashSizeFreq)}`);
+        }
+        const uncompressedFilesize = binaryData.byteLength;
+        let compressedFilesize = 0;
+        let dataToFlash;
+        let timeout = DEFAULT_TIMEOUT;
+        if (compress) {
+            dataToFlash = deflate_1(new Uint8Array(binaryData), {
+                level: 9,
+            }).buffer;
+            compressedFilesize = dataToFlash.byteLength;
+            this.logger.log(`Writing data with filesize: ${uncompressedFilesize}. Compressed Size: ${compressedFilesize}`);
+            timeout = await this.flashDeflBegin(uncompressedFilesize, compressedFilesize, offset);
+        }
+        else {
+            this.logger.log(`Writing data with filesize: ${uncompressedFilesize}`);
+            dataToFlash = binaryData;
+            await this.flashBegin(uncompressedFilesize, offset);
+        }
+        let block = [];
+        let seq = 0;
+        let written = 0;
+        let position = 0;
+        const stamp = Date.now();
+        const flashWriteSize = this.getFlashWriteSize();
+        const filesize = compress ? compressedFilesize : uncompressedFilesize;
+        while (filesize - position > 0) {
+            if (this.debug) {
+                this.logger.log(`Writing at ${toHex(offset + seq * flashWriteSize, 8)} `);
+            }
+            if (filesize - position >= flashWriteSize) {
+                block = Array.from(new Uint8Array(dataToFlash, position, flashWriteSize));
+            }
+            else {
+                // Pad the last block only if we are sending uncompressed data.
+                block = Array.from(new Uint8Array(dataToFlash, position, filesize - position));
+                if (!compress) {
+                    block = block.concat(new Array(flashWriteSize - block.length).fill(0xff));
+                }
+            }
+            if (compress) {
+                await this.flashDeflBlock(block, seq, timeout);
+            }
+            else {
+                await this.flashBlock(block, seq);
+            }
+            seq += 1;
+            // If using compression we update the progress with the proportional size of the block taking into account the compression ratio.
+            // This way we report progress on the uncompressed size
+            written += compress
+                ? Math.round((block.length * uncompressedFilesize) / compressedFilesize)
+                : block.length;
+            position += flashWriteSize;
+            updateProgress(Math.min(written, uncompressedFilesize), uncompressedFilesize);
+        }
+        this.logger.log("Took " + (Date.now() - stamp) + "ms to write " + filesize + " bytes");
+        // Only send flashF finish if running the stub because ir causes the ROM to exit and run user code
+        if (this.IS_STUB) {
+            await this.flashBegin(0, 0);
+            if (compress) {
+                await this.flashDeflFinish();
+            }
+            else {
+                await this.flashFinish();
+            }
+        }
+    }
+    /**
+     * @name flashBlock
+     * Send one block of data to program into SPI Flash memory
+     */
+    async flashBlock(data, seq, timeout = DEFAULT_TIMEOUT) {
+        await this.checkCommand(ESP_FLASH_DATA, pack("<IIII", data.length, seq, 0, 0).concat(data), this.checksum(data), timeout);
+    }
+    async flashDeflBlock(data, seq, timeout = DEFAULT_TIMEOUT) {
+        await this.checkCommand(ESP_FLASH_DEFL_DATA, pack("<IIII", data.length, seq, 0, 0).concat(data), this.checksum(data), timeout);
+    }
+    /**
+     * @name flashBegin
+     * Prepare for flashing by attaching SPI chip and erasing the
+     *   number of blocks requred.
+     */
+    async flashBegin(size = 0, offset = 0, encrypted = false) {
+        // Flush serial buffers before flash write operation
+        await this.flushSerialBuffers();
+        let eraseSize;
+        const flashWriteSize = this.getFlashWriteSize();
+        if (!this.IS_STUB &&
+            [
+                CHIP_FAMILY_ESP32,
+                CHIP_FAMILY_ESP32S2,
+                CHIP_FAMILY_ESP32S3,
+                CHIP_FAMILY_ESP32C2,
+                CHIP_FAMILY_ESP32C3,
+                CHIP_FAMILY_ESP32C5,
+                CHIP_FAMILY_ESP32C6,
+                CHIP_FAMILY_ESP32C61,
+                CHIP_FAMILY_ESP32H2,
+                CHIP_FAMILY_ESP32H4,
+                CHIP_FAMILY_ESP32H21,
+                CHIP_FAMILY_ESP32P4,
+                CHIP_FAMILY_ESP32S31,
+            ].includes(this.chipFamily)) {
+            await this.checkCommand(ESP_SPI_ATTACH, new Array(8).fill(0));
+        }
+        const numBlocks = Math.floor((size + flashWriteSize - 1) / flashWriteSize);
+        if (this.chipFamily == CHIP_FAMILY_ESP8266 && !this.IS_STUB) {
+            eraseSize = this.getEraseSize(offset, size);
+        }
+        else {
+            eraseSize = size;
+        }
+        const timeout = this.IS_STUB
+            ? DEFAULT_TIMEOUT
+            : timeoutPerMb(ERASE_REGION_TIMEOUT_PER_MB, size);
+        const stamp = Date.now();
+        let buffer = pack("<IIII", eraseSize, numBlocks, flashWriteSize, offset);
+        if (this.chipFamily == CHIP_FAMILY_ESP32 ||
+            this.chipFamily == CHIP_FAMILY_ESP32S2 ||
+            this.chipFamily == CHIP_FAMILY_ESP32S3 ||
+            this.chipFamily == CHIP_FAMILY_ESP32C2 ||
+            this.chipFamily == CHIP_FAMILY_ESP32C3 ||
+            this.chipFamily == CHIP_FAMILY_ESP32C5 ||
+            this.chipFamily == CHIP_FAMILY_ESP32C6 ||
+            this.chipFamily == CHIP_FAMILY_ESP32C61 ||
+            this.chipFamily == CHIP_FAMILY_ESP32H2 ||
+            this.chipFamily == CHIP_FAMILY_ESP32H4 ||
+            this.chipFamily == CHIP_FAMILY_ESP32H21 ||
+            this.chipFamily == CHIP_FAMILY_ESP32P4 ||
+            this.chipFamily == CHIP_FAMILY_ESP32S31) {
+            buffer = buffer.concat(pack("<I", encrypted ? 1 : 0));
+        }
+        this.logger.log("Erase size " +
+            eraseSize +
+            ", blocks " +
+            numBlocks +
+            ", block size " +
+            toHex(flashWriteSize, 4) +
+            ", offset " +
+            toHex(offset, 4) +
+            ", encrypted " +
+            (encrypted ? "yes" : "no"));
+        await this.checkCommand(ESP_FLASH_BEGIN, buffer, 0, timeout);
+        if (size != 0 && !this.IS_STUB) {
+            this.logger.log("Took " + (Date.now() - stamp) + "ms to erase " + numBlocks + " bytes");
+        }
+        return numBlocks;
+    }
+    /**
+     * @name flashDeflBegin
+     *
+     */
+    async flashDeflBegin(size = 0, compressedSize = 0, offset = 0) {
+        // Start downloading compressed data to Flash (performs an erase)
+        // Returns number of blocks to write.
+        const flashWriteSize = this.getFlashWriteSize();
+        const numBlocks = Math.floor((compressedSize + flashWriteSize - 1) / flashWriteSize);
+        const eraseBlocks = Math.floor((size + flashWriteSize - 1) / flashWriteSize);
+        let writeSize = 0;
+        let timeout = 0;
+        if (this.IS_STUB) {
+            writeSize = size; // stub expects number of bytes here, manages erasing internally
+            timeout = timeoutPerMb(ERASE_REGION_TIMEOUT_PER_MB, writeSize); // ROM performs the erase up front
+        }
+        else {
+            writeSize = eraseBlocks * flashWriteSize; // ROM expects rounded up to erase block size
+            timeout = DEFAULT_TIMEOUT;
+        }
+        const buffer = pack("<IIII", writeSize, numBlocks, flashWriteSize, offset);
+        await this.checkCommand(ESP_FLASH_DEFL_BEGIN, buffer, 0, timeout);
+        return timeout;
+    }
+    async flashFinish() {
+        const buffer = pack("<I", 1);
+        await this.checkCommand(ESP_FLASH_END, buffer);
+    }
+    async flashDeflFinish() {
+        const buffer = pack("<I", 1);
+        await this.checkCommand(ESP_FLASH_DEFL_END, buffer);
+    }
+    getBootloaderOffset() {
+        const bootFlashOffs = getSpiFlashAddresses(this.getChipFamily());
+        const BootldrFlashOffs = bootFlashOffs.flashOffs;
+        return BootldrFlashOffs;
+    }
+    async flashId() {
+        const SPIFLASH_RDID = 0x9f;
+        const result = await this.runSpiFlashCommand(SPIFLASH_RDID, [], 24);
+        return result;
+    }
+    getChipFamily() {
+        return this._parent ? this._parent.chipFamily : this.chipFamily;
+    }
+    async writeRegister(address, value, mask = 0xffffffff, delayUs = 0, delayAfterUs = 0) {
+        let buffer = pack("<IIII", address, value, mask, delayUs);
+        if (delayAfterUs > 0) {
+            // add a dummy write to a date register as an excuse to have a delay
+            buffer = buffer.concat(pack("<IIII", getSpiFlashAddresses(this.getChipFamily()).uartDateReg, 0, 0, delayAfterUs));
+        }
+        await this.checkCommand(ESP_WRITE_REG, buffer);
+    }
+    async setDataLengths(spiAddresses, mosiBits, misoBits) {
+        if (spiAddresses.mosiDlenOffs != -1) {
+            // Actual MCUs have a more sophisticated way to set up "user" commands
+            const SPI_MOSI_DLEN_REG = spiAddresses.regBase + spiAddresses.mosiDlenOffs;
+            const SPI_MISO_DLEN_REG = spiAddresses.regBase + spiAddresses.misoDlenOffs;
+            if (mosiBits > 0) {
+                await this.writeRegister(SPI_MOSI_DLEN_REG, mosiBits - 1);
+            }
+            if (misoBits > 0) {
+                await this.writeRegister(SPI_MISO_DLEN_REG, misoBits - 1);
+            }
+        }
+        else {
+            const SPI_DATA_LEN_REG = spiAddresses.regBase + spiAddresses.usr1Offs;
+            const SPI_MOSI_BITLEN_S = 17;
+            const SPI_MISO_BITLEN_S = 8;
+            const mosiMask = mosiBits == 0 ? 0 : mosiBits - 1;
+            const misoMask = misoBits == 0 ? 0 : misoBits - 1;
+            const value = (misoMask << SPI_MISO_BITLEN_S) | (mosiMask << SPI_MOSI_BITLEN_S);
+            await this.writeRegister(SPI_DATA_LEN_REG, value);
+        }
+    }
+    async waitDone(spiCmdReg, spiCmdUsr) {
+        for (let i = 0; i < 10; i++) {
+            const cmdValue = await this.readRegister(spiCmdReg);
+            if ((cmdValue & spiCmdUsr) == 0) {
+                return;
+            }
+        }
+        throw Error("SPI command did not complete in time");
+    }
+    async runSpiFlashCommand(spiflashCommand, data, readBits = 0) {
+        // Run an arbitrary SPI flash command.
+        // This function uses the "USR_COMMAND" functionality in the ESP
+        // SPI hardware, rather than the precanned commands supported by
+        // hardware. So the value of spiflash_command is an actual command
+        // byte, sent over the wire.
+        // After writing command byte, writes 'data' to MOSI and then
+        // reads back 'read_bits' of reply on MISO. Result is a number.
+        // SPI_USR register flags
+        const SPI_USR_COMMAND = 1 << 31;
+        const SPI_USR_MISO = 1 << 28;
+        const SPI_USR_MOSI = 1 << 27;
+        // SPI registers, base address differs
+        const spiAddresses = getSpiFlashAddresses(this.getChipFamily());
+        const base = spiAddresses.regBase;
+        const SPI_CMD_REG = base;
+        const SPI_USR_REG = base + spiAddresses.usrOffs;
+        const SPI_USR2_REG = base + spiAddresses.usr2Offs;
+        const SPI_W0_REG = base + spiAddresses.w0Offs;
+        // SPI peripheral "command" bitmasks for SPI_CMD_REG
+        const SPI_CMD_USR = 1 << 18;
+        // shift values
+        const SPI_USR2_COMMAND_LEN_SHIFT = 28;
+        if (readBits > 32) {
+            throw new Error("Reading more than 32 bits back from a SPI flash operation is unsupported");
+        }
+        if (data.length > 64) {
+            throw new Error("Writing more than 64 bytes of data with one SPI command is unsupported");
+        }
+        const dataBits = data.length * 8;
+        const oldSpiUsr = await this.readRegister(SPI_USR_REG);
+        const oldSpiUsr2 = await this.readRegister(SPI_USR2_REG);
+        let flags = SPI_USR_COMMAND;
+        if (readBits > 0) {
+            flags |= SPI_USR_MISO;
+        }
+        if (dataBits > 0) {
+            flags |= SPI_USR_MOSI;
+        }
+        await this.setDataLengths(spiAddresses, dataBits, readBits);
+        await this.writeRegister(SPI_USR_REG, flags);
+        await this.writeRegister(SPI_USR2_REG, (7 << SPI_USR2_COMMAND_LEN_SHIFT) | spiflashCommand);
+        if (dataBits == 0) {
+            await this.writeRegister(SPI_W0_REG, 0); // clear data register before we read it
+        }
+        else {
+            const padLen = (4 - (data.length % 4)) % 4;
+            data = data.concat(new Array(padLen).fill(0x00)); // pad to 32-bit multiple
+            const words = unpack("I".repeat(Math.floor(data.length / 4)), data);
+            let nextReg = SPI_W0_REG;
+            this.logger.debug(`Words Length: ${words.length}`);
+            for (const word of words) {
+                this.logger.debug(`Writing word ${toHex(word)} to register offset ${toHex(nextReg)}`);
+                await this.writeRegister(nextReg, word);
+                nextReg += 4;
+            }
+        }
+        await this.writeRegister(SPI_CMD_REG, SPI_CMD_USR);
+        await this.waitDone(SPI_CMD_REG, SPI_CMD_USR);
+        const status = await this.readRegister(SPI_W0_REG);
+        // restore some SPI controller registers
+        await this.writeRegister(SPI_USR_REG, oldSpiUsr);
+        await this.writeRegister(SPI_USR2_REG, oldSpiUsr2);
+        return status;
+    }
+    async detectFlashSize() {
+        this.logger.log("Detecting Flash Size");
+        const flashId = await this.flashId();
+        const manufacturer = flashId & 0xff;
+        const flashIdLowbyte = (flashId >> 16) & 0xff;
+        this.logger.log(`FlashId: ${toHex(flashId)}`);
+        this.logger.log(`Flash Manufacturer: ${manufacturer.toString(16)}`);
+        this.logger.log(`Flash Device: ${((flashId >> 8) & 0xff).toString(16)}${flashIdLowbyte.toString(16)}`);
+        this.flashSize = DETECTED_FLASH_SIZES[flashIdLowbyte];
+        this.logger.log(`Auto-detected Flash size: ${this.flashSize}`);
+    }
+    /**
+     * @name getEraseSize
+     * Calculate an erase size given a specific size in bytes.
+     *   Provides a workaround for the bootloader erase bug on ESP8266.
+     */
+    getEraseSize(offset, size) {
+        const sectorsPerBlock = 16;
+        const sectorSize = FLASH_SECTOR_SIZE;
+        const numSectors = Math.floor((size + sectorSize - 1) / sectorSize);
+        const startSector = Math.floor(offset / sectorSize);
+        let headSectors = sectorsPerBlock - (startSector % sectorsPerBlock);
+        if (numSectors < headSectors) {
+            headSectors = numSectors;
+        }
+        if (numSectors < 2 * headSectors) {
+            return Math.floor(((numSectors + 1) / 2) * sectorSize);
+        }
+        return (numSectors - headSectors) * sectorSize;
+    }
+    /**
+     * @name memBegin (592)
+     * Start downloading an application image to RAM
+     */
+    async memBegin(size, blocks, blocksize, offset) {
+        return await this.checkCommand(ESP_MEM_BEGIN, pack("<IIII", size, blocks, blocksize, offset));
+    }
+    /**
+     * @name memBlock (609)
+     * Send a block of an image to RAM
+     */
+    async memBlock(data, seq) {
+        return await this.checkCommand(ESP_MEM_DATA, pack("<IIII", data.length, seq, 0, 0).concat(data), this.checksum(data));
+    }
+    /**
+     * @name memFinish (615)
+     * Leave download mode and run the application
+     *
+     * Sending ESP_MEM_END usually sends a correct response back, however sometimes
+     * (with ROM loader) the executed code may reset the UART or change the baud rate
+     * before the transmit FIFO is empty. So in these cases we set a short timeout and
+     * ignore errors.
+     */
+    async memFinish(entrypoint = 0) {
+        const timeout = this.IS_STUB ? DEFAULT_TIMEOUT : MEM_END_ROM_TIMEOUT;
+        const data = pack("<II", entrypoint == 0 ? 1 : 0, entrypoint);
+        return await this.checkCommand(ESP_MEM_END, data, 0, timeout);
+    }
+    async runStub(skipFlashDetection = false) {
+        const stub = await getStubCode(this.chipFamily, this.chipRevision);
+        // No stub available for this chip, return ROM loader
+        if (stub === null) {
+            this.logger.log(`Stub flasher is not yet supported on ${this.chipName}, using ROM loader`);
+            return this;
+        }
+        // We're transferring over USB, right?
+        const ramBlock = USB_RAM_BLOCK;
+        // Upload
+        this.logger.log("Uploading stub...");
+        for (const field of ["text", "data"]) {
+            const fieldData = stub[field];
+            const offset = stub[`${field}_start`];
+            const length = fieldData.length;
+            const blocks = Math.floor((length + ramBlock - 1) / ramBlock);
+            await this.memBegin(length, blocks, ramBlock, offset);
+            for (const seq of Array(blocks).keys()) {
+                const fromOffs = seq * ramBlock;
+                let toOffs = fromOffs + ramBlock;
+                if (toOffs > length) {
+                    toOffs = length;
+                }
+                await this.memBlock(fieldData.slice(fromOffs, toOffs), seq);
+            }
+        }
+        await this.memFinish(stub.entry);
+        const p = await this.readPacket(500);
+        const pChar = String.fromCharCode(...p);
+        if (pChar != "OHAI") {
+            throw new Error("Failed to start stub. Unexpected response: " + pChar);
+        }
+        this.logger.log("Stub is now running...");
+        const espStubLoader = new EspStubLoader(this.port, this.logger, this);
+        // Try to autodetect the flash size.
+        if (!skipFlashDetection) {
+            await espStubLoader.detectFlashSize();
+        }
+        return espStubLoader;
+    }
+    get _writer() {
+        return this._parent ? this._parent._writer : this.__writer;
+    }
+    set _writer(value) {
+        if (this._parent) {
+            this._parent._writer = value;
+        }
+        else {
+            this.__writer = value;
+        }
+    }
+    get _writeChain() {
+        return this._parent ? this._parent._writeChain : this.__writeChain;
+    }
+    set _writeChain(value) {
+        if (this._parent) {
+            this._parent._writeChain = value;
+        }
+        else {
+            this.__writeChain = value;
+        }
+    }
+    async writeToStream(data) {
+        if (!this.port.writable) {
+            this.logger.debug("Port writable stream not available, skipping write");
+            return;
+        }
+        if (this._isReconfiguring) {
+            throw new Error("Cannot write during port reconfiguration");
+        }
+        // Queue writes to prevent lock contention (critical for CP2102 on Windows)
+        this._writeChain = this._writeChain
+            .then(async () => {
+            // Check if port is still writable before attempting write
+            if (!this.port.writable) {
+                throw new Error("Port became unavailable during write");
+            }
+            // Get or create persistent writer
+            if (!this._writer) {
+                try {
+                    this._writer = this.port.writable.getWriter();
+                }
+                catch (err) {
+                    this.logger.error(`Failed to get writer: ${err}`);
+                    throw err;
+                }
+            }
+            // Perform the write
+            await this._writer.write(new Uint8Array(data));
+        }, async () => {
+            // Previous write failed, but still attempt this write
+            this.logger.debug("Previous write failed, attempting recovery for current write");
+            if (!this.port.writable) {
+                throw new Error("Port became unavailable during write");
+            }
+            // Writer was likely cleaned up by previous error, create new one
+            if (!this._writer) {
+                try {
+                    this._writer = this.port.writable.getWriter();
+                }
+                catch (err) {
+                    this.logger.debug(`Failed to get writer in recovery: ${err}`);
+                    throw new Error("Cannot acquire writer lock");
+                }
+            }
+            await this._writer.write(new Uint8Array(data));
+        })
+            .catch((err) => {
+            this.logger.error(`Write error: ${err}`);
+            // Ensure writer is cleaned up on any error
+            if (this._writer) {
+                try {
+                    this._writer.releaseLock();
+                }
+                catch {
+                    // Ignore release errors
+                }
+                this._writer = undefined;
+            }
+            // Re-throw to propagate error
+            throw err;
+        });
+        // Always await the write chain to ensure errors are caught
+        await this._writeChain;
+    }
+    async disconnect() {
+        if (this._parent) {
+            await this._parent.disconnect();
+            return;
+        }
+        if (!this.port.writable) {
+            //      this.logger.debug("Port already closed, skipping disconnect");
+            return;
+        }
+        // Wait for pending writes to complete
+        try {
+            await this._writeChain;
+        }
+        catch (err) {
+            //      this.logger.debug(`Pending write error during disconnect: ${err}`);
+        }
+        // Release persistent writer before closing
+        if (this._writer) {
+            try {
+                await this._writer.close();
+                this._writer.releaseLock();
+            }
+            catch (err) {
+                //        this.logger.debug(`Writer close/release error: ${err}`);
+            }
+            this._writer = undefined;
+        }
+        else {
+            // No persistent writer exists, close stream directly
+            // This path is taken when no writes have been queued
+            try {
+                const writer = this.port.writable.getWriter();
+                await writer.close();
+                writer.releaseLock();
+            }
+            catch (err) {
+                //        this.logger.debug(`Direct writer close error: ${err}`);
+            }
+        }
+        await new Promise((resolve) => {
+            if (!this._reader) {
+                resolve(undefined);
+                return;
+            }
+            // Set a timeout to prevent hanging (important for node-usb)
+            const timeout = setTimeout(() => {
+                this.logger.debug("Disconnect timeout - forcing resolution");
+                resolve(undefined);
+            }, 1000);
+            this.addEventListener("disconnect", () => {
+                clearTimeout(timeout);
+                resolve(undefined);
+            }, { once: true });
+            // Only cancel if reader is still active
+            try {
+                this._reader.cancel();
+            }
+            catch (err) {
+                // Reader already released, resolve immediately
+                clearTimeout(timeout);
+                resolve(undefined);
+            }
+        });
+        this.connected = false;
+        // Close the port (important for node-usb adapter)
+        try {
+            await this.port.close();
+            this.logger.debug("Port closed successfully");
+        }
+        catch (err) {
+            this.logger.debug(`Port close error: ${err}`);
+        }
+    }
+    /**
+     * @name releaseReaderWriter
+     * Release reader and writer locks without closing the port
+     * Used when switching to console mode
+     */
+    async releaseReaderWriter() {
+        if (this._parent) {
+            await this._parent.releaseReaderWriter();
+            return;
+        }
+        // Wait for pending writes to complete
+        try {
+            await this._writeChain;
+        }
+        catch (err) {
+            //      this.logger.debug(`Pending write error during release: ${err}`);
+        }
+        // Release writer
+        if (this._writer) {
+            try {
+                this._writer.releaseLock();
+                this.logger.debug("Writer released");
+            }
+            catch (err) {
+                this.logger.debug(`Writer release error: ${err}`);
+            }
+            this._writer = undefined;
+        }
+        // Cancel and release reader
+        if (this._reader) {
+            const reader = this._reader;
+            try {
+                // Suppress disconnect event during console mode switching
+                this._suppressDisconnect = true;
+                await reader.cancel();
+                this.logger.debug("Reader cancelled");
+            }
+            catch (err) {
+                this.logger.debug(`Reader cancel error: ${err}`);
+            }
+            finally {
+                try {
+                    reader.releaseLock();
+                }
+                catch (err) {
+                    this.logger.debug(`Reader release error: ${err}`);
+                }
+            }
+            if (this._reader === reader) {
+                this._reader = undefined;
+            }
+        }
+    }
+    /**
+     * @name resetToFirmware
+     * Public method to reset device from bootloader to firmware for console mode
+     * Automatically detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
+     * @returns true if reset was performed, false if not needed
+     */
+    async resetToFirmware() {
+        return await this._resetToFirmwareIfNeeded();
+    }
+    /**
+     * @name detectUsbConnectionType
+     * Detect if device is using USB-JTAG/Serial or USB-OTG (not external serial chip)
+     * Uses USB PID (Product ID) for reliable detection - does NOT require chipFamily
+     * @returns true if USB-JTAG or USB-OTG, false if external serial chip
+     */
+    async detectUsbConnectionType() {
+        // Use PID-based detection
+        const portInfo = this.port.getInfo();
+        const pid = portInfo.usbProductId;
+        const vid = portInfo.usbVendorId;
+        // Check if this is an Espressif device
+        const isEspressif = vid === 0x303a;
+        if (!isEspressif) {
+            this.logger.debug("Not Espressif VID - external serial chip");
+            return false;
+        }
+        // ESP32-S2/S3/C3/C5/C6/C61/H2/P4 USB-JTAG/OTG PIDs
+        // According to official Espressif documentation:
+        // https://docs.espressif.com/projects/esp-iot-solution/en/latest/usb/usb_overview/usb_device_const_COM.html
+        // 0x0002 = ESP32-S2 USB-OTG, 0x0012 = ESP32-P4 USB-Serial-JTAG
+        // 0x1001 = ESP32-S3, C3, C5, C6, C61, H2 USB-Serial-JTAG
+        const usbJtagPids = [0x0002, 0x0012, 0x1001];
+        const isUsbJtag = usbJtagPids.includes(pid || 0);
+        this.logger.debug(`USB-JTAG/OTG detection: ${isUsbJtag ? "YES" : "NO"} (PID=0x${pid === null || pid === void 0 ? void 0 : pid.toString(16)})`);
+        return isUsbJtag;
+    }
+    /**
+     * @name enterConsoleMode
+     * Prepare device for console mode by resetting to firmware
+     * Handles both USB-JTAG/OTG devices (closes port) and external serial chips (keeps port open)
+     * @returns true if port was closed (USB-JTAG), false if port stays open (serial chip)
+     */
+    async enterConsoleMode() {
+        // Check if port is open - if not, we need a new port selection
+        if (!this.port.writable || !this.port.readable) {
+            this.logger.debug("Port is not open - port selection needed");
+            // Return true to signal that port selection is needed
+            // The caller should handle port selection and try again
+            return true;
+        }
+        // Re-detect USB connection type to ensure we have a definitive value
+        let isUsbJtag;
+        try {
+            isUsbJtag = await this.detectUsbConnectionType();
+            this.logger.debug(`USB connection type detected: ${isUsbJtag ? "USB-JTAG/OTG" : "External Serial Chip"}`);
+            // CRITICAL: Set the cached value so _resetToFirmwareIfNeeded() can use it
+            this._isUsbJtagOrOtg = isUsbJtag;
+        }
+        catch (err) {
+            // If detection fails, fall back to cached value or fail-fast
+            if (this.isUsbJtagOrOtg === undefined) {
+                throw new Error(`Cannot enter console mode: USB connection type unknown and detection failed: ${err}`);
+            }
+            // Set console mode flag
+            this._consoleMode = false;
+            this.logger.debug(`USB detection failed, using cached value: ${this.isUsbJtagOrOtg}`);
+            isUsbJtag = this.isUsbJtagOrOtg;
+        }
+        // Release reader/writer so console can create new ones
+        // This is needed for Desktop (Web Serial) to unlock streams
+        if (isUsbJtag) {
+            // USB-JTAG/OTG devices: Use watchdog reset which closes port
+            const wasReset = await this._resetToFirmwareIfNeeded();
+            return wasReset; // true = port closed, caller must reopen
+        }
+        else {
+            // External serial chip devices: Release locks and do simple reset
+            try {
+                await this.releaseReaderWriter();
+                await this.sleep(100);
+            }
+            catch (err) {
+                this.logger.debug(`Failed to release locks: ${err}`);
+            }
+            // Hardware reset to firmware mode (IO0=HIGH)
+            try {
+                await this.hardReset(false);
+                this.logger.log("Device reset to firmware mode");
+            }
+            catch (err) {
+                this.logger.debug(`Could not reset device: ${err}`);
+            }
+            // For WebUSB (Android), recreate streams after hardware reset
+            if (this.isWebUSB()) {
+                try {
+                    // Use the public recreateStreams() method to safely recreate streams
+                    // without closing the port (important after hardware reset)
+                    await this.port.recreateStreams();
+                    this.logger.debug("WebUSB streams recreated for console mode");
+                }
+                catch (err) {
+                    // Set console mode flag
+                    this._consoleMode = false;
+                    this.logger.debug(`Failed to recreate WebUSB streams: ${err}`);
+                }
+            }
+            // Set console mode flag
+            this._consoleMode = true;
+            return false; // Port stays open
+        }
+    }
+    /**
+     * @name _resetToFirmwareIfNeeded
+     * Reset device from bootloader to firmware when switching to console mode
+     * Detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
+     * @returns true if reconnect was performed, false otherwise
+     */
+    /**
+     * @name _clearForceDownloadBootIfNeeded
+     * Read and clear the force download boot flag if it is set
+     * This should ONLY be called when on ROM (not stub) and before WDT reset
+     * Clearing it on every connect causes issues with flash operations
+     * Returns true if the flag was cleared, false if it was already clear
+     */
+    async _clearForceDownloadBootIfNeeded() {
+        try {
+            let regAddr;
+            let mask;
+            let chipName;
+            // Get register address and mask for this chip
+            if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+                regAddr = ESP32S2_RTC_CNTL_OPTION1_REG;
+                mask = ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+                chipName = "ESP32-S2";
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+                regAddr = ESP32S3_RTC_CNTL_OPTION1_REG;
+                mask = ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+                chipName = "ESP32-S3";
+            }
+            else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+                regAddr = ESP32P4_RTC_CNTL_OPTION1_REG;
+                mask = ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+                chipName = "ESP32-P4";
+            }
+            else {
+                // Not a chip that needs this
+                return false;
+            }
+            // Read current register value
+            const currentValue = await this.readRegister(regAddr);
+            this.logger.debug(`${chipName} force download boot register: 0x${currentValue.toString(16)} (mask: 0x${mask.toString(16)})`);
+            // Check if the flag is set
+            const isFlagSet = (currentValue & mask) !== 0;
+            if (isFlagSet) {
+                this.logger.debug(`${chipName} force download boot flag is SET - clearing it`);
+                // Clear the flag by writing 0 to the masked bits
+                await this.writeRegister(regAddr, 0, mask, 0);
+                this.logger.debug(`${chipName} force download boot flag cleared`);
+                return true;
+            }
+            else {
+                this.logger.debug(`${chipName} force download boot flag is already CLEAR - no action needed`);
+                return false;
+            }
+        }
+        catch (err) {
+            this.logger.debug(`Error checking/clearing force download flag: ${err}`);
+            return false;
+        }
+    }
+    async _resetToFirmwareIfNeeded() {
+        try {
+            // Check if port is open - if not, assume device is already in firmware mode
+            if (!this.port.writable || !this.port.readable) {
+                this.logger.debug("Port is not open - assuming device is already in firmware mode");
+                return false;
+            }
+            const isUsingUsbOtg = await this.detectUsbConnectionType();
+            if (isUsingUsbOtg) {
+                // For USB-OTG devices, we need to check if force download flag is set
+                // Only if it's set, we need WDT reset (which causes port change)
+                // If it's clear, we can use normal reset (no port change)
+                if (this.IS_STUB) {
+                    this.logger.debug("On stub - need to get back to ROM to check flag");
+                    // If we're running at higher baudrate, we need to change back to ROM baudrate
+                    if (this.currentBaudRate !== ESP_ROM_BAUD) {
+                        this.logger.debug(`Changing baudrate from ${this.currentBaudRate} to ${ESP_ROM_BAUD} for ROM`);
+                        try {
+                            await this.reconfigurePort(ESP_ROM_BAUD);
+                            this.currentBaudRate = ESP_ROM_BAUD;
+                        }
+                        catch (err) {
+                            this.logger.debug(`Baudrate change failed: ${err}`);
+                            // Continue anyway
+                        }
+                    }
+                    this.logger.debug("Resetting to bootloader (ROM)...");
+                    // Reset to bootloader - this will clear the stub from RAM
+                    try {
+                        await this.hardReset(true);
+                        // Wait for reset to complete
+                        await sleep(200);
+                        // Sync with ROM
+                        await this.sync();
+                        this.logger.debug("Now on ROM after reset");
+                        // Mark that we're no longer on stub
+                        this.IS_STUB = false;
+                    }
+                    catch (resetErr) {
+                        this.logger.debug(`Reset to ROM failed: ${resetErr}`);
+                        // If reset fails, we might already be in firmware mode
+                        // In this case, we don't need to do anything - just use normal reset
+                        this.logger.debug("Assuming device is already in firmware mode");
+                        // Release reader/writer before returning
+                        await this.releaseReaderWriter();
+                        return false; // No port change needed
+                    }
+                }
+                else {
+                    this.logger.debug("Already on ROM - checking force download flag");
+                }
+                // Now check if force download flag is set and clear it if needed
+                const flagWasCleared = await this._clearForceDownloadBootIfNeeded();
+                if (flagWasCleared) {
+                    this.logger.debug("Force download flag was cleared - device will boot to firmware after reset");
+                }
+                else {
+                    this.logger.debug("Force download flag already clear - device will boot to firmware after reset");
+                }
+                // Perform WDT reset BEFORE releasing reader/writer (needs communication)
+                // After WDT reset, the device will reboot into firmware mode
+                await this.hardReset(false);
+                // For USB-OTG devices (ESP32-S2, ESP32-P4), the port will change after WDT reset
+                const portWillChange = (this.chipFamily === CHIP_FAMILY_ESP32S2 && isUsingUsbOtg) ||
+                    (this.chipFamily === CHIP_FAMILY_ESP32P4 && isUsingUsbOtg);
+                if (portWillChange) {
+                    // Port will change - release reader/writer and let the port become invalid
+                    await this.releaseReaderWriter();
+                    this.logger.log(`${this.chipName} USB-OTG: Port will change after WDT reset`);
+                    this.logger.log("Please select the new port for console mode");
+                    // Dispatch event to signal port change
+                    this.dispatchEvent(new CustomEvent("usb-otg-port-change", {
+                        detail: {
+                            chipName: this.chipName,
+                            message: `${this.chipName} USB port changed after reset. Please select the new port.`,
+                            reason: "wdt-reset-to-firmware",
+                        },
+                    }));
+                    // Return true to indicate port selection is needed
+                    return true;
+                }
+                else {
+                    // Port stays the same - release reader/writer so console can use the stream
+                    await this.releaseReaderWriter();
+                    return false;
+                }
+            }
+        }
+        catch (err) {
+            this.logger.debug(`Could not reset device to firmware mode: ${err}`);
+            // Continue anyway - console mode might still work
+        }
+        return false;
+    }
+    /**
+     * @name reconnectAndResume
+     * Reconnect the serial port to flush browser buffers and reload stub
+     */
+    async reconnect() {
+        if (this._parent) {
+            await this._parent.reconnect();
+            return;
+        }
+        try {
+            this.logger.log("Reconnecting serial port...");
+            const savedBaudRate = this.currentBaudRate;
+            this.connected = false;
+            this.__inputBuffer = [];
+            this.__inputBufferReadIndex = 0;
+            // Wait for pending writes to complete
+            try {
+                await this._writeChain;
+            }
+            catch (err) {
+                this.logger.debug(`Pending write error during reconnect: ${err}`);
+            }
+            // Block new writes during port close/open
+            this._isReconfiguring = true;
+            // Release persistent writer
+            if (this._writer) {
+                try {
+                    this._writer.releaseLock();
+                }
+                catch (err) {
+                    this.logger.debug(`Writer release error during reconnect: ${err}`);
+                }
+                this._writer = undefined;
+            }
+            // Cancel reader
+            if (this._reader) {
+                try {
+                    await this._reader.cancel();
+                }
+                catch (err) {
+                    this.logger.debug(`Reader cancel error: ${err}`);
+                }
+                this._reader = undefined;
+            }
+            // Close port
+            try {
+                await this.port.close();
+                this.logger.debug("Port closed");
+            }
+            catch (err) {
+                this.logger.debug(`Port close error: ${err}`);
+            }
+            // Open the port
+            this.logger.debug("Opening port...");
+            try {
+                await this.port.open({ baudRate: ESP_ROM_BAUD });
+                this.connected = true;
+                this.currentBaudRate = ESP_ROM_BAUD;
+            }
+            catch (err) {
+                throw new Error(`Failed to open port: ${err}`);
+            }
+            // Verify port streams are available
+            if (!this.port.readable || !this.port.writable) {
+                throw new Error(`Port streams not available after open (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`);
+            }
+            // Port is now open and ready - allow writes for initialization
+            this._isReconfiguring = false;
+            // Save chip info and flash size (no need to detect again)
+            const savedChipFamily = this.chipFamily;
+            const savedChipName = this.chipName;
+            const savedChipRevision = this.chipRevision;
+            const savedChipVariant = this.chipVariant;
+            const savedFlashSize = this.flashSize;
+            // Reinitialize
+            await this.hardReset(true);
+            if (!this._parent) {
+                this.__inputBuffer = [];
+                this.__inputBufferReadIndex = 0;
+                this.__totalBytesRead = 0;
+                this.readLoop();
+            }
+            await this.flushSerialBuffers();
+            await this.sync();
+            // Restore chip info
+            this.chipFamily = savedChipFamily;
+            this.chipName = savedChipName;
+            this.chipRevision = savedChipRevision;
+            this.chipVariant = savedChipVariant;
+            this.flashSize = savedFlashSize;
+            this.logger.debug(`Reconnect complete (chip: ${this.chipName})`);
+            // Verify port is ready
+            if (!this.port.writable || !this.port.readable) {
+                throw new Error("Port not ready after reconnect");
+            }
+            // Load stub
+            const stubLoader = await this.runStub(true);
+            this.logger.debug("Stub loaded");
+            // Restore baudrate if it was changed
+            if (savedBaudRate !== ESP_ROM_BAUD) {
+                await stubLoader.setBaudrate(savedBaudRate);
+                // Verify port is still ready after baudrate change
+                if (!this.port.writable || !this.port.readable) {
+                    throw new Error(`Port not ready after baudrate change (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`);
+                }
+            }
+            // The stub is now running on the chip
+            // stubLoader has this instance as _parent, so all operations go through this
+            // We just need to mark this instance as running stub code
+            this.IS_STUB = true;
+            this.logger.debug("Reconnection successful");
+        }
+        catch (err) {
+            // Ensure flag is reset on error
+            this._isReconfiguring = false;
+            throw err;
+        }
+    }
+    /**
+     * @name reconnectToBootloader
+     * Close and reopen the port, then reset ESP to bootloader mode
+     * This is needed after Improv or other operations that leave ESP in firmware mode
+     */
+    async reconnectToBootloader() {
+        if (this._parent) {
+            await this._parent.reconnectToBootloader();
+            return;
+        }
+        try {
+            this.logger.log("Reconnecting to bootloader mode...");
+            // Clear console mode flag when reconnecting to bootloader
+            this._consoleMode = false;
+            this.connected = false;
+            this.__inputBuffer = [];
+            this.__inputBufferReadIndex = 0;
+            // Wait for pending writes to complete
+            try {
+                await this._writeChain;
+            }
+            catch (err) {
+                this.logger.debug(`Pending write error during reconnect: ${err}`);
+            }
+            // Block new writes during port close/open
+            this._isReconfiguring = true;
+            // Release persistent writer
+            if (this._writer) {
+                try {
+                    this._writer.releaseLock();
+                }
+                catch (err) {
+                    this.logger.debug(`Writer release error during reconnect: ${err}`);
+                }
+                this._writer = undefined;
+            }
+            // Cancel reader
+            if (this._reader) {
+                try {
+                    await this._reader.cancel();
+                }
+                catch (err) {
+                    this.logger.debug(`Reader cancel error: ${err}`);
+                }
+                this._reader = undefined;
+            }
+            // Close port
+            try {
+                await this.port.close();
+                this.logger.debug("Port closed");
+            }
+            catch (err) {
+                this.logger.debug(`Port close error: ${err}`);
+            }
+            // Open the port
+            this.logger.debug("Opening port...");
+            try {
+                await this.port.open({ baudRate: ESP_ROM_BAUD });
+                this.connected = true;
+                this.currentBaudRate = ESP_ROM_BAUD;
+            }
+            catch (err) {
+                throw new Error(`Failed to open port: ${err}`);
+            }
+            // Verify port streams are available
+            if (!this.port.readable || !this.port.writable) {
+                throw new Error(`Port streams not available after open (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`);
+            }
+            // Port is now open and ready - allow writes for initialization
+            this._isReconfiguring = false;
+            // Reset chip info and stub state
+            this.__chipFamily = undefined;
+            this.chipName = "Unknown Chip";
+            this.chipRevision = null;
+            this.chipVariant = null;
+            this.IS_STUB = false;
+            // Start read loop
+            if (!this._parent) {
+                this.__inputBuffer = [];
+                this.__inputBufferReadIndex = 0;
+                this.__totalBytesRead = 0;
+                this.readLoop();
+            }
+            // Wait for readLoop to start
+            await sleep(100);
+            // Reset to bootloader mode using multiple strategies
+            await this.connectWithResetStrategies();
+            // Detect chip type
+            await this.detectChip();
+            this.logger.log(`Reconnected to bootloader: ${this.chipName}`);
+        }
+        catch (err) {
+            // Ensure flag is reset on error
+            this._isReconfiguring = false;
+            throw err;
+        }
+    }
+    /**
+     * @name exitConsoleMode
+     * Exit console mode and return to bootloader
+     * For ESP32-S2, uses reconnectToBootloader which will trigger port change
+     * @returns true if manual reconnection is needed (ESP32-S2), false otherwise
+     */
+    async exitConsoleMode() {
+        if (this._parent) {
+            return await this._parent.exitConsoleMode();
+        }
+        // Clear console mode flag
+        this._consoleMode = false;
+        // Check if this is a USB-OTG device (ESP32-S2 or ESP32-P4)
+        const isUsbOtgChip = this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+            this.chipFamily === CHIP_FAMILY_ESP32P4;
+        // For USB-OTG chips: if _isUsbJtagOrOtg is undefined, try to detect it
+        // If detection fails or is undefined, assume USB-JTAG/OTG (conservative/safe path)
+        let isUsbJtagOrOtg = this._isUsbJtagOrOtg;
+        if (isUsbOtgChip && isUsbJtagOrOtg === undefined) {
+            try {
+                isUsbJtagOrOtg = await this.detectUsbConnectionType();
+            }
+            catch (err) {
+                this.logger.debug(`USB detection failed, assuming USB-JTAG/OTG for ${this.chipName}: ${err}`);
+                isUsbJtagOrOtg = true; // Conservative fallback
+            }
+        }
+        if (isUsbOtgChip && isUsbJtagOrOtg) {
+            // USB-OTG devices: Need to reset to bootloader, which will cause port change
+            this.logger.log(`${this.chipName} USB: Resetting to bootloader mode`);
+            // Perform hardware reset to bootloader (GPIO0=LOW)
+            // This will cause the port to change from CDC (firmware) to JTAG (bootloader)
+            try {
+                if (this.isWebUSB()) {
+                    await this.hardResetClassicWebUSB();
+                }
+                else {
+                    await this.hardResetClassic();
+                }
+                this.logger.debug("Reset to bootloader initiated");
+            }
+            catch (err) {
+                this.logger.debug(`Reset error: ${err}`);
+            }
+            // Wait for reset to complete and port to change
+            await sleep(500);
+            this.logger.log(`${this.chipName}: Port changed. Please select the bootloader port.`);
+            // Dispatch event to signal port change
+            this.dispatchEvent(new CustomEvent("usb-otg-port-change", {
+                detail: {
+                    chipName: this.chipName,
+                    message: `${this.chipName}: Port changed. Please select the bootloader port.`,
+                    reason: "exit-console-to-bootloader",
+                },
+            }));
+            // Port will change, so return true to indicate manual reconnection needed
+            return true;
+        }
+        // For other devices, use standard reconnectToBootloader
+        await this.reconnectToBootloader();
+        return false; // No manual reconnection needed
+    }
+    /**
+     * @name isConsoleResetSupported
+     * Check if console reset is supported for this device
+     * ESP32-S2 USB-JTAG/CDC does not support reset in console mode
+     * because any reset causes USB port to be lost (hardware limitation)
+     */
+    isConsoleResetSupported() {
+        if (this._parent) {
+            return this._parent.isConsoleResetSupported();
+        }
+        // For ESP32-S2: if _isUsbJtagOrOtg is undefined, assume USB-JTAG/OTG (conservative)
+        // This means console reset is NOT supported (safer default)
+        const isS2UsbJtag = this.chipFamily === CHIP_FAMILY_ESP32S2 &&
+            (this._isUsbJtagOrOtg === true || this._isUsbJtagOrOtg === undefined);
+        return !isS2UsbJtag; // Not supported for ESP32-S2 USB-JTAG/CDC
+    }
+    /**
+     * @name resetInConsoleMode
+     * Reset device while in console mode (firmware mode)
+     *
+     * NOTE: For ESP32-S2 USB-JTAG/CDC, ANY reset (hardware or software) causes
+     * the USB port to be lost because the device switches USB modes during reset.
+     * This is a hardware limitation - use isConsoleResetSupported() to check first.
+     */
+    async resetInConsoleMode() {
+        if (this._parent) {
+            return await this._parent.resetInConsoleMode();
+        }
+        if (!this.isConsoleResetSupported()) {
+            this.logger.debug("Console reset not supported for ESP32-S2 USB-JTAG/CDC");
+            return; // Do nothing
+        }
+        // For other devices: Use standard firmware reset
+        const isWebUSB = this.port.isWebUSB === true;
+        try {
+            this.logger.debug("Resetting device in console mode");
+            if (isWebUSB) {
+                await this.hardResetToFirmwareWebUSB();
+            }
+            else {
+                await this.hardResetToFirmware();
+            }
+            this.logger.debug("Device reset complete");
+        }
+        catch (err) {
+            this.logger.error(`Reset failed: ${err}`);
+            throw err;
+        }
+    }
+    /**
+     * @name drainInputBuffer
+     * Actively drain the input buffer by reading data for a specified time.
+     * Simple approach for some drivers (especially CP210x on Windows) that have
+     * issues with buffer flushing.
+     *
+     * Based on esptool.py fix: https://github.com/espressif/esptool/commit/5338ea054e5099ac7be235c54034802ac8a43162
+     *
+     * @param bufferingTime - Time in milliseconds to wait for the buffer to fill
+     */
+    async drainInputBuffer(bufferingTime = 200) {
+        // Wait for the buffer to fill
+        await sleep(bufferingTime);
+        // Unsupported command response is sent 8 times and has
+        // 14 bytes length including delimiter SLIP_END (0xC0) bytes.
+        // At least part of it is read as a command response,
+        // but to be safe, read it all.
+        const bytesToDrain = 14 * 8;
+        let drained = 0;
+        // Drain the buffer by reading available data
+        const drainStart = Date.now();
+        const drainTimeout = 100; // Short timeout for draining
+        while (drained < bytesToDrain && Date.now() - drainStart < drainTimeout) {
+            if (this._inputBufferAvailable > 0) {
+                const byte = this._readByte();
+                if (byte !== undefined) {
+                    drained++;
+                }
+            }
+            else {
+                // Small sleep to avoid busy waiting
+                await sleep(1);
+            }
+        }
+        if (drained > 0) {
+            this.logger.debug(`Drained ${drained} bytes from input buffer`);
+        }
+        // Final clear of application buffer
+        if (!this._parent) {
+            this.__inputBuffer = [];
+            this.__inputBufferReadIndex = 0;
+        }
+    }
+    /**
+     * @name flushSerialBuffers
+     * Flush any pending data in the TX and RX serial port buffers
+     * This clears both the application RX buffer and waits for hardware buffers to drain
+     */
+    async flushSerialBuffers() {
+        // Clear application buffer
+        if (!this._parent) {
+            this.__inputBuffer = [];
+            this.__inputBufferReadIndex = 0;
+        }
+        // Wait for any pending data
+        await sleep(SYNC_TIMEOUT);
+        // Final clear
+        if (!this._parent) {
+            this.__inputBuffer = [];
+            this.__inputBufferReadIndex = 0;
+        }
+        this.logger.debug("Serial buffers flushed");
+    }
+    /**
+     * @name readFlash
+     * Read flash memory from the chip (only works with stub loader)
+     * @param addr - Address to read from
+     * @param size - Number of bytes to read
+     * @param onPacketReceived - Optional callback function called when packet is received
+     * @param options - Optional parameters for advanced control
+     *   - chunkSize: Amount of data to request from ESP in one command (bytes)
+     *   - blockSize: Size of each data block sent by ESP (bytes)
+     *   - maxInFlight: Maximum unacknowledged bytes (bytes)
+     * @returns Uint8Array containing the flash data
+     */
+    async readFlash(addr, size, onPacketReceived, options) {
+        if (!this.IS_STUB) {
+            throw new Error("Reading flash is only supported in stub mode. Please run runStub() first.");
+        }
+        // Flush serial buffers before flash read operation
+        await this.flushSerialBuffers();
+        this.logger.log(`Reading ${size} bytes from flash at address 0x${addr.toString(16)}...`);
+        // Initialize adaptive speed multipliers for WebUSB devices
+        if (this.isWebUSB()) {
+            if (this._isCDCDevice) {
+                // CDC devices (CH343): Start with maximum, adaptive adjustment enabled
+                this._adaptiveBlockMultiplier = 8; // blockSize = 248 bytes
+                this._adaptiveMaxInFlightMultiplier = 8; // maxInFlight = 248 bytes
+                this._consecutiveSuccessfulChunks = 0;
+                this.logger.debug(`CDC device - Initialized: blockMultiplier=${this._adaptiveBlockMultiplier}, maxInFlightMultiplier=${this._adaptiveMaxInFlightMultiplier}`);
+            }
+            else {
+                // Non-CDC devices (CH340, CP2102): Fixed values, no adaptive adjustment
+                this._adaptiveBlockMultiplier = 1; // blockSize = 31 bytes (fixed)
+                this._adaptiveMaxInFlightMultiplier = 1; // maxInFlight = 31 bytes (fixed)
+                this._consecutiveSuccessfulChunks = 0;
+                this.logger.debug(`Non-CDC device - Fixed values: blockSize=31, maxInFlight=31`);
+            }
+        }
+        // Chunk size: Amount of data to request from ESP in one command
+        // For WebUSB (Android), use smaller chunks to avoid timeouts and buffer issues
+        // For Web Serial (Desktop), use larger chunks for better performance
+        let CHUNK_SIZE;
+        if ((options === null || options === void 0 ? void 0 : options.chunkSize) !== undefined) {
+            // Use user-provided chunkSize if in advanced mode
+            CHUNK_SIZE = options.chunkSize;
+            this.logger.log(`Using custom chunk size: 0x${CHUNK_SIZE.toString(16)} bytes`);
+        }
+        else if (this.isWebUSB()) {
+            // WebUSB: Use smaller chunks to avoid SLIP timeout issues
+            CHUNK_SIZE = 0x4 * 0x1000; // 4KB = 16384 bytes
+        }
+        else {
+            // Web Serial: Use larger chunks for better performance
+            CHUNK_SIZE = 0x40 * 0x1000;
+        }
+        let allData = new Uint8Array(0);
+        let currentAddr = addr;
+        let remainingSize = size;
+        while (remainingSize > 0) {
+            const chunkSize = Math.min(CHUNK_SIZE, remainingSize);
+            let chunkSuccess = false;
+            let retryCount = 0;
+            const MAX_RETRIES = 5;
+            let deepRecoveryAttempted = false;
+            // Retry loop for this chunk
+            while (!chunkSuccess && retryCount <= MAX_RETRIES) {
+                let resp = new Uint8Array(0);
+                let lastAckedLength = 0; // Track last acknowledged length
+                try {
+                    // Only log on first attempt or retries
+                    if (retryCount === 0) {
+                        this.logger.debug(`Reading chunk at 0x${currentAddr.toString(16)}, size: 0x${chunkSize.toString(16)}`);
+                    }
+                    let blockSize;
+                    let maxInFlight;
+                    if ((options === null || options === void 0 ? void 0 : options.blockSize) !== undefined &&
+                        (options === null || options === void 0 ? void 0 : options.maxInFlight) !== undefined) {
+                        // Use user-provided values if in advanced mode
+                        blockSize = options.blockSize;
+                        maxInFlight = options.maxInFlight;
+                        if (retryCount === 0) {
+                            this.logger.debug(`Using custom parameters: blockSize=${blockSize}, maxInFlight=${maxInFlight}`);
+                        }
+                    }
+                    else if (this.isWebUSB()) {
+                        // WebUSB (Android): All devices use adaptive speed
+                        // All have maxTransferSize=64, baseBlockSize=31
+                        const maxTransferSize = this.port.maxTransferSize || 64;
+                        const baseBlockSize = Math.floor((maxTransferSize - 2) / 2); // 31 bytes
+                        // Use current adaptive multipliers (initialized at start of readFlash)
+                        blockSize = baseBlockSize * this._adaptiveBlockMultiplier;
+                        maxInFlight = baseBlockSize * this._adaptiveMaxInFlightMultiplier;
+                    }
+                    else {
+                        // Web Serial (Desktop): Use multiples of 63 for consistency
+                        const base = 63;
+                        blockSize = base * 65; // 63 * 65 = 4095 (close to 0x1000)
+                        maxInFlight = base * 130; // 63 * 130 = 8190 (close to blockSize * 2)
+                    }
+                    const pkt = pack("<IIII", currentAddr, chunkSize, blockSize, maxInFlight);
+                    const [res] = await this.checkCommand(ESP_READ_FLASH, pkt);
+                    if (res != 0) {
+                        throw new Error("Failed to read memory: " + res);
+                    }
+                    while (resp.length < chunkSize) {
+                        // Read a SLIP packet
+                        let packet;
+                        try {
+                            packet = await this.readPacket(FLASH_READ_TIMEOUT);
+                        }
+                        catch (err) {
+                            if (err instanceof SlipReadError) {
+                                this.logger.debug(`SLIP read error at ${resp.length} bytes: ${err.message}`);
+                                // Send empty SLIP frame to abort the stub's read operation
+                                // The stub expects 4 bytes (ACK), if we send less it will break out
+                                try {
+                                    // Send SLIP frame with no data (just delimiters)
+                                    const abortFrame = [this.SLIP_END, this.SLIP_END]; // Empty SLIP frame
+                                    await this.writeToStream(abortFrame);
+                                    this.logger.debug(`Sent abort frame to stub`);
+                                    // Give stub time to process abort
+                                    await sleep(50);
+                                }
+                                catch (abortErr) {
+                                    this.logger.debug(`Abort frame error: ${abortErr}`);
+                                }
+                                // Drain input buffer to clear any stale data
+                                await this.drainInputBuffer(200);
+                                // If we've read all the data we need, break
+                                if (resp.length >= chunkSize) {
+                                    break;
+                                }
+                            }
+                            throw err;
+                        }
+                        if (packet && packet.length > 0) {
+                            const packetData = new Uint8Array(packet);
+                            // Append to response
+                            const newResp = new Uint8Array(resp.length + packetData.length);
+                            newResp.set(resp);
+                            newResp.set(packetData, resp.length);
+                            resp = newResp;
+                            // Send acknowledgment when we've received maxInFlight bytes
+                            // The stub sends packets until (num_sent - num_acked) >= max_in_flight
+                            // We MUST wait for all packets before sending ACK
+                            const shouldAck = resp.length >= chunkSize || // End of chunk
+                                resp.length >= lastAckedLength + maxInFlight; // Received all packets
+                            if (shouldAck) {
+                                const ackData = pack("<I", resp.length);
+                                const slipEncodedAck = slipEncode(ackData);
+                                await this.writeToStream(slipEncodedAck);
+                                // Update lastAckedLength to current response length
+                                // This ensures next ACK is sent at the right time
+                                lastAckedLength = resp.length;
+                            }
+                        }
+                    }
+                    // Chunk read successfully - append to all data
+                    const newAllData = new Uint8Array(allData.length + resp.length);
+                    newAllData.set(allData);
+                    newAllData.set(resp, allData.length);
+                    allData = newAllData;
+                    chunkSuccess = true;
+                    // ADAPTIVE SPEED ADJUSTMENT: Only for CDC devices
+                    // Non-CDC devices (CH340, CP2102) stay at fixed blockSize=31, maxInFlight=31
+                    if (this.isWebUSB() && this._isCDCDevice && retryCount === 0) {
+                        this._consecutiveSuccessfulChunks++;
+                        // After 2 consecutive successful chunks, increase speed gradually
+                        if (this._consecutiveSuccessfulChunks >= 2) {
+                            const maxTransferSize = this.port.maxTransferSize || 64;
+                            const baseBlockSize = Math.floor((maxTransferSize - 2) / 2); // 31 bytes
+                            // Maximum: blockSize=248 (8 * 31), maxInFlight=248 (8 * 31)
+                            const MAX_BLOCK_MULTIPLIER = 8; // 248 bytes - tested stable
+                            const MAX_INFLIGHT_MULTIPLIER = 8; // 248 bytes - tested stable
+                            let adjusted = false;
+                            // Increase blockSize first (up to 248), then maxInFlight
+                            if (this._adaptiveBlockMultiplier < MAX_BLOCK_MULTIPLIER) {
+                                this._adaptiveBlockMultiplier = Math.min(this._adaptiveBlockMultiplier * 2, MAX_BLOCK_MULTIPLIER);
+                                adjusted = true;
+                            }
+                            // Once blockSize is at maximum, increase maxInFlight
+                            else if (this._adaptiveMaxInFlightMultiplier < MAX_INFLIGHT_MULTIPLIER) {
+                                this._adaptiveMaxInFlightMultiplier = Math.min(this._adaptiveMaxInFlightMultiplier * 2, MAX_INFLIGHT_MULTIPLIER);
+                                adjusted = true;
+                            }
+                            if (adjusted) {
+                                const newBlockSize = baseBlockSize * this._adaptiveBlockMultiplier;
+                                const newMaxInFlight = baseBlockSize * this._adaptiveMaxInFlightMultiplier;
+                                this.logger.debug(`Speed increased: blockSize=${newBlockSize}, maxInFlight=${newMaxInFlight}`);
+                                this._lastAdaptiveAdjustment = Date.now();
+                            }
+                            // Reset counter
+                            this._consecutiveSuccessfulChunks = 0;
+                        }
+                    }
+                }
+                catch (err) {
+                    retryCount++;
+                    // ADAPTIVE SPEED ADJUSTMENT: Only for CDC devices
+                    // Non-CDC devices stay at fixed values
+                    if (this.isWebUSB() && this._isCDCDevice && retryCount === 1) {
+                        // Only reduce if we're above minimum
+                        if (this._adaptiveBlockMultiplier > 1 ||
+                            this._adaptiveMaxInFlightMultiplier > 1) {
+                            // Reduce to minimum on error
+                            this._adaptiveBlockMultiplier = 1; // 31 bytes (for CH343)
+                            this._adaptiveMaxInFlightMultiplier = 1; // 31 bytes
+                            this._consecutiveSuccessfulChunks = 0; // Reset success counter
+                            const maxTransferSize = this.port.maxTransferSize || 64;
+                            const baseBlockSize = Math.floor((maxTransferSize - 2) / 2);
+                            const newBlockSize = baseBlockSize * this._adaptiveBlockMultiplier;
+                            const newMaxInFlight = baseBlockSize * this._adaptiveMaxInFlightMultiplier;
+                            this.logger.debug(`Error at higher speed - reduced to minimum: blockSize=${newBlockSize}, maxInFlight=${newMaxInFlight}`);
+                        }
+                        else {
+                            // Already at minimum and still failing - this is a real error
+                            this.logger.debug(`Error at minimum speed (blockSize=31, maxInFlight=31) - not a speed issue`);
+                        }
+                    }
+                    // Check if it's a timeout error or SLIP error
+                    if (err instanceof SlipReadError) {
+                        if (retryCount <= MAX_RETRIES) {
+                            this.logger.debug(`${err.message} at 0x${currentAddr.toString(16)}. Draining buffer and retrying (attempt ${retryCount}/${MAX_RETRIES})...`);
+                            try {
+                                await this.drainInputBuffer(200);
+                                // Clear application buffer
+                                await this.flushSerialBuffers();
+                                // Wait before retry to let hardware settle
+                                await sleep(SYNC_TIMEOUT);
+                                // Continue to retry the same chunk (will send NEW read command)
+                            }
+                            catch (drainErr) {
+                                this.logger.debug(`Buffer drain error: ${drainErr}`);
+                            }
+                        }
+                        else {
+                            // All retries exhausted - attempt recovery by reloading stub
+                            // IMPORTANT: Do NOT close port to keep ESP32 in bootloader mode
+                            if (!deepRecoveryAttempted) {
+                                deepRecoveryAttempted = true;
+                                this.logger.log(`All retries exhausted at 0x${currentAddr.toString(16)}. Attempting recovery (close and reopen port)...`);
+                                try {
+                                    // Reconnect will close port, reopen, and reload stub
+                                    await this.reconnect();
+                                    this.logger.log("Deep recovery successful. Resuming read from current position...");
+                                    // Reset retry counter to give it another chance after recovery
+                                    retryCount = 0;
+                                    continue;
+                                }
+                                catch (recoveryErr) {
+                                    throw new Error(`Failed to read chunk at 0x${currentAddr.toString(16)} after ${MAX_RETRIES} retries and recovery failed: ${recoveryErr}`);
+                                }
+                            }
+                            else {
+                                // Recovery already attempted, give up
+                                throw new Error(`Failed to read chunk at 0x${currentAddr.toString(16)} after ${MAX_RETRIES} retries and recovery attempt`);
+                            }
+                        }
+                    }
+                    else {
+                        // Non-SLIP error, don't retry
+                        throw err;
+                    }
+                }
+            }
+            // Update progress (use empty array since we already appended to allData)
+            if (onPacketReceived) {
+                onPacketReceived(new Uint8Array(chunkSize), allData.length, size);
+            }
+            currentAddr += chunkSize;
+            remainingSize -= chunkSize;
+            this.logger.debug(`Total progress: 0x${allData.length.toString(16)} from 0x${size.toString(16)} bytes`);
+        }
+        return allData;
+    }
+}
+class EspStubLoader extends ESPLoader {
+    constructor() {
+        super(...arguments);
+        /*
+          The Stubloader has commands that run on the uploaded Stub Code in RAM
+          rather than built in commands.
+        */
+        this.IS_STUB = true;
+    }
+    /**
+     * @name memBegin (592)
+     * Start downloading an application image to RAM
+     */
+    async memBegin(size, _blocks, _blocksize, offset) {
+        const stub = await getStubCode(this.chipFamily, this.chipRevision);
+        // Stub may be null for chips without stub support
+        if (stub === null) {
+            return [0, []];
+        }
+        const load_start = offset;
+        const load_end = offset + size;
+        this.logger.debug(`Load range: ${toHex(load_start, 8)}-${toHex(load_end, 8)}`);
+        this.logger.debug(`Stub data: ${toHex(stub.data_start, 8)}, len: ${stub.data.length}, text: ${toHex(stub.text_start, 8)}, len: ${stub.text.length}`);
+        for (const [start, end] of [
+            [stub.data_start, stub.data_start + stub.data.length],
+            [stub.text_start, stub.text_start + stub.text.length],
+        ]) {
+            if (load_start < end && load_end > start) {
+                throw new Error("Software loader is resident at " +
+                    toHex(start, 8) +
+                    "-" +
+                    toHex(end, 8) +
+                    ". " +
+                    "Can't load binary at overlapping address range " +
+                    toHex(load_start, 8) +
+                    "-" +
+                    toHex(load_end, 8) +
+                    ". " +
+                    "Try changing the binary loading address.");
+            }
+        }
+        return [0, []];
+    }
+    /**
+     * @name eraseFlash
+     * Erase entire flash chip
+     */
+    async eraseFlash() {
+        await this.checkCommand(ESP_ERASE_FLASH, [], 0, CHIP_ERASE_TIMEOUT);
+    }
+    /**
+     * @name eraseRegion
+     * Erase a specific region of flash
+     */
+    async eraseRegion(offset, size) {
+        // Validate inputs
+        if (offset < 0) {
+            throw new Error(`Invalid offset: ${offset} (must be non-negative)`);
+        }
+        if (size < 0) {
+            throw new Error(`Invalid size: ${size} (must be non-negative)`);
+        }
+        // No-op for zero size
+        if (size === 0) {
+            this.logger.log("eraseRegion: size is 0, skipping erase");
+            return;
+        }
+        // Check for sector alignment
+        if (offset % FLASH_SECTOR_SIZE !== 0) {
+            throw new Error(`Offset ${offset} (0x${offset.toString(16)}) is not aligned to flash sector size ${FLASH_SECTOR_SIZE} (0x${FLASH_SECTOR_SIZE.toString(16)})`);
+        }
+        if (size % FLASH_SECTOR_SIZE !== 0) {
+            throw new Error(`Size ${size} (0x${size.toString(16)}) is not aligned to flash sector size ${FLASH_SECTOR_SIZE} (0x${FLASH_SECTOR_SIZE.toString(16)})`);
+        }
+        // Check for reasonable bounds (prevent wrapping in pack)
+        const maxValue = 0xffffffff; // 32-bit unsigned max
+        if (offset > maxValue) {
+            throw new Error(`Offset ${offset} exceeds maximum value ${maxValue}`);
+        }
+        if (size > maxValue) {
+            throw new Error(`Size ${size} exceeds maximum value ${maxValue}`);
+        }
+        // Check for wrap-around
+        if (offset + size > maxValue) {
+            throw new Error(`Region end (offset + size = ${offset + size}) exceeds maximum addressable range ${maxValue}`);
+        }
+        const timeout = timeoutPerMb(ERASE_REGION_TIMEOUT_PER_MB, size);
+        const buffer = pack("<II", offset, size);
+        await this.checkCommand(ESP_ERASE_REGION, buffer, 0, timeout);
+    }
+}
+
+const LITTLEFS_DEFAULT_BLOCK_SIZE = 4096;
+const LITTLEFS_BLOCK_SIZE_CANDIDATES = [4096, 2048, 1024, 512];
+const FATFS_DEFAULT_BLOCK_SIZE = 4096;
+const FATFS_BLOCK_SIZE_CANDIDATES = [4096, 2048, 1024, 512];
+// ESP8266-specific parameters
+const ESP8266_LITTLEFS_BLOCK_SIZE = 8192;
+const ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES = [8192, 4096];
+const ESP8266_LITTLEFS_PAGE_SIZE = 256;
+const ESP8266_SPIFFS_PAGE_SIZE = 256;
+const ESP8266_SPIFFS_BLOCK_SIZE = 8192;
+/**
+ * Check if data contains SPIFFS filesystem using pattern detection
+ * @param data - Data to check
+ * @returns true if SPIFFS patterns detected
+ */
+function detectSPIFFSPatterns(data) {
+    if (data.length < 4096) {
+        return false;
+    }
+    let spiffsScore = 0;
+    const pageSize = ESP8266_SPIFFS_PAGE_SIZE;
+    const maxPages = Math.min(32, Math.floor(data.length / pageSize));
+    for (let pageNum = 0; pageNum < maxPages; pageNum++) {
+        const pageOffset = pageNum * pageSize;
+        if (pageOffset + pageSize > data.length)
+            break;
+        const page = data.slice(pageOffset, pageOffset + pageSize);
+        const objId = page[0] | (page[1] << 8);
+        // Look for SPIFFS filename pattern: 0x01 followed by '/' and printable chars
+        for (let i = 0; i < page.length - 10; i++) {
+            if (page[i] === 0x01 && page[i + 1] === 0x2f) { // 0x01 followed by '/'
+                let validChars = 0;
+                for (let j = i + 1; j < Math.min(i + 20, page.length); j++) {
+                    if (page[j] >= 0x20 && page[j] < 0x7f) {
+                        validChars++;
+                    }
+                    else if (page[j] === 0x00) {
+                        break;
+                    }
+                }
+                if (validChars >= 4) { // At least "/xxx"
+                    spiffsScore += 5;
+                    break;
+                }
+            }
+        }
+        // Check for typical SPIFFS object ID patterns
+        if ((objId & 0x8000) !== 0) {
+            const idLow = objId & 0x7fff;
+            if (idLow > 0 && idLow < 0x1000) {
+                spiffsScore += 2;
+            }
+        }
+    }
+    return spiffsScore >= 10;
+}
+/**
+ * Scan ESP8266 flash for filesystem by detecting filesystem signatures
+ * Reads actual block_count from LittleFS superblock for accurate size detection
+ *
+ * @param flashData - Flash data starting at scanOffset
+ * @param scanOffset - The offset in flash where this data starts
+ * @param flashSize - Total flash size in bytes
+ * @returns Detected filesystem layout or null
+ */
+function scanESP8266Filesystem(flashData, scanOffset, flashSize) {
+    // Check for LittleFS signature
+    // LittleFS superblock has "littlefs" magic at offset 8 within block 0
+    const blockSizes = ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES; // ESP8266 typically uses 8192
+    for (const blockSize of blockSizes) {
+        // Check block 0 and block 1 (mirrored superblock)
+        for (let blockIndex = 0; blockIndex < 2; blockIndex++) {
+            const superblockOffset = blockIndex * blockSize;
+            const magicOffset = superblockOffset + 8;
+            if (magicOffset + 8 > flashData.length) {
+                continue;
+            }
+            const magicStr = String.fromCharCode(flashData[magicOffset], flashData[magicOffset + 1], flashData[magicOffset + 2], flashData[magicOffset + 3], flashData[magicOffset + 4], flashData[magicOffset + 5], flashData[magicOffset + 6], flashData[magicOffset + 7]);
+            if (magicStr === "littlefs") {
+                // Validate version (at offset 16 in superblock)
+                const versionOffset = superblockOffset + 16;
+                const version = flashData[versionOffset] |
+                    (flashData[versionOffset + 1] << 8) |
+                    (flashData[versionOffset + 2] << 16) |
+                    (flashData[versionOffset + 3] << 24);
+                if (version !== 0 && (version >>> 0) !== 0xffffffff) {
+                    // Found valid LittleFS!
+                    // Try to read block_count from superblock (offset 24, 4 bytes little-endian)
+                    const blockCountOffset = superblockOffset + 24;
+                    if (blockCountOffset + 4 <= flashData.length) {
+                        const blockCount = flashData[blockCountOffset] |
+                            (flashData[blockCountOffset + 1] << 8) |
+                            (flashData[blockCountOffset + 2] << 16) |
+                            (flashData[blockCountOffset + 3] << 24);
+                        // Validate block_count (should be reasonable: > 0 and < 100000)
+                        if (blockCount > 0 && blockCount < 100000) {
+                            const detectedSize = blockCount * blockSize;
+                            // Verify size is reasonable (not larger than remaining flash)
+                            if (detectedSize > 0 && scanOffset + detectedSize <= flashSize) {
+                                return {
+                                    start: scanOffset,
+                                    end: scanOffset + detectedSize,
+                                    size: detectedSize,
+                                    page: ESP8266_LITTLEFS_PAGE_SIZE,
+                                    block: blockSize,
+                                };
+                            }
+                        }
+                    }
+                    // Fallback to known layout patterns if block_count read failed
+                    return getLayoutForDetectedFilesystem(scanOffset, flashSize, blockSize);
+                }
+            }
+        }
+    }
+    // Check for SPIFFS filesystem using pattern detection
+    if (detectSPIFFSPatterns(flashData)) {
+        // SPIFFS does not store size in the image itself
+        // Size must come from linker script or partition table
+        return getLayoutForDetectedFilesystem(scanOffset, flashSize, ESP8266_SPIFFS_BLOCK_SIZE);
+    }
+    // Also check for SPIFFS magic 0x20140529 (some implementations have it)
+    if (flashData.length >= 4) {
+        const spiffsMagic = flashData[0] |
+            (flashData[1] << 8) |
+            (flashData[2] << 16) |
+            (flashData[3] << 24);
+        if (spiffsMagic === 0x20140529) {
+            // Found SPIFFS magic!
+            // Additional validation: Check if header looks valid
+            let validHeader = true;
+            // Check if next bytes are not all 0xFF
+            if (flashData.length >= 16) {
+                let allFF = true;
+                for (let i = 4; i < 16; i++) {
+                    if (flashData[i] !== 0xff) {
+                        allFF = false;
+                        break;
+                    }
+                }
+                if (allFF) {
+                    validHeader = false;
+                }
+            }
+            if (validHeader) {
+                return getLayoutForDetectedFilesystem(scanOffset, flashSize, ESP8266_SPIFFS_BLOCK_SIZE);
+            }
+        }
+    }
+    // Check for FAT filesystem
+    // FAT can start at offset 0 or 0x1000 (4096 bytes) in ESP8266
+    const fatOffsets = [0, 0x1000];
+    for (const fatOffset of fatOffsets) {
+        if (flashData.length < fatOffset + 512) {
+            continue;
+        }
+        const bootSig = flashData[fatOffset + 510] | (flashData[fatOffset + 511] << 8);
+        if (bootSig === 0xaa55) {
+            // Read bytes per sector
+            const bytesPerSector = flashData[fatOffset + 0x0b] | (flashData[fatOffset + 0x0c] << 8);
+            // Validate bytes per sector (must be 512, 1024, 2048, or 4096)
+            if (![512, 1024, 2048, 4096].includes(bytesPerSector)) {
+                continue;
+            }
+            // Read total sectors (try 16-bit first, then 32-bit)
+            let totalSectors = flashData[fatOffset + 0x13] | (flashData[fatOffset + 0x14] << 8);
+            if (totalSectors === 0) {
+                // Use 32-bit total sectors
+                totalSectors =
+                    flashData[fatOffset + 0x20] |
+                        (flashData[fatOffset + 0x21] << 8) |
+                        (flashData[fatOffset + 0x22] << 16) |
+                        (flashData[fatOffset + 0x23] << 24);
+            }
+            // Validate values
+            if (bytesPerSector > 0 && totalSectors > 0 && totalSectors < 100000000) {
+                const detectedSize = totalSectors * bytesPerSector;
+                // Verify size is reasonable (not larger than remaining flash)
+                // Account for the FAT offset in the actual flash position
+                const actualStart = scanOffset + fatOffset;
+                if (detectedSize > 0 && actualStart + detectedSize <= flashSize) {
+                    return {
+                        start: actualStart,
+                        end: actualStart + detectedSize,
+                        size: detectedSize,
+                        page: bytesPerSector,
+                        block: bytesPerSector, // FAT uses sector size as block size
+                    };
+                }
+            }
+        }
+    }
+    return null;
+}
+/**
+ * Get filesystem layout based on detected offset and flash size
+ * Uses known ESP8266 linker script patterns from Arduino/PlatformIO
+ */
+function getLayoutForDetectedFilesystem(offset, flashSize, blockSize) {
+    const flashSizeMB = flashSize / (1024 * 1024);
+    // 16MB Flash layouts
+    if (flashSizeMB >= 16) {
+        if (offset === 0x100000) {
+            return { start: 0x100000, end: 0xffa000, size: 0xefa000, page: 256, block: blockSize }; // 15MB
+        }
+        else if (offset === 0x200000) {
+            return { start: 0x200000, end: 0xffa000, size: 0xdfa000, page: 256, block: blockSize }; // 14MB
+        }
+    }
+    // 8MB Flash layouts
+    if (flashSizeMB >= 8) {
+        if (offset === 0x100000) {
+            return { start: 0x100000, end: 0x7fa000, size: 0x6fa000, page: 256, block: blockSize }; // 7MB
+        }
+        else if (offset === 0x200000) {
+            return { start: 0x200000, end: 0x7fa000, size: 0x5fa000, page: 256, block: blockSize }; // 6MB
+        }
+    }
+    // 4MB Flash layouts
+    if (flashSizeMB >= 4) {
+        if (offset === 0x100000) {
+            return { start: 0x100000, end: 0x3fa000, size: 0x2fa000, page: 256, block: blockSize }; // 3MB
+        }
+        else if (offset === 0x200000) {
+            return { start: 0x200000, end: 0x3fa000, size: 0x1fa000, page: 256, block: blockSize }; // 2MB
+        }
+        else if (offset === 0x300000) {
+            return { start: 0x300000, end: 0x3fa000, size: 0x0fa000, page: 256, block: blockSize }; // 1MB
+        }
+    }
+    // 2MB Flash layouts
+    if (flashSizeMB >= 2) {
+        if (offset === 0x100000) {
+            return { start: 0x100000, end: 0x1fa000, size: 0x0fa000, page: 256, block: blockSize }; // 1MB
+        }
+        else if (offset === 0x180000) {
+            return { start: 0x180000, end: 0x1fa000, size: 0x07a000, page: 256, block: blockSize }; // 512KB
+        }
+        else if (offset === 0x1c0000) {
+            return { start: 0x1c0000, end: 0x1fb000, size: 0x03b000, page: 256, block: blockSize }; // 256KB
+        }
+        else if (offset === 0x1e0000) {
+            return { start: 0x1e0000, end: 0x1fb000, size: 0x01b000, page: 256, block: blockSize }; // 128KB
+        }
+        else if (offset === 0x1f0000) {
+            return { start: 0x1f0000, end: 0x1fb000, size: 0x00b000, page: 256, block: blockSize }; // 64KB
+        }
+    }
+    // 1MB Flash layouts
+    if (flashSizeMB >= 1) {
+        if (offset === 0x07b000) {
+            return { start: 0x07b000, end: 0x0fb000, size: 0x080000, page: 256, block: blockSize }; // 512KB
+        }
+        else if (offset === 0x0bb000) {
+            return { start: 0x0bb000, end: 0x0fb000, size: 0x040000, page: 256, block: blockSize }; // 256KB
+        }
+        else if (offset === 0x0cb000) {
+            return { start: 0x0cb000, end: 0x0fb000, size: 0x030000, page: 256, block: blockSize }; // 192KB
+        }
+        else if (offset === 0x0d3000) {
+            return { start: 0x0d3000, end: 0x0fb000, size: 0x028000, page: 256, block: blockSize }; // 160KB
+        }
+        else if (offset === 0x0d7000) {
+            return { start: 0x0d7000, end: 0x0fb000, size: 0x024000, page: 256, block: blockSize }; // 144KB
+        }
+        else if (offset === 0x0db000) {
+            return { start: 0x0db000, end: 0x0fb000, size: 0x020000, page: 256, block: blockSize }; // 128KB
+        }
+        else if (offset === 0x0eb000) {
+            return { start: 0x0eb000, end: 0x0fb000, size: 0x010000, page: 256, block: blockSize }; // 64KB
+        }
+    }
+    // 512KB Flash layouts
+    if (flashSizeMB >= 0.5) {
+        if (offset === 0x05b000) {
+            return { start: 0x05b000, end: 0x07b000, size: 0x020000, page: 256, block: blockSize }; // 128KB
+        }
+        else if (offset === 0x06b000) {
+            return { start: 0x06b000, end: 0x07b000, size: 0x010000, page: 256, block: blockSize }; // 64KB
+        }
+        else if (offset === 0x073000) {
+            return { start: 0x073000, end: 0x07b000, size: 0x008000, page: 256, block: blockSize }; // 32KB
+        }
+    }
+    // Fallback: use remaining flash space
+    const size = flashSize - offset;
+    return {
+        start: offset,
+        end: flashSize,
+        size: size,
+        page: 256,
+        block: blockSize,
+    };
+}
+/**
+ * Get common ESP8266 filesystem layouts as fallback
+ * Used when we can't scan the actual flash
+ *
+ * @param flashSizeMB - Flash size in megabytes
+ * @returns Array of possible filesystem layouts (most common first)
+ */
+function getESP8266FilesystemLayout(flashSizeMB) {
+    // Based on common ESP8266 linker script configurations
+    if (flashSizeMB >= 16) {
+        // 16MB flash
+        return [
+            { start: 0x100000, end: 0xffa000, size: 0xefa000, page: 256, block: 8192 }, // 15MB
+            { start: 0x200000, end: 0xffa000, size: 0xdfa000, page: 256, block: 8192 }, // 14MB
+        ];
+    }
+    else if (flashSizeMB >= 8) {
+        // 8MB flash
+        return [
+            { start: 0x100000, end: 0x7fa000, size: 0x6fa000, page: 256, block: 8192 }, // 7MB
+            { start: 0x200000, end: 0x7fa000, size: 0x5fa000, page: 256, block: 8192 }, // 6MB
+        ];
+    }
+    else if (flashSizeMB >= 4) {
+        // 4MB flash: Multiple possible configurations
+        return [
+            { start: 0x200000, end: 0x3fa000, size: 0x1fa000, page: 256, block: 8192 }, // 2MB (most common)
+            { start: 0x100000, end: 0x3fa000, size: 0x2fa000, page: 256, block: 8192 }, // 3MB
+            { start: 0x300000, end: 0x3fa000, size: 0x0fa000, page: 256, block: 8192 }, // 1MB
+        ];
+    }
+    else if (flashSizeMB >= 2) {
+        // 2MB flash
+        return [
+            { start: 0x100000, end: 0x1fa000, size: 0x0fa000, page: 256, block: 8192 }, // 1MB
+            { start: 0x180000, end: 0x1fa000, size: 0x07a000, page: 256, block: 8192 }, // 512KB
+            { start: 0x1c0000, end: 0x1fb000, size: 0x03b000, page: 256, block: 8192 }, // 256KB
+            { start: 0x1e0000, end: 0x1fb000, size: 0x01b000, page: 256, block: 8192 }, // 128KB
+            { start: 0x1f0000, end: 0x1fb000, size: 0x00b000, page: 256, block: 8192 }, // 64KB
+        ];
+    }
+    else if (flashSizeMB >= 1) {
+        // 1MB flash
+        return [
+            { start: 0x0db000, end: 0x0fb000, size: 0x020000, page: 256, block: 8192 }, // 128KB (most common)
+            { start: 0x07b000, end: 0x0fb000, size: 0x080000, page: 256, block: 8192 }, // 512KB
+            { start: 0x0bb000, end: 0x0fb000, size: 0x040000, page: 256, block: 8192 }, // 256KB
+            { start: 0x0cb000, end: 0x0fb000, size: 0x030000, page: 256, block: 8192 }, // 192KB
+            { start: 0x0d3000, end: 0x0fb000, size: 0x028000, page: 256, block: 8192 }, // 160KB
+            { start: 0x0d7000, end: 0x0fb000, size: 0x024000, page: 256, block: 8192 }, // 144KB
+            { start: 0x0eb000, end: 0x0fb000, size: 0x010000, page: 256, block: 8192 }, // 64KB
+        ];
+    }
+    else if (flashSizeMB >= 0.5) {
+        // 512KB flash
+        return [
+            { start: 0x05b000, end: 0x07b000, size: 0x020000, page: 256, block: 8192 }, // 128KB
+            { start: 0x06b000, end: 0x07b000, size: 0x010000, page: 256, block: 8192 }, // 64KB
+            { start: 0x073000, end: 0x07b000, size: 0x008000, page: 256, block: 8192 }, // 32KB
+        ];
+    }
+    return [];
+}
+/**
+ * Filesystem types based on partition subtype
+ */
+var FilesystemType;
+(function (FilesystemType) {
+    FilesystemType["UNKNOWN"] = "unknown";
+    FilesystemType["LITTLEFS"] = "littlefs";
+    FilesystemType["FATFS"] = "fatfs";
+    FilesystemType["SPIFFS"] = "spiffs";
+})(FilesystemType || (FilesystemType = {}));
+/**
+ * Detect filesystem type from partition information
+ * Note: This only provides a hint. LittleFS is often stored in SPIFFS partitions (0x82).
+ * Use detectFilesystemFromImage() for accurate detection.
+ */
+function detectFilesystemType(partition) {
+    if (partition.type !== 0x01) {
+        return FilesystemType.UNKNOWN;
+    }
+    switch (partition.subtype) {
+        case 0x81:
+            return FilesystemType.FATFS;
+        case 0x82:
+            return FilesystemType.UNKNOWN;
+        default:
+            return FilesystemType.UNKNOWN;
+    }
+}
+/**
+ * Detect filesystem type from image data
+ * Properly validates LittleFS superblock structure at correct offsets
+ *
+ * @param imageData - Binary filesystem image data
+ * @param chipName - Optional chip name for ESP8266-specific detection (e.g. "ESP8266")
+ */
+function detectFilesystemFromImage(imageData, chipName) {
+    if (imageData.length < 512) {
+        return FilesystemType.UNKNOWN;
+    }
+    // Check for LittleFS superblock at proper offsets
+    // LittleFS superblock structure:
+    // - Offset 0-3: version (4 bytes, little-endian)
+    // - Offset 4-7: CRC/flags (4 bytes)
+    // - Offset 8-15: "littlefs" magic string (8 bytes ASCII)
+    // - Offset 16+: additional metadata
+    // The superblock is at block 0 and mirrored at block 1
+    // Block size is determined by the distance between mirrored superblocks
+    // Use chip-specific block sizes
+    const isESP8266 = chipName === null || chipName === void 0 ? void 0 : chipName.toUpperCase().includes("ESP8266");
+    const blockSizes = isESP8266
+        ? ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES
+        : LITTLEFS_BLOCK_SIZE_CANDIDATES;
+    for (const blockSize of blockSizes) {
+        // Check first two blocks (superblock is mirrored)
+        for (let blockIndex = 0; blockIndex < 2; blockIndex++) {
+            const superblockOffset = blockIndex * blockSize;
+            if (superblockOffset + 20 > imageData.length) {
+                continue;
+            }
+            // Check for "littlefs" magic at offset 8 of superblock
+            const magicOffset = superblockOffset + 8;
+            if (magicOffset + 8 <= imageData.length) {
+                const magicStr = String.fromCharCode(imageData[magicOffset], imageData[magicOffset + 1], imageData[magicOffset + 2], imageData[magicOffset + 3], imageData[magicOffset + 4], imageData[magicOffset + 5], imageData[magicOffset + 6], imageData[magicOffset + 7]);
+                if (magicStr === "littlefs") {
+                    // Found valid LittleFS superblock with magic string
+                    // Validate version field to avoid false positives (at offset 16)
+                    const versionOffset = superblockOffset + 16;
+                    const version = imageData[versionOffset] |
+                        (imageData[versionOffset + 1] << 8) |
+                        (imageData[versionOffset + 2] << 16) |
+                        (imageData[versionOffset + 3] << 24);
+                    // Version must be non-zero and not erased flash (0xFFFFFFFF)
+                    // Use unsigned comparison
+                    if (version !== 0 && (version >>> 0) !== 0xFFFFFFFF) {
+                        return FilesystemType.LITTLEFS;
+                    }
+                }
+            }
+        }
+    }
+    // Check for FAT filesystem signatures
+    // FAT can start at offset 0 or 0x1000 (4096 bytes) in ESP8266
+    const fatOffsets = [0, 0x1000];
+    for (const fatOffset of fatOffsets) {
+        if (imageData.length < fatOffset + 512) {
+            continue;
+        }
+        const bootSig = imageData[fatOffset + 510] | (imageData[fatOffset + 511] << 8);
+        if (bootSig === 0xaa55) {
+            const fat16Sig = imageData.length >= fatOffset + 62
+                ? String.fromCharCode(imageData[fatOffset + 54], imageData[fatOffset + 55], imageData[fatOffset + 56], imageData[fatOffset + 57], imageData[fatOffset + 58])
+                : "";
+            const fat32Sig = imageData.length >= fatOffset + 90
+                ? String.fromCharCode(imageData[fatOffset + 82], imageData[fatOffset + 83], imageData[fatOffset + 84], imageData[fatOffset + 85], imageData[fatOffset + 86])
+                : "";
+            if (fat16Sig.startsWith("FAT") || fat32Sig.startsWith("FAT")) {
+                return FilesystemType.FATFS;
+            }
+        }
+    }
+    // Check for SPIFFS magic (0x20140529)
+    if (imageData.length >= 4) {
+        const spiffsMagic = imageData[0] |
+            (imageData[1] << 8) |
+            (imageData[2] << 16) |
+            (imageData[3] << 24);
+        if (spiffsMagic === 0x20140529) {
+            return FilesystemType.SPIFFS;
+        }
+    }
+    // Check for SPIFFS filesystem using pattern detection
+    if (detectSPIFFSPatterns(imageData)) {
+        return FilesystemType.SPIFFS;
+    }
+    return FilesystemType.UNKNOWN;
+}
+/**
+ * Get appropriate block size for filesystem type and chip
+ */
+function getDefaultBlockSize(fsType, chipName) {
+    const isESP8266 = chipName === null || chipName === void 0 ? void 0 : chipName.toUpperCase().includes("ESP8266");
+    switch (fsType) {
+        case FilesystemType.FATFS:
+            return FATFS_DEFAULT_BLOCK_SIZE;
+        case FilesystemType.LITTLEFS:
+            return isESP8266
+                ? ESP8266_LITTLEFS_BLOCK_SIZE
+                : LITTLEFS_DEFAULT_BLOCK_SIZE;
+        default:
+            return isESP8266 ? ESP8266_LITTLEFS_BLOCK_SIZE : 4096;
+    }
+}
+/**
+ * Get block size candidates for filesystem type and chip
+ */
+function getBlockSizeCandidates(fsType, chipName) {
+    const isESP8266 = chipName === null || chipName === void 0 ? void 0 : chipName.toUpperCase().includes("ESP8266");
+    switch (fsType) {
+        case FilesystemType.FATFS:
+            return FATFS_BLOCK_SIZE_CANDIDATES;
+        case FilesystemType.LITTLEFS:
+            return isESP8266
+                ? ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES
+                : LITTLEFS_BLOCK_SIZE_CANDIDATES;
+        default:
+            return isESP8266
+                ? ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES
+                : [4096, 2048, 1024, 512];
+    }
+}
+
+/**
+ * ESP32 Partition Table Parser
+ * Based on ESP-IDF partition table format
+ */
+// Partition types
+const PARTITION_TYPES = {
+    0x00: "app",
+    0x01: "data",
+};
+// App subtypes
+const APP_SUBTYPES = {
+    0x00: "factory",
+    0x10: "ota_0",
+    0x11: "ota_1",
+    0x12: "ota_2",
+    0x13: "ota_3",
+    0x14: "ota_4",
+    0x15: "ota_5",
+    0x16: "ota_6",
+    0x17: "ota_7",
+    0x18: "ota_8",
+    0x19: "ota_9",
+    0x1a: "ota_10",
+    0x1b: "ota_11",
+    0x1c: "ota_12",
+    0x1d: "ota_13",
+    0x1e: "ota_14",
+    0x1f: "ota_15",
+    0x20: "test",
+};
+// Data subtypes
+const DATA_SUBTYPES = {
+    0x00: "ota",
+    0x01: "phy",
+    0x02: "nvs",
+    0x03: "coredump",
+    0x04: "nvs_keys",
+    0x05: "efuse",
+    0x80: "esphttpd",
+    0x81: "fat",
+    0x82: "spiffs",
+    0x83: "littlefs",
+};
+const PARTITION_TABLE_OFFSET = 0x8000; // Default partition table offset
+const PARTITION_ENTRY_SIZE = 32;
+const PARTITION_MAGIC = 0x50aa;
+/**
+ * Parse a single partition entry from binary data
+ */
+function parsePartitionEntry(data) {
+    if (data.length < PARTITION_ENTRY_SIZE) {
+        return null;
+    }
+    // Check magic bytes
+    const magic = (data[0] | (data[1] << 8)) & 0xffff;
+    if (magic !== PARTITION_MAGIC) {
+        return null;
+    }
+    const type = data[2];
+    const subtype = data[3];
+    const offset = data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24);
+    const size = data[8] | (data[9] << 8) | (data[10] << 16) | (data[11] << 24);
+    // Name is at offset 12, max 16 bytes, null-terminated
+    let name = "";
+    for (let i = 12; i < 28; i++) {
+        if (data[i] === 0)
+            break;
+        name += String.fromCharCode(data[i]);
+    }
+    const flags = data[28] | (data[29] << 8) | (data[30] << 16) | (data[31] << 24);
+    // Get type and subtype names
+    const typeName = PARTITION_TYPES[type] || `unknown(0x${type.toString(16)})`;
+    let subtypeName = "";
+    if (type === 0x00) {
+        subtypeName = APP_SUBTYPES[subtype] || `unknown(0x${subtype.toString(16)})`;
+    }
+    else if (type === 0x01) {
+        subtypeName =
+            DATA_SUBTYPES[subtype] || `unknown(0x${subtype.toString(16)})`;
+    }
+    else {
+        subtypeName = `0x${subtype.toString(16)}`;
+    }
+    return {
+        name,
+        type,
+        subtype,
+        offset,
+        size,
+        flags,
+        typeName,
+        subtypeName,
+    };
+}
+/**
+ * Parse the entire partition table
+ */
+function parsePartitionTable(data) {
+    const partitions = [];
+    for (let i = 0; i < data.length; i += PARTITION_ENTRY_SIZE) {
+        const entryData = data.slice(i, i + PARTITION_ENTRY_SIZE);
+        const partition = parsePartitionEntry(entryData);
+        if (partition === null) {
+            // End of partition table or invalid entry
+            break;
+        }
+        partitions.push(partition);
+    }
+    return partitions;
+}
+/**
+ * Get the default partition table offset
+ */
+function getPartitionTableOffset() {
+    return PARTITION_TABLE_OFFSET;
+}
+/**
+ * Format size in human-readable format
+ */
+function formatSize(bytes) {
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+    else if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(2)} KB`;
+    }
+    else {
+        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
+}
+
+/**
+ * SPIFFS Build Configuration
+ * Based on ESP-IDF spiffsgen.py
+ */
+const SPIFFS_PH_FLAG_USED_FINAL_INDEX = 0xf8;
+const SPIFFS_PH_FLAG_USED_FINAL = 0xfc;
+const SPIFFS_PH_FLAG_LEN = 1;
+const SPIFFS_PH_IX_SIZE_LEN = 4;
+const SPIFFS_PH_IX_OBJ_TYPE_LEN = 1;
+const SPIFFS_TYPE_FILE = 1;
+// Based on typedefs under spiffs_config.h
+const SPIFFS_OBJ_ID_LEN = 2; // spiffs_obj_id
+const SPIFFS_SPAN_IX_LEN = 2; // spiffs_span_ix
+const SPIFFS_PAGE_IX_LEN = 2; // spiffs_page_ix
+const SPIFFS_BLOCK_IX_LEN = 2; // spiffs_block_ix
+class SpiffsBuildConfig {
+    constructor(options) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+        if (options.blockSize % options.pageSize !== 0) {
+            throw new Error("block size should be a multiple of page size");
+        }
+        this.pageSize = options.pageSize;
+        this.blockSize = options.blockSize;
+        this.objIdLen = (_a = options.objIdLen) !== null && _a !== void 0 ? _a : SPIFFS_OBJ_ID_LEN;
+        this.spanIxLen = (_b = options.spanIxLen) !== null && _b !== void 0 ? _b : SPIFFS_SPAN_IX_LEN;
+        this.packed = (_c = options.packed) !== null && _c !== void 0 ? _c : true;
+        this.aligned = (_d = options.aligned) !== null && _d !== void 0 ? _d : true;
+        this.objNameLen = (_e = options.objNameLen) !== null && _e !== void 0 ? _e : 32;
+        this.metaLen = (_f = options.metaLen) !== null && _f !== void 0 ? _f : 4;
+        this.pageIxLen = (_g = options.pageIxLen) !== null && _g !== void 0 ? _g : SPIFFS_PAGE_IX_LEN;
+        this.blockIxLen = (_h = options.blockIxLen) !== null && _h !== void 0 ? _h : SPIFFS_BLOCK_IX_LEN;
+        this.endianness = (_j = options.endianness) !== null && _j !== void 0 ? _j : "little";
+        this.useMagic = (_k = options.useMagic) !== null && _k !== void 0 ? _k : true;
+        this.useMagicLen = (_l = options.useMagicLen) !== null && _l !== void 0 ? _l : true;
+        this.alignedObjIxTables = (_m = options.alignedObjIxTables) !== null && _m !== void 0 ? _m : false;
+        this.PAGES_PER_BLOCK = Math.floor(this.blockSize / this.pageSize);
+        this.OBJ_LU_PAGES_PER_BLOCK = Math.ceil(((this.blockSize / this.pageSize) * this.objIdLen) / this.pageSize);
+        this.OBJ_USABLE_PAGES_PER_BLOCK =
+            this.PAGES_PER_BLOCK - this.OBJ_LU_PAGES_PER_BLOCK;
+        this.OBJ_LU_PAGES_OBJ_IDS_LIM = Math.floor(this.pageSize / this.objIdLen);
+        this.OBJ_DATA_PAGE_HEADER_LEN =
+            this.objIdLen + this.spanIxLen + SPIFFS_PH_FLAG_LEN;
+        const pad = 4 -
+            (this.OBJ_DATA_PAGE_HEADER_LEN % 4 === 0
+                ? 4
+                : this.OBJ_DATA_PAGE_HEADER_LEN % 4);
+        this.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED = this.OBJ_DATA_PAGE_HEADER_LEN + pad;
+        this.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED_PAD = pad;
+        this.OBJ_DATA_PAGE_CONTENT_LEN =
+            this.pageSize - this.OBJ_DATA_PAGE_HEADER_LEN;
+        this.OBJ_INDEX_PAGES_HEADER_LEN =
+            this.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED +
+                SPIFFS_PH_IX_SIZE_LEN +
+                SPIFFS_PH_IX_OBJ_TYPE_LEN +
+                this.objNameLen +
+                this.metaLen;
+        if (this.alignedObjIxTables) {
+            this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED =
+                (this.OBJ_INDEX_PAGES_HEADER_LEN + SPIFFS_PAGE_IX_LEN - 1) &
+                    -2;
+            this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED_PAD =
+                this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED -
+                    this.OBJ_INDEX_PAGES_HEADER_LEN;
+        }
+        else {
+            this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED = this.OBJ_INDEX_PAGES_HEADER_LEN;
+            this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED_PAD = 0;
+        }
+        this.OBJ_INDEX_PAGES_OBJ_IDS_HEAD_LIM = Math.floor((this.pageSize - this.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED) /
+            this.blockIxLen);
+        this.OBJ_INDEX_PAGES_OBJ_IDS_LIM = Math.floor((this.pageSize - this.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED) / this.blockIxLen);
+    }
+}
+class SpiffsFullError extends Error {
+    constructor(message = "SPIFFS is full") {
+        super(message);
+        this.name = "SpiffsFullError";
+    }
+}
+
+/**
+ * SPIFFS Page Classes
+ * Based on ESP-IDF spiffsgen.py
+ */
+class SpiffsPage {
+    constructor(bix, buildConfig) {
+        this.buildConfig = buildConfig;
+        this.bix = bix;
+    }
+    pack(format, ...values) {
+        const buffer = new ArrayBuffer(this.calcSize(format));
+        const view = new DataView(buffer);
+        let offset = 0;
+        for (let i = 0; i < format.length; i++) {
+            const type = format[i];
+            const value = values[i];
+            switch (type) {
+                case "B": // unsigned char (1 byte)
+                    view.setUint8(offset, value);
+                    offset += 1;
+                    break;
+                case "H": // unsigned short (2 bytes)
+                    if (this.buildConfig.endianness === "little") {
+                        view.setUint16(offset, value, true);
+                    }
+                    else {
+                        view.setUint16(offset, value, false);
+                    }
+                    offset += 2;
+                    break;
+                case "I": // unsigned int (4 bytes)
+                    if (this.buildConfig.endianness === "little") {
+                        view.setUint32(offset, value, true);
+                    }
+                    else {
+                        view.setUint32(offset, value, false);
+                    }
+                    offset += 4;
+                    break;
+            }
+        }
+        return new Uint8Array(buffer);
+    }
+    unpack(format, data, offset = 0) {
+        const view = new DataView(data.buffer, data.byteOffset + offset);
+        const results = [];
+        let pos = 0;
+        for (const type of format) {
+            switch (type) {
+                case "B":
+                    results.push(view.getUint8(pos));
+                    pos += 1;
+                    break;
+                case "H":
+                    results.push(this.buildConfig.endianness === "little"
+                        ? view.getUint16(pos, true)
+                        : view.getUint16(pos, false));
+                    pos += 2;
+                    break;
+                case "I":
+                    results.push(this.buildConfig.endianness === "little"
+                        ? view.getUint32(pos, true)
+                        : view.getUint32(pos, false));
+                    pos += 4;
+                    break;
+            }
+        }
+        return results;
+    }
+    calcSize(format) {
+        let size = 0;
+        for (const type of format) {
+            switch (type) {
+                case "B":
+                    size += 1;
+                    break;
+                case "H":
+                    size += 2;
+                    break;
+                case "I":
+                    size += 4;
+                    break;
+            }
+        }
+        return size;
+    }
+}
+class SpiffsObjPageWithIdx extends SpiffsPage {
+    constructor(objId, buildConfig) {
+        super(0, buildConfig);
+        this.objId = objId;
+    }
+    getObjId() {
+        return this.objId;
+    }
+}
+class SpiffsObjLuPage extends SpiffsPage {
+    constructor(bix, buildConfig) {
+        super(bix, buildConfig);
+        this.objIdsLimit = this.buildConfig.OBJ_LU_PAGES_OBJ_IDS_LIM;
+        this.objIds = [];
+    }
+    calcMagic(blocksLim) {
+        let magic = 0x20140529 ^ this.buildConfig.pageSize;
+        if (this.buildConfig.useMagicLen) {
+            magic = magic ^ (blocksLim - this.bix);
+        }
+        const mask = (1 << (8 * this.buildConfig.objIdLen)) - 1;
+        return magic & mask;
+    }
+    registerPage(page) {
+        if (this.objIdsLimit <= 0) {
+            throw new SpiffsFullError();
+        }
+        const pageType = page instanceof SpiffsObjIndexPage ? "index" : "data";
+        this.objIds.push([page.getObjId(), pageType]);
+        this.objIdsLimit--;
+    }
+    toBinary() {
+        const img = new Uint8Array(this.buildConfig.pageSize);
+        img.fill(0xff);
+        let offset = 0;
+        for (const [objId, pageType] of this.objIds) {
+            let id = objId;
+            if (pageType === "index") {
+                id ^= 1 << (this.buildConfig.objIdLen * 8 - 1);
+            }
+            const packed = this.pack(this.buildConfig.objIdLen === 1
+                ? "B"
+                : this.buildConfig.objIdLen === 2
+                    ? "H"
+                    : "I", id);
+            img.set(packed, offset);
+            offset += packed.length;
+        }
+        return img;
+    }
+    magicfy(blocksLim) {
+        const remaining = this.objIdsLimit;
+        const emptyObjId = (1 << (this.buildConfig.objIdLen * 8)) - 1;
+        if (remaining >= 2) {
+            for (let i = 0; i < remaining; i++) {
+                if (i === remaining - 2) {
+                    this.objIds.push([this.calcMagic(blocksLim), "data"]);
+                    break;
+                }
+                else {
+                    this.objIds.push([emptyObjId, "data"]);
+                }
+                this.objIdsLimit--;
+            }
+        }
+    }
+}
+class SpiffsObjIndexPage extends SpiffsObjPageWithIdx {
+    constructor(objId, spanIx, size, name, buildConfig) {
+        super(objId, buildConfig);
+        this.spanIx = spanIx;
+        this.name = name;
+        this.size = size;
+        if (this.spanIx === 0) {
+            this.pagesLim = this.buildConfig.OBJ_INDEX_PAGES_OBJ_IDS_HEAD_LIM;
+        }
+        else {
+            this.pagesLim = this.buildConfig.OBJ_INDEX_PAGES_OBJ_IDS_LIM;
+        }
+        this.pages = [];
+    }
+    registerPage(page) {
+        if (this.pagesLim <= 0) {
+            throw new SpiffsFullError();
+        }
+        this.pages.push(page.offset);
+        this.pagesLim--;
+    }
+    toBinary() {
+        const img = new Uint8Array(this.buildConfig.pageSize);
+        img.fill(0xff);
+        const objId = this.objId ^ (1 << (this.buildConfig.objIdLen * 8 - 1));
+        const format = (this.buildConfig.objIdLen === 1
+            ? "B"
+            : this.buildConfig.objIdLen === 2
+                ? "H"
+                : "I") +
+            (this.buildConfig.spanIxLen === 1
+                ? "B"
+                : this.buildConfig.spanIxLen === 2
+                    ? "H"
+                    : "I") +
+            "B";
+        let offset = 0;
+        const header = this.pack(format, objId, this.spanIx, SPIFFS_PH_FLAG_USED_FINAL_INDEX);
+        img.set(header, offset);
+        offset += header.length;
+        // Add padding
+        offset += this.buildConfig.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED_PAD;
+        // If first index page, add filename, type and size
+        if (this.spanIx === 0) {
+            const sizeType = this.pack("IB", this.size, SPIFFS_TYPE_FILE);
+            img.set(sizeType, offset);
+            offset += sizeType.length;
+            // Write filename with proper null-termination
+            const nameBytes = new TextEncoder().encode(this.name);
+            // Ensure we don't exceed objNameLen
+            const bytesToWrite = Math.min(nameBytes.length, this.buildConfig.objNameLen);
+            img.set(nameBytes.slice(0, bytesToWrite), offset);
+            // The rest is already 0xFF from img.fill(0xff), but SPIFFS expects 0x00 for unused name bytes
+            // Fill remaining name bytes with 0x00
+            for (let i = bytesToWrite; i < this.buildConfig.objNameLen; i++) {
+                img[offset + i] = 0x00;
+            }
+            offset +=
+                this.buildConfig.objNameLen +
+                    this.buildConfig.metaLen +
+                    this.buildConfig.OBJ_INDEX_PAGES_HEADER_LEN_ALIGNED_PAD;
+        }
+        // Add page indices
+        for (const page of this.pages) {
+            // Calculate page index by dividing page offset by page size
+            // pageSize is always a power of 2, so integer division is safe
+            const pageIx = Math.floor(page / this.buildConfig.pageSize);
+            const pageIxPacked = this.pack(this.buildConfig.pageIxLen === 1
+                ? "B"
+                : this.buildConfig.pageIxLen === 2
+                    ? "H"
+                    : "I", pageIx);
+            img.set(pageIxPacked, offset);
+            offset += pageIxPacked.length;
+        }
+        return img;
+    }
+}
+class SpiffsObjDataPage extends SpiffsObjPageWithIdx {
+    constructor(offset, objId, spanIx, contents, buildConfig) {
+        super(objId, buildConfig);
+        this.offset = offset;
+        this.spanIx = spanIx;
+        this.contents = contents;
+    }
+    toBinary() {
+        const img = new Uint8Array(this.buildConfig.pageSize);
+        img.fill(0xff);
+        const format = (this.buildConfig.objIdLen === 1
+            ? "B"
+            : this.buildConfig.objIdLen === 2
+                ? "H"
+                : "I") +
+            (this.buildConfig.spanIxLen === 1
+                ? "B"
+                : this.buildConfig.spanIxLen === 2
+                    ? "H"
+                    : "I") +
+            "B";
+        const header = this.pack(format, this.objId, this.spanIx, SPIFFS_PH_FLAG_USED_FINAL);
+        img.set(header, 0);
+        img.set(this.contents, header.length);
+        return img;
+    }
+}
+
+/**
+ * SPIFFS Block Class
+ * Based on ESP-IDF spiffsgen.py
+ */
+class SpiffsBlock {
+    constructor(bix, buildConfig) {
+        this.buildConfig = buildConfig;
+        this.offset = bix * this.buildConfig.blockSize;
+        this.remainingPages = this.buildConfig.OBJ_USABLE_PAGES_PER_BLOCK;
+        this.pages = [];
+        this.bix = bix;
+        this.luPages = [];
+        for (let i = 0; i < this.buildConfig.OBJ_LU_PAGES_PER_BLOCK; i++) {
+            const page = new SpiffsObjLuPage(this.bix, this.buildConfig);
+            this.luPages.push(page);
+        }
+        this.pages.push(...this.luPages);
+        this.luPageIter = this.luPages[Symbol.iterator]();
+        this.luPage = this.luPageIter.next().value || null;
+        this.curObjIndexSpanIx = 0;
+        this.curObjDataSpanIx = 0;
+        this.curObjId = 0;
+        this.curObjIdxPage = null;
+    }
+    reset() {
+        this.curObjIndexSpanIx = 0;
+        this.curObjDataSpanIx = 0;
+        this.curObjId = 0;
+        this.curObjIdxPage = null;
+    }
+    registerPage(page) {
+        if (page instanceof SpiffsObjDataPage) {
+            if (!this.curObjIdxPage) {
+                throw new Error("No current object index page");
+            }
+            this.curObjIdxPage.registerPage(page);
+        }
+        try {
+            if (!this.luPage) {
+                throw new SpiffsFullError();
+            }
+            this.luPage.registerPage(page);
+        }
+        catch (e) {
+            if (e instanceof SpiffsFullError) {
+                const next = this.luPageIter.next();
+                if (next.done) {
+                    throw new Error("Invalid attempt to add page to a block when there is no more space in lookup");
+                }
+                this.luPage = next.value;
+                this.luPage.registerPage(page);
+            }
+            else {
+                throw e;
+            }
+        }
+        this.pages.push(page);
+    }
+    beginObj(objId, size, name, objIndexSpanIx = 0, objDataSpanIx = 0) {
+        if (this.remainingPages <= 0) {
+            throw new SpiffsFullError();
+        }
+        this.reset();
+        this.curObjId = objId;
+        this.curObjIndexSpanIx = objIndexSpanIx;
+        this.curObjDataSpanIx = objDataSpanIx;
+        const page = new SpiffsObjIndexPage(objId, this.curObjIndexSpanIx, size, name, this.buildConfig);
+        this.registerPage(page);
+        this.curObjIdxPage = page;
+        this.remainingPages--;
+        this.curObjIndexSpanIx++;
+    }
+    updateObj(contents) {
+        if (this.remainingPages <= 0) {
+            throw new SpiffsFullError();
+        }
+        const page = new SpiffsObjDataPage(this.offset + this.pages.length * this.buildConfig.pageSize, this.curObjId, this.curObjDataSpanIx, contents, this.buildConfig);
+        this.registerPage(page);
+        this.curObjDataSpanIx++;
+        this.remainingPages--;
+    }
+    endObj() {
+        this.reset();
+    }
+    isFull() {
+        return this.remainingPages <= 0;
+    }
+    toBinary(blocksLim) {
+        const img = new Uint8Array(this.buildConfig.blockSize);
+        img.fill(0xff);
+        let offset = 0;
+        if (this.buildConfig.useMagic) {
+            for (let idx = 0; idx < this.pages.length; idx++) {
+                const page = this.pages[idx];
+                if (idx === this.buildConfig.OBJ_LU_PAGES_PER_BLOCK - 1) {
+                    if (page instanceof SpiffsObjLuPage) {
+                        page.magicfy(blocksLim);
+                    }
+                }
+                const pageBinary = page.toBinary();
+                img.set(pageBinary, offset);
+                offset += pageBinary.length;
+            }
+        }
+        else {
+            for (const page of this.pages) {
+                const pageBinary = page.toBinary();
+                img.set(pageBinary, offset);
+                offset += pageBinary.length;
+            }
+        }
+        return img;
+    }
+    get currentObjIndexSpanIx() {
+        return this.curObjIndexSpanIx;
+    }
+    get currentObjDataSpanIx() {
+        return this.curObjDataSpanIx;
+    }
+    get currentObjId() {
+        return this.curObjId;
+    }
+    get currentObjIdxPage() {
+        return this.curObjIdxPage;
+    }
+    set currentObjId(value) {
+        this.curObjId = value;
+    }
+    set currentObjIdxPage(value) {
+        this.curObjIdxPage = value;
+    }
+    set currentObjDataSpanIx(value) {
+        this.curObjDataSpanIx = value;
+    }
+    set currentObjIndexSpanIx(value) {
+        this.curObjIndexSpanIx = value;
+    }
+}
+
+/**
+ * SPIFFS Filesystem Implementation
+ * Based on ESP-IDF spiffsgen.py
+ */
+class SpiffsFS {
+    constructor(imgSize, buildConfig) {
+        if (imgSize % buildConfig.blockSize !== 0) {
+            throw new Error("image size should be a multiple of block size");
+        }
+        this.imgSize = imgSize;
+        this.buildConfig = buildConfig;
+        this.blocks = [];
+        this.blocksLim = Math.floor(this.imgSize / this.buildConfig.blockSize);
+        this.remainingBlocks = this.blocksLim;
+        this.curObjId = 1; // starting object id
+    }
+    createBlock() {
+        if (this.isFull()) {
+            throw new SpiffsFullError("the image size has been exceeded");
+        }
+        const block = new SpiffsBlock(this.blocks.length, this.buildConfig);
+        this.blocks.push(block);
+        this.remainingBlocks--;
+        return block;
+    }
+    isFull() {
+        return this.remainingBlocks <= 0;
+    }
+    createFile(imgPath, contents) {
+        if (imgPath.length > this.buildConfig.objNameLen) {
+            throw new Error(`object name '${imgPath}' too long`);
+        }
+        const name = imgPath;
+        let offset = 0;
+        try {
+            const block = this.blocks[this.blocks.length - 1];
+            block.beginObj(this.curObjId, contents.length, name);
+        }
+        catch {
+            const block = this.createBlock();
+            block.beginObj(this.curObjId, contents.length, name);
+        }
+        while (offset < contents.length) {
+            const chunkSize = Math.min(this.buildConfig.OBJ_DATA_PAGE_CONTENT_LEN, contents.length - offset);
+            const contentsChunk = contents.slice(offset, offset + chunkSize);
+            try {
+                const block = this.blocks[this.blocks.length - 1];
+                try {
+                    block.updateObj(contentsChunk);
+                }
+                catch (e) {
+                    if (e instanceof SpiffsFullError) {
+                        if (block.isFull()) {
+                            throw e;
+                        }
+                        // Object index exhausted, write another object index page
+                        block.beginObj(this.curObjId, contents.length, name, block.currentObjIndexSpanIx, block.currentObjDataSpanIx);
+                        continue;
+                    }
+                    throw e;
+                }
+            }
+            catch (e) {
+                if (e instanceof SpiffsFullError) {
+                    // All pages in block exhausted, create new block
+                    const prevBlock = this.blocks[this.blocks.length - 1];
+                    const block = this.createBlock();
+                    block.currentObjId = prevBlock.currentObjId;
+                    block.currentObjIdxPage = prevBlock.currentObjIdxPage;
+                    block.currentObjDataSpanIx = prevBlock.currentObjDataSpanIx;
+                    block.currentObjIndexSpanIx = prevBlock.currentObjIndexSpanIx;
+                    continue;
+                }
+                throw e;
+            }
+            offset += chunkSize;
+        }
+        const block = this.blocks[this.blocks.length - 1];
+        block.endObj();
+        this.curObjId++;
+    }
+    toBinary() {
+        const allBlocks = [];
+        for (const block of this.blocks) {
+            allBlocks.push(block.toBinary(this.blocksLim));
+        }
+        let bix = this.blocks.length;
+        let remaining = this.remainingBlocks;
+        if (this.buildConfig.useMagic) {
+            // Create empty blocks with magic numbers
+            while (remaining > 0) {
+                const block = new SpiffsBlock(bix, this.buildConfig);
+                allBlocks.push(block.toBinary(this.blocksLim));
+                remaining--;
+                bix++;
+            }
+        }
+        else {
+            // Fill remaining space with 0xFF
+            const remainingSize = this.imgSize - allBlocks.length * this.buildConfig.blockSize;
+            if (remainingSize > 0) {
+                const padding = new Uint8Array(remainingSize);
+                padding.fill(0xff);
+                allBlocks.push(padding);
+            }
+        }
+        // Concatenate all blocks
+        const totalSize = allBlocks.reduce((sum, block) => sum + block.length, 0);
+        const img = new Uint8Array(totalSize);
+        let offset = 0;
+        for (const block of allBlocks) {
+            img.set(block, offset);
+            offset += block.length;
+        }
+        return img;
+    }
+    listFiles() {
+        // This would require parsing the blocks - implement in fromBinary
+        throw new Error("listFiles requires fromBinary to be called first");
+    }
+    readFile() {
+        // This would require parsing the blocks - implement in fromBinary
+        throw new Error("readFile requires fromBinary to be called first");
+    }
+    deleteFile() {
+        // SPIFFS doesn't support in-place deletion
+        // Need to recreate filesystem without the file
+        throw new Error("deleteFile not yet implemented - requires filesystem recreation");
+    }
+}
+
+/**
+ * SPIFFS Reader - Parse and extract files from SPIFFS images
+ * Based on ESP-IDF spiffsgen.py extract_files() method
+ */
+class SpiffsReader {
+    constructor(imageData, buildConfig) {
+        this.imageData = imageData;
+        this.buildConfig = buildConfig;
+        this.filesMap = new Map();
+    }
+    unpack(format, data, offset = 0) {
+        const view = new DataView(data.buffer, data.byteOffset + offset);
+        const results = [];
+        let pos = 0;
+        for (const type of format) {
+            switch (type) {
+                case "B":
+                    results.push(view.getUint8(pos));
+                    pos += 1;
+                    break;
+                case "H":
+                    results.push(this.buildConfig.endianness === "little"
+                        ? view.getUint16(pos, true)
+                        : view.getUint16(pos, false));
+                    pos += 2;
+                    break;
+                case "I":
+                    results.push(this.buildConfig.endianness === "little"
+                        ? view.getUint32(pos, true)
+                        : view.getUint32(pos, false));
+                    pos += 4;
+                    break;
+            }
+        }
+        return results;
+    }
+    parse() {
+        const blocksCount = Math.floor(this.imageData.length / this.buildConfig.blockSize);
+        for (let bix = 0; bix < blocksCount; bix++) {
+            const blockOffset = bix * this.buildConfig.blockSize;
+            const blockData = this.imageData.slice(blockOffset, blockOffset + this.buildConfig.blockSize);
+            this.parseBlock(blockData);
+        }
+    }
+    parseBlock(blockData) {
+        // Parse lookup pages to find valid objects
+        for (let pageIdx = 0; pageIdx < this.buildConfig.OBJ_LU_PAGES_PER_BLOCK; pageIdx++) {
+            const luPageOffset = pageIdx * this.buildConfig.pageSize;
+            const luPageData = blockData.slice(luPageOffset, luPageOffset + this.buildConfig.pageSize);
+            // Parse object IDs from lookup page
+            for (let i = 0; i < luPageData.length; i += this.buildConfig.objIdLen) {
+                if (i + this.buildConfig.objIdLen > luPageData.length)
+                    break;
+                const objIdBytes = luPageData.slice(i, i + this.buildConfig.objIdLen);
+                const [objId] = this.unpack(this.buildConfig.objIdLen === 1
+                    ? "B"
+                    : this.buildConfig.objIdLen === 2
+                        ? "H"
+                        : "I", objIdBytes);
+                // Check if it's a valid object (not erased/empty)
+                const emptyValue = (1 << (this.buildConfig.objIdLen * 8)) - 1;
+                if (objId === emptyValue)
+                    continue;
+                // Check if it's an index page (MSB set)
+                const isIndex = (objId & (1 << (this.buildConfig.objIdLen * 8 - 1))) !== 0;
+                const realObjId = objId & ~(1 << (this.buildConfig.objIdLen * 8 - 1));
+                if (isIndex && !this.filesMap.has(realObjId)) {
+                    this.filesMap.set(realObjId, {
+                        name: null,
+                        size: 0,
+                        dataPages: [],
+                    });
+                }
+            }
+        }
+        // Parse actual pages to get file metadata and content
+        for (let pageIdx = this.buildConfig.OBJ_LU_PAGES_PER_BLOCK; pageIdx < this.buildConfig.PAGES_PER_BLOCK; pageIdx++) {
+            const pageOffset = pageIdx * this.buildConfig.pageSize;
+            const pageData = blockData.slice(pageOffset, pageOffset + this.buildConfig.pageSize);
+            this.parsePage(pageData);
+        }
+    }
+    parsePage(pageData) {
+        // Parse page header
+        const headerFormat = (this.buildConfig.objIdLen === 1
+            ? "B"
+            : this.buildConfig.objIdLen === 2
+                ? "H"
+                : "I") +
+            (this.buildConfig.spanIxLen === 1
+                ? "B"
+                : this.buildConfig.spanIxLen === 2
+                    ? "H"
+                    : "I") +
+            "B";
+        const headerSize = this.buildConfig.objIdLen +
+            this.buildConfig.spanIxLen +
+            SPIFFS_PH_FLAG_LEN;
+        if (pageData.length < headerSize)
+            return;
+        const [objId, spanIx, flags] = this.unpack(headerFormat, pageData);
+        // Check for valid page
+        const emptyId = (1 << (this.buildConfig.objIdLen * 8)) - 1;
+        if (objId === emptyId)
+            return;
+        const isIndex = (objId & (1 << (this.buildConfig.objIdLen * 8 - 1))) !== 0;
+        const realObjId = objId & ~(1 << (this.buildConfig.objIdLen * 8 - 1));
+        if (isIndex && flags === SPIFFS_PH_FLAG_USED_FINAL_INDEX) {
+            // Index page - contains file metadata
+            if (!this.filesMap.has(realObjId)) {
+                this.filesMap.set(realObjId, {
+                    name: null,
+                    size: 0,
+                    dataPages: [],
+                });
+            }
+            // Only first index page (span_ix == 0) has filename and size
+            if (spanIx === 0) {
+                this.parseIndexPage(pageData, headerSize, realObjId);
+            }
+        }
+        else if (!isIndex && flags === SPIFFS_PH_FLAG_USED_FINAL) {
+            // Data page - contains file content
+            if (this.filesMap.has(realObjId)) {
+                const contentStart = headerSize;
+                const content = pageData.slice(contentStart, contentStart + this.buildConfig.OBJ_DATA_PAGE_CONTENT_LEN);
+                this.filesMap.get(realObjId).dataPages.push([spanIx, content]);
+            }
+        }
+    }
+    parseIndexPage(pageData, headerSize, objId) {
+        // Skip to size and type fields
+        let offset = headerSize + this.buildConfig.OBJ_DATA_PAGE_HEADER_LEN_ALIGNED_PAD;
+        const sizeTypeFormat = "IB";
+        const sizeTypeSize = SPIFFS_PH_IX_SIZE_LEN + SPIFFS_PH_IX_OBJ_TYPE_LEN;
+        if (offset + sizeTypeSize <= pageData.length) {
+            const [fileSize] = this.unpack(sizeTypeFormat, pageData, offset);
+            offset += sizeTypeSize;
+            // Read filename
+            const nameEnd = offset + this.buildConfig.objNameLen;
+            if (nameEnd <= pageData.length) {
+                const nameBytes = pageData.slice(offset, nameEnd);
+                // Find null terminator
+                const nullPos = nameBytes.indexOf(0);
+                const actualNameBytes = nullPos !== -1 ? nameBytes.slice(0, nullPos) : nameBytes;
+                const filename = new TextDecoder().decode(actualNameBytes);
+                const fileInfo = this.filesMap.get(objId);
+                fileInfo.name = filename;
+                fileInfo.size = fileSize;
+            }
+        }
+    }
+    listFiles() {
+        const files = [];
+        for (const [, fileInfo] of this.filesMap) {
+            if (fileInfo.name === null)
+                continue;
+            // Sort data pages by span index
+            fileInfo.dataPages.sort((a, b) => a[0] - b[0]);
+            // Reconstruct file content
+            const chunks = [];
+            let totalWritten = 0;
+            for (const [, content] of fileInfo.dataPages) {
+                const remaining = fileInfo.size - totalWritten;
+                if (remaining <= 0)
+                    break;
+                const toWrite = Math.min(content.length, remaining);
+                chunks.push(content.slice(0, toWrite));
+                totalWritten += toWrite;
+            }
+            // Concatenate chunks
+            const data = new Uint8Array(totalWritten);
+            let offset = 0;
+            for (const chunk of chunks) {
+                data.set(chunk, offset);
+                offset += chunk.length;
+            }
+            files.push({
+                name: fileInfo.name,
+                size: fileInfo.size,
+                data,
+            });
+        }
+        return files;
+    }
+    readFile(path) {
+        const files = this.listFiles();
+        const file = files.find((f) => f.name === path || f.name === "/" + path);
+        return file ? file.data : null;
+    }
+}
+
+/**
+ * SPIFFS Module Entry Point
+ */
+// Default ESP32 SPIFFS configuration
+const DEFAULT_SPIFFS_CONFIG = {
+    pageSize: 256,
+    blockSize: 4096,
+    objNameLen: 32,
+    metaLen: 4,
+    useMagic: true,
+    useMagicLen: true,
+    alignedObjIxTables: false,
+};
+
+/// <reference types="@types/w3c-web-serial" />
+const connect = async (logger) => {
+    // - Request a port and open a connection.
+    // Try to use requestSerialPort if available (supports WebUSB for Android)
+    let port;
+    const customRequestPort = globalThis.requestSerialPort;
+    if (typeof customRequestPort === "function") {
+        port = await customRequestPort();
+    }
+    else {
+        // Check if Web Serial API is available
+        if (!navigator.serial) {
+            throw new Error("Web Serial API is not supported in this browser. " +
+                "Please use Chrome, Edge, or Opera on desktop, or Chrome on Android. " +
+                "Note: The page must be served over HTTPS or localhost.");
+        }
+        port = await navigator.serial.requestPort();
+    }
+    // Only open if not already open (requestSerialPort may return an opened port)
+    if (!port.readable || !port.writable) {
+        await port.open({ baudRate: ESP_ROM_BAUD });
+    }
+    return new ESPLoader(port, logger);
+};
+const connectWithPort = async (port, logger) => {
+    // Connect using an already opened port (useful for WebUSB wrapper)
+    if (!port) {
+        throw new Error("Port is required");
+    }
+    // Check if port is already open, if not open it
+    if (!port.readable || !port.writable) {
+        await port.open({ baudRate: ESP_ROM_BAUD });
+    }
+    return new ESPLoader(port, logger);
+};
+
+export { CHIP_ERASE_TIMEOUT, CHIP_FAMILY_ESP32, CHIP_FAMILY_ESP32C2, CHIP_FAMILY_ESP32C3, CHIP_FAMILY_ESP32C5, CHIP_FAMILY_ESP32C6, CHIP_FAMILY_ESP32C61, CHIP_FAMILY_ESP32H2, CHIP_FAMILY_ESP32H21, CHIP_FAMILY_ESP32H4, CHIP_FAMILY_ESP32P4, CHIP_FAMILY_ESP32S2, CHIP_FAMILY_ESP32S3, CHIP_FAMILY_ESP32S31, CHIP_FAMILY_ESP8266, DEFAULT_SPIFFS_CONFIG, DEFAULT_TIMEOUT, ERASE_REGION_TIMEOUT_PER_MB, ESP8266_LITTLEFS_BLOCK_SIZE, ESP8266_LITTLEFS_BLOCK_SIZE_CANDIDATES, ESP8266_LITTLEFS_PAGE_SIZE, ESP8266_SPIFFS_BLOCK_SIZE, ESP8266_SPIFFS_PAGE_SIZE, ESPLoader, ESP_CHANGE_BAUDRATE, ESP_CHECKSUM_MAGIC, ESP_ERASE_FLASH, ESP_ERASE_REGION, ESP_FLASH_BEGIN, ESP_FLASH_DATA, ESP_FLASH_DEFL_BEGIN, ESP_FLASH_DEFL_DATA, ESP_FLASH_DEFL_END, ESP_FLASH_END, ESP_GET_SECURITY_INFO, ESP_MEM_BEGIN, ESP_MEM_DATA, ESP_MEM_END, ESP_RAM_BLOCK, ESP_READ_FLASH, ESP_READ_REG, ESP_SPI_ATTACH, ESP_SPI_FLASH_MD5, ESP_SPI_SET_PARAMS, ESP_SYNC, ESP_WRITE_REG, FATFS_BLOCK_SIZE_CANDIDATES, FATFS_DEFAULT_BLOCK_SIZE, FLASH_READ_TIMEOUT, FilesystemType, LITTLEFS_BLOCK_SIZE_CANDIDATES, LITTLEFS_DEFAULT_BLOCK_SIZE, MAX_TIMEOUT, MEM_END_ROM_TIMEOUT, ROM_INVALID_RECV_MSG, SYNC_TIMEOUT, SpiffsBuildConfig, SpiffsFS, SpiffsReader, USB_RAM_BLOCK, connect, connectWithPort, detectFilesystemFromImage, detectFilesystemType, formatMacAddr, formatSize, getBlockSizeCandidates, getDefaultBlockSize, getESP8266FilesystemLayout, getPartitionTableOffset, hexFormatter, parsePartitionTable, scanESP8266Filesystem, sleep, toHex };
