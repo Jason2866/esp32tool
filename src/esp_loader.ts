@@ -804,6 +804,11 @@ export class ESPLoader extends EventTarget {
   // ============================================================================
 
   async setRTS(state: boolean) {
+    // Check if port is open before trying to set signals
+    if (!this.port.writable) {
+      this.logger.debug("Port is closed - skipping setRTS");
+      return;
+    }
     await this.port.setSignals({ requestToSend: state });
     // Work-around for adapters on Windows using the usbser.sys driver:
     // generate a dummy change to DTR so that the set-control-line-state
@@ -814,12 +819,22 @@ export class ESPLoader extends EventTarget {
 
   async setDTR(state: boolean) {
     this.state_DTR = state;
+    // Check if port is open before trying to set signals
+    if (!this.port.writable) {
+      this.logger.debug("Port is closed - skipping setDTR");
+      return;
+    }
     await this.port.setSignals({ dataTerminalReady: state });
   }
 
   async setDTRandRTS(dtr: boolean, rts: boolean) {
     this.state_DTR = dtr;
     this.state_RTS = rts;
+    // Check if port is open before trying to set signals
+    if (!this.port.writable) {
+      this.logger.debug("Port is closed - skipping setDTRandRTS");
+      return;
+    }
     await this.port.setSignals({
       dataTerminalReady: dtr,
       requestToSend: rts,
@@ -917,6 +932,11 @@ export class ESPLoader extends EventTarget {
 
   async setRTSWebUSB(state: boolean) {
     this.state_RTS = state;
+    // Check if port is open before trying to set signals
+    if (!this.port.writable) {
+      this.logger.debug("Port is closed - skipping setRTSWebUSB");
+      return;
+    }
     // Always specify both signals to avoid flipping the other line
     // The WebUSB setSignals() now preserves unspecified signals, but being explicit is safer
     await (this.port as WebUSBSerialPort).setSignals({
@@ -927,6 +947,11 @@ export class ESPLoader extends EventTarget {
 
   async setDTRWebUSB(state: boolean) {
     this.state_DTR = state;
+    // Check if port is open before trying to set signals
+    if (!this.port.writable) {
+      this.logger.debug("Port is closed - skipping setDTRWebUSB");
+      return;
+    }
     // Always specify both signals to avoid flipping the other line
     await (this.port as WebUSBSerialPort).setSignals({
       dataTerminalReady: state,
@@ -937,6 +962,11 @@ export class ESPLoader extends EventTarget {
   async setDTRandRTSWebUSB(dtr: boolean, rts: boolean) {
     this.state_DTR = dtr;
     this.state_RTS = rts;
+    // Check if port is open before trying to set signals
+    if (!this.port.writable) {
+      this.logger.debug("Port is closed - skipping setDTRandRTSWebUSB");
+      return;
+    }
     await (this.port as WebUSBSerialPort).setSignals({
       dataTerminalReady: dtr,
       requestToSend: rts,
@@ -1560,51 +1590,8 @@ export class ESPLoader extends EventTarget {
     // Unlock watchdog registers
     await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
 
-    // Clear force download boot register (if applicable) BEFORE triggering WDT reset
-    // This ensures the chip boots into firmware mode after reset
-    if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
-      try {
-        await this.writeRegister(
-          ESP32S2_RTC_CNTL_OPTION1_REG,
-          0,
-          ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-          0,
-        );
-        this.logger.debug(
-          "Cleared ESP32-S2 force download boot mask before WDT reset",
-        );
-      } catch (err) {
-        this.logger.debug(`Error clearing force download boot mask: ${err}`);
-      }
-    } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
-      try {
-        await this.writeRegister(
-          ESP32S3_RTC_CNTL_OPTION1_REG,
-          0,
-          ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-          0,
-        );
-        this.logger.debug(
-          "Cleared ESP32-S3 force download boot mask before WDT reset",
-        );
-      } catch (err) {
-        this.logger.debug(`Error clearing force download boot mask: ${err}`);
-      }
-    } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-      try {
-        await this.writeRegister(
-          ESP32P4_RTC_CNTL_OPTION1_REG,
-          0,
-          ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-          0,
-        );
-        this.logger.debug(
-          "Cleared ESP32-P4 force download boot mask before WDT reset",
-        );
-      } catch (err) {
-        this.logger.debug(`Error clearing force download boot mask: ${err}`);
-      }
-    }
+    // NOTE: Force download boot register should already be cleared by _clearForceDownloadBootIfNeeded()
+    // before this method is called. We don't clear it again here to avoid redundant operations.
 
     // Set WDT timeout to 2000ms (matches Python esptool)
     await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);
@@ -3120,14 +3107,6 @@ export class ESPLoader extends EventTarget {
       return;
     }
 
-    // Check if device is in JTAG mode and needs reset to boot into firmware
-    const didReconnect = await this._resetToFirmwareIfNeeded();
-
-    // If we reconnected for console, the reader/writer are already released and restarted
-    if (didReconnect) {
-      return;
-    }
-
     // Wait for pending writes to complete
     try {
       await this._writeChain;
@@ -3221,6 +3200,14 @@ export class ESPLoader extends EventTarget {
    * @returns true if port was closed (USB-JTAG), false if port stays open (serial chip)
    */
   public async enterConsoleMode(): Promise<boolean> {
+    // Check if port is open - if not, we need a new port selection
+    if (!this.port.writable || !this.port.readable) {
+      this.logger.debug("Port is not open - port selection needed");
+      // Return true to signal that port selection is needed
+      // The caller should handle port selection and try again
+      return true;
+    }
+
     // Re-detect USB connection type to ensure we have a definitive value
     let isUsbJtag: boolean;
     try {
@@ -3297,104 +3284,155 @@ export class ESPLoader extends EventTarget {
    * Detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
    * @returns true if reconnect was performed, false otherwise
    */
+  /**
+   * @name _clearForceDownloadBootIfNeeded
+   * Read and clear the force download boot flag if it is set
+   * This should ONLY be called when on ROM (not stub) and before WDT reset
+   * Returns true if the flag was cleared, false if it was already clear
+   */
+  private async _clearForceDownloadBootIfNeeded(): Promise<boolean> {
+    try {
+      let regAddr: number;
+      let mask: number;
+      let chipName: string;
+
+      // Get register address and mask for this chip
+      if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+        regAddr = ESP32S2_RTC_CNTL_OPTION1_REG;
+        mask = ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+        chipName = "ESP32-S2";
+      } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+        regAddr = ESP32S3_RTC_CNTL_OPTION1_REG;
+        mask = ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+        chipName = "ESP32-S3";
+      } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+        regAddr = ESP32P4_RTC_CNTL_OPTION1_REG;
+        mask = ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
+        chipName = "ESP32-P4";
+      } else {
+        // Not a chip that needs this
+        return false;
+      }
+
+      // Read current register value
+      const currentValue = await this.readRegister(regAddr);
+      this.logger.debug(
+        `${chipName} force download boot register: 0x${currentValue.toString(16)} (mask: 0x${mask.toString(16)})`,
+      );
+
+      // Check if the flag is set
+      const isFlagSet = (currentValue & mask) !== 0;
+
+      if (isFlagSet) {
+        this.logger.debug(
+          `${chipName} force download boot flag is SET - clearing it`,
+        );
+        // Clear the flag by writing 0 to the masked bits
+        await this.writeRegister(regAddr, 0, mask, 0);
+        this.logger.debug(`${chipName} force download boot flag cleared`);
+        return true;
+      } else {
+        this.logger.debug(
+          `${chipName} force download boot flag is already CLEAR - no action needed`,
+        );
+        return false;
+      }
+    } catch (err) {
+      this.logger.debug(`Error checking/clearing force download flag: ${err}`);
+      return false;
+    }
+  }
+
   private async _resetToFirmwareIfNeeded(): Promise<boolean> {
     try {
+      // Check if port is open - if not, assume device is already in firmware mode
+      if (!this.port.writable || !this.port.readable) {
+        this.logger.debug(
+          "Port is not open - assuming device is already in firmware mode",
+        );
+        return false;
+      }
+
       const isUsingUsbOtg = await this.detectUsbConnectionType();
 
       if (isUsingUsbOtg) {
-        // For USB-OTG devices with WDT reset, ALL register writes must happen on ROM
-        // If we're on stub, we MUST get back to ROM first
+        // For USB-OTG devices, we need to check if force download flag is set
+        // Only if it's set, we need WDT reset (which causes port change)
+        // If it's clear, we can use normal reset (no port change)
 
         if (this.IS_STUB) {
-          this.logger.debug("On stub - need to get back to ROM for WDT reset");
-
-          // SIMPLE APPROACH: Don't close/reopen port, just reset to bootloader
-          // The stub code will be lost on reset, and ROM will take over
+          this.logger.debug("On stub - need to get back to ROM to check flag");
 
           // If we're running at higher baudrate, we need to change back to ROM baudrate
           if (this.currentBaudRate !== ESP_ROM_BAUD) {
             this.logger.debug(
               `Changing baudrate from ${this.currentBaudRate} to ${ESP_ROM_BAUD} for ROM`,
             );
-            await this.reconfigurePort(ESP_ROM_BAUD);
-            this.currentBaudRate = ESP_ROM_BAUD;
+            try {
+              await this.reconfigurePort(ESP_ROM_BAUD);
+              this.currentBaudRate = ESP_ROM_BAUD;
+            } catch (err) {
+              this.logger.debug(`Baudrate change failed: ${err}`);
+              // Continue anyway
+            }
           }
 
           this.logger.debug("Resetting to bootloader (ROM)...");
 
           // Reset to bootloader - this will clear the stub from RAM
-          await this.hardReset(true);
+          try {
+            await this.hardReset(true);
 
-          // Wait for reset to complete
-          await sleep(200);
+            // Wait for reset to complete
+            await sleep(200);
 
-          // Sync with ROM
-          await this.sync();
+            // Sync with ROM
+            await this.sync();
 
-          this.logger.debug("Now on ROM after reset");
+            this.logger.debug("Now on ROM after reset");
 
-          // Clear force download register while on ROM
-          if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
-            try {
-              await this.writeRegister(
-                ESP32S2_RTC_CNTL_OPTION1_REG,
-                0,
-                ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-                0,
-              );
-              this.logger.debug(
-                "Cleared ESP32-S2 force download register on ROM",
-              );
-            } catch (err) {
-              this.logger.debug(`Error clearing register: ${err}`);
-            }
-          } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
-            try {
-              await this.writeRegister(
-                ESP32S3_RTC_CNTL_OPTION1_REG,
-                0,
-                ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-                0,
-              );
-              this.logger.debug(
-                "Cleared ESP32-S3 force download register on ROM",
-              );
-            } catch (err) {
-              this.logger.debug(`Error clearing register: ${err}`);
-            }
-          } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-            try {
-              await this.writeRegister(
-                ESP32P4_RTC_CNTL_OPTION1_REG,
-                0,
-                ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
-                0,
-              );
-              this.logger.debug(
-                "Cleared ESP32-P4 force download register on ROM",
-              );
-            } catch (err) {
-              this.logger.debug(`Error clearing register: ${err}`);
-            }
+            // Mark that we're no longer on stub
+            this.IS_STUB = false;
+          } catch (resetErr) {
+            this.logger.debug(`Reset to ROM failed: ${resetErr}`);
+            // If reset fails, we might already be in firmware mode
+            // In this case, we don't need to do anything - just use normal reset
+            this.logger.debug("Assuming device is already in firmware mode");
+
+            // Release reader/writer before returning
+            await this.releaseReaderWriter();
+            return false; // No port change needed
           }
-
-          // Mark that we're no longer on stub
-          this.IS_STUB = false;
-
-          this.logger.debug("Back on ROM - ready for WDT reset");
+        } else {
+          this.logger.debug("Already on ROM - checking force download flag");
         }
 
-        // Now we're on ROM and can perform WDT reset (which writes registers)
+        // Now check if force download flag is set and clear it if needed
+        const flagWasCleared = await this._clearForceDownloadBootIfNeeded();
+
+        if (flagWasCleared) {
+          this.logger.debug(
+            "Force download flag was cleared - device will boot to firmware after reset",
+          );
+        } else {
+          this.logger.debug(
+            "Force download flag already clear - device will boot to firmware after reset",
+          );
+        }
+
+        // Perform WDT reset BEFORE releasing reader/writer (needs communication)
+        // After WDT reset, the device will reboot into firmware mode
         await this.hardReset(false);
 
-        // After WDT reset, the device will reboot into firmware mode
-        // For USB-OTG devices (ESP32-S2, ESP32-P4), the port will change
-        // USB-JTAG/Serial devices (ESP32-S3, C3, C5, C6) keep the same port
+        // For USB-OTG devices (ESP32-S2, ESP32-P4), the port will change after WDT reset
         const portWillChange =
           (this.chipFamily === CHIP_FAMILY_ESP32S2 && isUsingUsbOtg) ||
           (this.chipFamily === CHIP_FAMILY_ESP32P4 && isUsingUsbOtg);
 
         if (portWillChange) {
+          // Port will change - release reader/writer and let the port become invalid
+          await this.releaseReaderWriter();
+
           this.logger.log(
             `${this.chipName} USB-OTG: Port will change after WDT reset`,
           );
@@ -3413,6 +3451,10 @@ export class ESPLoader extends EventTarget {
 
           // Return true to indicate port selection is needed
           return true;
+        } else {
+          // Port stays the same - release reader/writer so console can use the stream
+          await this.releaseReaderWriter();
+          return false;
         }
       }
     } catch (err) {
