@@ -800,11 +800,6 @@ export class ESPLoader extends EventTarget {
   // ============================================================================
 
   async setRTS(state: boolean) {
-    // Check if port is open before trying to set signals
-    if (!this.port.writable) {
-      this.logger.debug("Port is closed - skipping setRTS");
-      return;
-    }
     await this.port.setSignals({ requestToSend: state });
     // Work-around for adapters on Windows using the usbser.sys driver:
     // generate a dummy change to DTR so that the set-control-line-state
@@ -815,22 +810,12 @@ export class ESPLoader extends EventTarget {
 
   async setDTR(state: boolean) {
     this.state_DTR = state;
-    // Check if port is open before trying to set signals
-    if (!this.port.writable) {
-      this.logger.debug("Port is closed - skipping setDTR");
-      return;
-    }
     await this.port.setSignals({ dataTerminalReady: state });
   }
 
   async setDTRandRTS(dtr: boolean, rts: boolean) {
     this.state_DTR = dtr;
     this.state_RTS = rts;
-    // Check if port is open before trying to set signals
-    if (!this.port.writable) {
-      this.logger.debug("Port is closed - skipping setDTRandRTS");
-      return;
-    }
     await this.port.setSignals({
       dataTerminalReady: dtr,
       requestToSend: rts,
@@ -928,11 +913,6 @@ export class ESPLoader extends EventTarget {
 
   async setRTSWebUSB(state: boolean) {
     this.state_RTS = state;
-    // Check if port is open before trying to set signals
-    if (!this.port.writable) {
-      this.logger.debug("Port is closed - skipping setRTSWebUSB");
-      return;
-    }
     // Always specify both signals to avoid flipping the other line
     // The WebUSB setSignals() now preserves unspecified signals, but being explicit is safer
     await (this.port as WebUSBSerialPort).setSignals({
@@ -943,11 +923,6 @@ export class ESPLoader extends EventTarget {
 
   async setDTRWebUSB(state: boolean) {
     this.state_DTR = state;
-    // Check if port is open before trying to set signals
-    if (!this.port.writable) {
-      this.logger.debug("Port is closed - skipping setDTRWebUSB");
-      return;
-    }
     // Always specify both signals to avoid flipping the other line
     await (this.port as WebUSBSerialPort).setSignals({
       dataTerminalReady: state,
@@ -958,11 +933,6 @@ export class ESPLoader extends EventTarget {
   async setDTRandRTSWebUSB(dtr: boolean, rts: boolean) {
     this.state_DTR = dtr;
     this.state_RTS = rts;
-    // Check if port is open before trying to set signals
-    if (!this.port.writable) {
-      this.logger.debug("Port is closed - skipping setDTRandRTSWebUSB");
-      return;
-    }
     await (this.port as WebUSBSerialPort).setSignals({
       dataTerminalReady: dtr,
       requestToSend: rts,
