@@ -530,7 +530,11 @@ export class ESPLoader extends EventTarget {
     for (let i = 0; i < 4; i++) {
       this._efuses[i] = await this.readRegister(AddrMAC + 4 * i);
     }
-    this.logger.log(`Chip type ${this.chipName}`);
+    const revisionInfo =
+      this.chipRevision !== null && this.chipRevision !== undefined
+        ? ` (revision ${this.chipRevision})`
+        : "";
+    this.logger.log(`Connected to ${this.chipName}${revisionInfo}`);
     this.logger.debug(
       `Bootloader flash offset: 0x${FlAddr.flashOffs.toString(16)}`,
     );
@@ -1511,7 +1515,7 @@ export class ESPLoader extends EventTarget {
           try {
             await Promise.race([syncPromise, timeoutPromise]);
             // Sync succeeded
-            this.logger.log(
+            this.logger.debug(
               `Connected CDC/JTAG successfully with ${strategy.name} reset.`,
             );
             return;
@@ -2221,7 +2225,7 @@ export class ESPLoader extends EventTarget {
       );
     }
 
-    this.logger.log(`Changed baud rate to ${baud}`);
+    this.logger.debug(`Changed baud rate to ${baud}`);
   }
 
   async reconfigurePort(baud: number) {
@@ -2823,7 +2827,7 @@ export class ESPLoader extends EventTarget {
     return status;
   }
   async detectFlashSize() {
-    this.logger.log("Detecting Flash Size");
+    this.logger.debug("Detecting Flash Size");
 
     const flashId = await this.flashId();
     const manufacturer = flashId & 0xff;
@@ -2925,7 +2929,7 @@ export class ESPLoader extends EventTarget {
     const ramBlock = USB_RAM_BLOCK;
 
     // Upload
-    this.logger.log("Uploading stub...");
+    this.logger.debug("Uploading stub...");
     for (const field of ["text", "data"] as const) {
       const fieldData = stub[field];
       const offset = stub[`${field}_start` as "text_start" | "data_start"];
@@ -2949,7 +2953,7 @@ export class ESPLoader extends EventTarget {
     if (pChar != "OHAI") {
       throw new Error("Failed to start stub. Unexpected response: " + pChar);
     }
-    this.logger.log("Stub is now running...");
+    this.logger.debug("Stub is now running...");
     const espStubLoader = new EspStubLoader(this.port, this.logger, this);
 
     // Try to autodetect the flash size.
@@ -3479,10 +3483,9 @@ export class ESPLoader extends EventTarget {
           // Port will change - release reader/writer and let the port become invalid
           await this.releaseReaderWriter();
 
-          this.logger.log(
+          this.logger.debug(
             `${this.chipName} USB-OTG: Port will change after WDT reset`,
           );
-          this.logger.log("Please select the new port for console mode");
 
           // Dispatch event to signal port change
           this.dispatchEvent(
@@ -3760,7 +3763,7 @@ export class ESPLoader extends EventTarget {
       // Detect chip type
       await this.detectChip();
 
-      this.logger.log(`Reconnected to bootloader: ${this.chipName}`);
+      this.logger.debug(`Reconnected to bootloader: ${this.chipName}`);
     } catch (err) {
       // Ensure flag is reset on error
       this._isReconfiguring = false;
@@ -3803,7 +3806,7 @@ export class ESPLoader extends EventTarget {
 
     if (isUsbOtgChip && isUsbJtagOrOtg) {
       // USB-OTG devices: Need to reset to bootloader, which will cause port change
-      this.logger.log(`${this.chipName} USB: Resetting to bootloader mode`);
+      this.logger.debug(`${this.chipName} USB: Resetting to bootloader mode`);
 
       // Perform hardware reset to bootloader (GPIO0=LOW)
       // This will cause the port to change from CDC (firmware) to JTAG (bootloader)
@@ -3821,7 +3824,7 @@ export class ESPLoader extends EventTarget {
       // Wait for reset to complete and port to change
       await sleep(500);
 
-      this.logger.log(
+      this.logger.debug(
         `${this.chipName}: Port changed. Please select the bootloader port.`,
       );
 

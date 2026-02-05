@@ -736,7 +736,7 @@ async function clickConnect() {
     throw err;
   }
 
-  logMsg("Connected to " + esploader.chipName);
+  // logMsg("Connected to " + esploader.chipName);
   logMsg("MAC Address: " + formatMacAddr(esploader.macAddr()));
 
   // Store chip info globally
@@ -934,7 +934,7 @@ async function initConsoleUI() {
   }
   consoleCloseHandler = async () => {
     if (!consoleSwitch.checked) return;
-    debugMsg("Closing console...");
+    logMsg("Closing console");
     consoleSwitch.checked = false;
     saveSetting("console", false);
     await closeConsole();
@@ -1149,8 +1149,8 @@ async function closeConsole() {
       const needsManualReconnect = await espLoaderBeforeConsole.exitConsoleMode();
       
       if (needsManualReconnect) {
-        // ESP32-S2: Port has changed, need to select new port
-        logMsg("ESP32-S2: Port changed - please select the new port");
+        // Port has changed, need to select new port
+        // logMsg("Port changed - please select the new port");
         toggleUIConnected(false);
         espStub = undefined;
         
