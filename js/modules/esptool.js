@@ -7132,7 +7132,7 @@ class ESPLoader extends EventTarget {
         return await this.checkCommand(ESP_MEM_END, data, 0, timeout);
     }
     async runStub(skipFlashDetection = false) {
-        this.logger.debug(`Loading stub for ${this.chipFamily}, revision: ${this.chipRevision}, variant: ${this.chipVariant}`);
+        this.logger.debug(`Loading stub for ${this.chipName}, revision: ${this.chipRevision}`);
         const stub = await getStubCode(this.chipFamily, this.chipRevision);
         // No stub available for this chip, return ROM loader
         if (stub === null) {
@@ -7742,6 +7742,11 @@ class ESPLoader extends EventTarget {
             // Verify port is ready
             if (!this.port.writable || !this.port.readable) {
                 throw new Error("Port not ready after reconnect");
+            }
+            // Power on flash for ESP32-P4 Rev 301 (must be done before loading stub)
+            if (this.chipFamily === CHIP_FAMILY_ESP32P4 &&
+                this.chipRevision === 301) {
+                await this.powerOnFlash();
             }
             // Load stub
             const stubLoader = await this.runStub(true);
