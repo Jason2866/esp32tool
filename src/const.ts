@@ -218,7 +218,12 @@ export const ESP32C5_SPI_MOSI_DLEN_OFFS = 0x24;
 export const ESP32C5_SPI_MISO_DLEN_OFFS = 0x28;
 export const ESP32C5_SPI_W0_OFFS = 0x58;
 export const ESP32C5_UART_DATE_REG_ADDR = 0x6000007c;
+export const ESP32C5_UART_CLKDIV_REG = 0x60000014;
 export const ESP32C5_BOOTLOADER_FLASH_OFFSET = 0x2000;
+// ESP32-C5 Crystal frequency detection registers
+export const ESP32C5_PCR_SYSCLK_CONF_REG = 0x60096110;
+export const ESP32C5_PCR_SYSCLK_XTAL_FREQ_V = 0x7f << 24;
+export const ESP32C5_PCR_SYSCLK_XTAL_FREQ_S = 24;
 // ESP32-C5 USB-JTAG/Serial detection
 export const ESP32C5_UARTDEV_BUF_NO = 0x4085f514; // Variable in ROM .bss which indicates the port in use
 export const ESP32C5_UARTDEV_BUF_NO_USB_JTAG_SERIAL = 3; // The above var when USB-JTAG/Serial is used

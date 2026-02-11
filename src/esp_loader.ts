@@ -82,6 +82,10 @@ import {
   ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG,
   ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG,
   ESP32C5_C6_RTC_CNTL_WDT_WKEY,
+  ESP32C5_UART_CLKDIV_REG,
+  ESP32C5_PCR_SYSCLK_CONF_REG,
+  ESP32C5_PCR_SYSCLK_XTAL_FREQ_V,
+  ESP32C5_PCR_SYSCLK_XTAL_FREQ_S,
   ESP32P4_RTC_CNTL_WDTWPROTECT_REG,
   ESP32P4_RTC_CNTL_WDTCONFIG0_REG,
   ESP32P4_RTC_CNTL_WDTCONFIG1_REG,
@@ -2184,16 +2188,38 @@ export class ESPLoader extends EventTarget {
     return state;
   }
 
+  async getC5CrystalFreqRomExpect(): Promise<number> {
+    const reg = await this.readRegister(ESP32C5_PCR_SYSCLK_CONF_REG);
+    return (
+      (reg & ESP32C5_PCR_SYSCLK_XTAL_FREQ_V) >>> ESP32C5_PCR_SYSCLK_XTAL_FREQ_S
+    );
+  }
+
+  async getC5CrystalFreqDetected(): Promise<number> {
+    const UART_CLKDIV_MASK = 0xfffff;
+    const uartDiv =
+      (await this.readRegister(ESP32C5_UART_CLKDIV_REG)) & UART_CLKDIV_MASK;
+    const estXtal = (ESP_ROM_BAUD * uartDiv) / 1e6;
+    if (estXtal > 45) return 48;
+    if (estXtal > 33) return 40;
+    return 26;
+  }
+
   async setBaudrate(baud: number) {
-    try {
-      // Send ESP_ROM_BAUD(115200) as the old one if running STUB otherwise 0
-      const buffer = pack("<II", baud, this.IS_STUB ? ESP_ROM_BAUD : 0);
-      await this.checkCommand(ESP_CHANGE_BAUDRATE, buffer);
-    } catch (e) {
-      this.logger.error(`Baudrate change error: ${e}`);
-      throw new Error(
-        `Unable to change the baud rate to ${baud}: No response from set baud rate command.`,
-      );
+    const chipFamily = this._parent ? this._parent.chipFamily : this.chipFamily;
+
+    if (!this.IS_STUB && chipFamily === CHIP_FAMILY_ESP32C5) {
+      await this.setBaudrateC5Rom(baud);
+    } else {
+      try {
+        const buffer = pack("<II", baud, this.IS_STUB ? ESP_ROM_BAUD : 0);
+        await this.checkCommand(ESP_CHANGE_BAUDRATE, buffer);
+      } catch (e) {
+        this.logger.error(`Baudrate change error: ${e}`);
+        throw new Error(
+          `Unable to change the baud rate to ${baud}: No response from set baud rate command.`,
+        );
+      }
     }
 
     if (this._parent) {
@@ -2226,6 +2252,33 @@ export class ESPLoader extends EventTarget {
     }
 
     this.logger.debug(`Changed baud rate to ${baud}`);
+  }
+
+  private async setBaudrateC5Rom(baud: number) {
+    const crystalFreqRomExpect = await this.getC5CrystalFreqRomExpect();
+    const crystalFreqDetect = await this.getC5CrystalFreqDetected();
+    this.logger.log(
+      `ROM expects crystal freq: ${crystalFreqRomExpect} MHz, detected ${crystalFreqDetect} MHz.`,
+    );
+
+    let baudRate = baud;
+    if (crystalFreqDetect === 48 && crystalFreqRomExpect === 40) {
+      baudRate = Math.trunc((baud * 40) / 48);
+    } else if (crystalFreqDetect === 40 && crystalFreqRomExpect === 48) {
+      baudRate = Math.trunc((baud * 48) / 40);
+    }
+
+    this.logger.log(`Changing baud rate to ${baudRate}...`);
+    try {
+      const buffer = pack("<II", baudRate, 0);
+      await this.checkCommand(ESP_CHANGE_BAUDRATE, buffer);
+    } catch (e) {
+      this.logger.error(`Baudrate change error: ${e}`);
+      throw new Error(
+        `Unable to change the baud rate to ${baudRate}: No response from set baud rate command.`,
+      );
+    }
+    this.logger.log("Changed.");
   }
 
   async reconfigurePort(baud: number) {
