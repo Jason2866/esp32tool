@@ -58,7 +58,17 @@ import {
   CHIP_DETECT_MAGIC_REG_ADDR,
   CHIP_DETECT_MAGIC_VALUES,
   CHIP_ID_TO_INFO,
+  ESP32_BASEFUSEADDR,
+  ESP32_APB_CTL_DATE_ADDR,
+  ESP32S2_EFUSE_BLOCK1_ADDR,
+  ESP32S3_EFUSE_BLOCK1_ADDR,
+  ESP32C2_EFUSE_BLOCK2_ADDR,
+  ESP32C5_EFUSE_BLOCK1_ADDR,
+  ESP32C6_EFUSE_BLOCK1_ADDR,
+  ESP32C61_EFUSE_BLOCK1_ADDR,
+  ESP32H2_EFUSE_BLOCK1_ADDR,
   ESP32P4_EFUSE_BLOCK1_ADDR,
+  ESP32S31_EFUSE_BLOCK1_ADDR,
   SlipReadError,
   ESP32S2_RTC_CNTL_WDTWPROTECT_REG,
   ESP32S2_RTC_CNTL_WDTCONFIG0_REG,
@@ -561,21 +571,16 @@ export class ESPLoader extends EventTarget {
         this.chipName = chipInfo.name;
         this.chipFamily = chipInfo.family;
 
-        // Get chip revision for ESP32-P4 and ESP32-C3
-        if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-          this.chipRevision = await this.getChipRevision();
-          this.logger.debug(`ESP32-P4 revision: ${this.chipRevision}`);
+        this.chipRevision = await this.getChipRevision();
+        this.logger.debug(`${this.chipName} revision: ${this.chipRevision}`);
 
-          // Set chip variant based on revision
-          if (this.chipRevision >= 300) {
-            this.chipVariant = "rev300";
-          } else {
-            this.chipVariant = "rev0";
-          }
-          this.logger.debug(`ESP32-P4 variant: ${this.chipVariant}`);
-        } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
-          this.chipRevision = await this.getChipRevision();
-          this.logger.debug(`ESP32-C3 revision: ${this.chipRevision}`);
+        if (
+          this.chipFamily === CHIP_FAMILY_ESP32P4 &&
+          this.chipRevision >= 300
+        ) {
+          this.chipVariant = "rev300";
+        } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+          this.chipVariant = "rev0";
         }
 
         this.logger.debug(
@@ -625,17 +630,12 @@ export class ESPLoader extends EventTarget {
     this.chipName = chip.name;
     this.chipFamily = chip.family;
 
-    if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-      this.chipRevision = await this.getChipRevision();
+    this.chipRevision = await this.getChipRevision();
+    this.logger.debug(`${this.chipName} revision: ${this.chipRevision}`);
 
-      if (this.chipRevision >= 300) {
-        this.chipVariant = "rev300";
-      } else {
-        this.chipVariant = "rev0";
-      }
+    if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+      this.chipVariant = this.chipRevision >= 300 ? "rev300" : "rev0";
       this.logger.debug(`ESP32-P4 variant: ${this.chipVariant}`);
-    } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
-      this.chipRevision = await this.getChipRevision();
     }
 
     this.logger.debug(
@@ -643,28 +643,102 @@ export class ESPLoader extends EventTarget {
     );
   }
 
-  /**
-   * Get chip revision for ESP32-P4
-   */
   async getChipRevision(): Promise<number> {
-    if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-      // Read from EFUSE_BLOCK1 to get chip revision
-      // Word 2 contains revision info for ESP32-P4
-      const word2 = await this.readRegister(ESP32P4_EFUSE_BLOCK1_ADDR + 8);
+    let minor = 0;
+    let major = 0;
 
-      // Minor revision: bits [3:0]
-      const minorRev = word2 & 0x0f;
-
-      // Major revision: bits [23] << 2 | bits [5:4]
-      const majorRev = (((word2 >> 23) & 1) << 2) | ((word2 >> 4) & 0x03);
-
-      // Revision is major * 100 + minor
-      return majorRev * 100 + minorRev;
-    } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
-      return await this.getChipRevisionC3();
+    switch (this.chipFamily) {
+      case CHIP_FAMILY_ESP32: {
+        const efuse3 = await this.readRegister(ESP32_BASEFUSEADDR + 4 * 3);
+        const efuse5 = await this.readRegister(ESP32_BASEFUSEADDR + 4 * 5);
+        minor = (efuse5 >> 24) & 0x3;
+        const revBit0 = (efuse3 >> 15) & 0x1;
+        const revBit1 = (efuse5 >> 20) & 0x1;
+        const apb = await this.readRegister(ESP32_APB_CTL_DATE_ADDR);
+        const revBit2 = (apb >> 31) & 0x1;
+        const combined = (revBit2 << 2) | (revBit1 << 1) | revBit0;
+        major =
+          ({ 0: 0, 1: 1, 3: 2, 7: 3 } as Record<number, number>)[combined] ?? 0;
+        break;
+      }
+      case CHIP_FAMILY_ESP32S2: {
+        const w3 = await this.readRegister(ESP32S2_EFUSE_BLOCK1_ADDR + 4 * 3);
+        const w4 = await this.readRegister(ESP32S2_EFUSE_BLOCK1_ADDR + 4 * 4);
+        const hi = (w3 >> 20) & 0x01;
+        const lo = (w4 >> 4) & 0x07;
+        minor = (hi << 3) + lo;
+        major = (w3 >> 18) & 0x03;
+        break;
+      }
+      case CHIP_FAMILY_ESP32S3: {
+        const w3 = await this.readRegister(ESP32S3_EFUSE_BLOCK1_ADDR + 4 * 3);
+        const w5 = await this.readRegister(ESP32S3_EFUSE_BLOCK1_ADDR + 4 * 5);
+        const hi = (w5 >> 23) & 0x01;
+        const lo = (w3 >> 18) & 0x07;
+        minor = (hi << 3) + lo;
+        major = (w5 >> 24) & 0x03;
+        break;
+      }
+      case CHIP_FAMILY_ESP32C2: {
+        const w1 = await this.readRegister(ESP32C2_EFUSE_BLOCK2_ADDR + 4 * 1);
+        minor = (w1 >> 16) & 0x0f;
+        major = (w1 >> 20) & 0x03;
+        break;
+      }
+      case CHIP_FAMILY_ESP32C3: {
+        const w3 = await this.readRegister(ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG);
+        const w5 = await this.readRegister(ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG);
+        const hi = (w5 >> 23) & 0x01;
+        const lo = (w3 >> 18) & 0x07;
+        minor = (hi << 3) + lo;
+        major = (w5 >> 24) & 0x03;
+        break;
+      }
+      case CHIP_FAMILY_ESP32C5: {
+        const w2 = await this.readRegister(ESP32C5_EFUSE_BLOCK1_ADDR + 4 * 2);
+        minor = w2 & 0x0f;
+        major = (w2 >> 4) & 0x03;
+        break;
+      }
+      case CHIP_FAMILY_ESP32C6: {
+        const w3 = await this.readRegister(ESP32C6_EFUSE_BLOCK1_ADDR + 4 * 3);
+        minor = (w3 >> 18) & 0x0f;
+        major = (w3 >> 22) & 0x03;
+        break;
+      }
+      case CHIP_FAMILY_ESP32C61: {
+        const w2 = await this.readRegister(ESP32C61_EFUSE_BLOCK1_ADDR + 4 * 2);
+        minor = w2 & 0x0f;
+        major = (w2 >> 4) & 0x03;
+        break;
+      }
+      case CHIP_FAMILY_ESP32H2: {
+        const w3 = await this.readRegister(ESP32H2_EFUSE_BLOCK1_ADDR + 4 * 3);
+        minor = (w3 >> 18) & 0x07;
+        major = (w3 >> 21) & 0x03;
+        break;
+      }
+      case CHIP_FAMILY_ESP32H4: {
+        break;
+      }
+      case CHIP_FAMILY_ESP32H21: {
+        break;
+      }
+      case CHIP_FAMILY_ESP32P4: {
+        const w2 = await this.readRegister(ESP32P4_EFUSE_BLOCK1_ADDR + 4 * 2);
+        minor = w2 & 0x0f;
+        major = (((w2 >> 23) & 1) << 2) | ((w2 >> 4) & 0x03);
+        break;
+      }
+      case CHIP_FAMILY_ESP32S31: {
+        const w2 = await this.readRegister(ESP32S31_EFUSE_BLOCK1_ADDR + 4 * 2);
+        minor = w2 & 0x0f;
+        major = (w2 >> 4) & 0x03;
+        break;
+      }
     }
 
-    return 0;
+    return major * 100 + minor;
   }
 
   /**
@@ -1568,29 +1642,6 @@ export class ESPLoader extends EventTarget {
    */
   async watchdogReset() {
     await this.rtcWdtResetChipSpecific();
-  }
-
-  /**
-   * Get chip revision for ESP32-C3
-   * Reads from EFUSE registers and calculates revision
-   */
-  async getChipRevisionC3(): Promise<number> {
-    if (this.chipFamily !== CHIP_FAMILY_ESP32C3) {
-      return 0;
-    }
-
-    // Read EFUSE_RD_MAC_SPI_SYS_3_REG (bits [20:18] = lower 3 bits of revision)
-    const word3 = await this.readRegister(ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG);
-    const low = (word3 >> 18) & 0x07;
-
-    // Read EFUSE_RD_MAC_SPI_SYS_5_REG (bits [25:23] = upper 3 bits of revision)
-    const word5 = await this.readRegister(ESP32C3_EFUSE_RD_MAC_SPI_SYS_5_REG);
-    const hi = (word5 >> 23) & 0x07;
-
-    // Combine: upper 3 bits from word5, lower 3 bits from word3
-    const revision = (hi << 3) | low;
-
-    return revision;
   }
 
   /**
