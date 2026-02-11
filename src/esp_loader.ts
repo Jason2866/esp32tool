@@ -112,6 +112,7 @@ import {
 } from "./const";
 import { getStubCode } from "./stubs";
 import { hexFormatter, sleep, slipEncode, toHex } from "./util";
+import { FLASH_MANUFACTURERS, FLASH_DEVICES } from "./flash_jedec";
 import { deflate } from "pako";
 import { pack, unpack } from "./struct";
 
@@ -2936,13 +2937,18 @@ export class ESPLoader extends EventTarget {
     const flashId = await this.flashId();
     const manufacturer = flashId & 0xff;
     const flashIdLowbyte = (flashId >> 16) & 0xff;
+    const deviceTypeByte = (flashId >> 8) & 0xff;
+    const deviceId = (deviceTypeByte << 8) | flashIdLowbyte;
+    const jedecId = (manufacturer << 16) | deviceId;
 
-    this.logger.log(`FlashId: ${toHex(flashId)}`);
-    this.logger.log(`Flash Manufacturer: ${manufacturer.toString(16)}`);
+    const mfrName = FLASH_MANUFACTURERS[manufacturer];
+    const deviceName = FLASH_DEVICES[jedecId];
+
     this.logger.log(
-      `Flash Device: ${((flashId >> 8) & 0xff).toString(
-        16,
-      )}${flashIdLowbyte.toString(16)}`,
+      `Flash Manufacturer: ${mfrName || "Unknown"} (0x${manufacturer.toString(16)})`,
+    );
+    this.logger.log(
+      `Flash Device: ${deviceName || `Unknown (0x${deviceId.toString(16)})`}`,
     );
 
     this.flashSize = DETECTED_FLASH_SIZES[flashIdLowbyte];
