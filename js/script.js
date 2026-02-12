@@ -36,6 +36,7 @@ let espLoaderBeforeConsole = null; // Store original ESPLoader before console
 let chipFamilyBeforeConsole = null; // Store chipFamily before opening console
 let consoleResetHandler = null;
 let consoleCloseHandler = null;
+let consoleBootloaderHandlerModule = null;
 
 // Bootloader detection patterns
 const BOOTLOADER_PATTERNS = [
@@ -1111,7 +1112,10 @@ async function initConsoleUI() {
   // Listen for console bootloader detection events
   // The console detects bootloader patterns in real-time as data arrives
   // and dispatches this event when bootloader is detected
-  const consoleBootloaderHandler = async () => {
+  if (consoleBootloaderHandlerModule) {
+    consoleContainer.removeEventListener('console-bootloader', consoleBootloaderHandlerModule);
+  }
+  consoleBootloaderHandlerModule = async () => {
     logMsg(`⚠️ Console detected bootloader mode - resetting to firmware...`);
     if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
       try {
@@ -1126,7 +1130,7 @@ async function initConsoleUI() {
       }
     }
   };
-  consoleContainer.addEventListener('console-bootloader', consoleBootloaderHandler);
+  consoleContainer.addEventListener('console-bootloader', consoleBootloaderHandlerModule);
   
   logMsg("Console initialized");
   
@@ -1447,6 +1451,20 @@ async function closeConsole() {
         debugMsg("Error disconnecting console: " + err);
       }
       consoleInstance = null;
+    }
+    
+    // Remove console event handlers
+    if (consoleResetHandler) {
+      consoleContainer.removeEventListener('console-reset', consoleResetHandler);
+      consoleResetHandler = null;
+    }
+    if (consoleCloseHandler) {
+      consoleContainer.removeEventListener('console-close', consoleCloseHandler);
+      consoleCloseHandler = null;
+    }
+    if (consoleBootloaderHandlerModule) {
+      consoleContainer.removeEventListener('console-bootloader', consoleBootloaderHandlerModule);
+      consoleBootloaderHandlerModule = null;
     }
     
     // Use esp_loader's exitConsoleMode function
