@@ -906,6 +906,12 @@ async function probePortOutput(port, timeoutMs = 2000) {
       
       if (result && result.timeout) {
         debugMsg(`probePortOutput: timeout after ${Date.now() - startTime}ms`);
+        // Cancel pending read before releasing lock
+        try {
+          await reader.cancel();
+        } catch (e) {
+          // ignore
+        }
         break;
       }
       
@@ -929,6 +935,12 @@ async function probePortOutput(port, timeoutMs = 2000) {
           if (pat.test(collected)) {
 //            debugMsg(`probePortOutput: BOOTLOADER DETECTED with pattern ${pat}`);
 //            debugMsg(`probePortOutput: Full text: "${collected.substring(0, 300)}"`);
+            // Cancel pending read before releasing lock
+            try {
+              await reader.cancel();
+            } catch (e) {
+              // ignore
+            }
             try {
               reader.releaseLock();
             } catch (e) {
@@ -948,6 +960,12 @@ async function probePortOutput(port, timeoutMs = 2000) {
   } catch (e) {
     debugMsg(`probePortOutput: outer error: ${e}`);
   } finally {
+    // Cancel any pending read before releasing lock
+    try {
+      await reader.cancel();
+    } catch (e) {
+      // ignore
+    }
     try {
       reader.releaseLock();
     } catch (e) {
