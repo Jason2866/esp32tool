@@ -182,7 +182,6 @@ export class ESP32ToolConsole {
   async _connect(abortSignal) {
     console.log("Starting console read loop");
 
-    // Check if port.readable is available
     if (!this.port.readable) {
       this.console.addLine("");
       this.console.addLine("");
@@ -195,6 +194,17 @@ export class ESP32ToolConsole {
       return;
     }
 
+    const BOOTLOADER_PATTERNS = [
+      /waiting for download/i,
+      /boot:\s*0x/i,
+      /DOWNLOAD\(/i,
+      /download[_ ]mode/i,
+      /flash read err/i,
+      /ets_main\.c/i,
+    ];
+    let bootloaderDetected = false;
+    let lineCount = 0;
+
     try {
       await this.port.readable
         .pipeThrough(new TextDecoderStream(), {
@@ -206,6 +216,19 @@ export class ESP32ToolConsole {
             write: (chunk) => {
               const cleaned = chunk.replace(/\r\n$/, "\n");
               this.console.addLine(cleaned);
+
+              if (!bootloaderDetected && lineCount < 30) {
+                lineCount++;
+                for (const pat of BOOTLOADER_PATTERNS) {
+                  if (pat.test(cleaned)) {
+                    bootloaderDetected = true;
+                    this.containerElement.dispatchEvent(
+                      new CustomEvent("console-bootloader", { bubbles: true })
+                    );
+                    break;
+                  }
+                }
+              }
             },
           })
         );
@@ -215,7 +238,6 @@ export class ESP32ToolConsole {
         this.console.addLine("Terminal disconnected");
       }
     } catch (e) {
-      // Only log disconnect errors if the abort was NOT intentional
       if (!abortSignal.aborted && !(e instanceof DOMException && e.name === 'AbortError')) {
         this.console.addLine("");
         this.console.addLine("");
