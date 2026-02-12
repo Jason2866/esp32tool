@@ -921,7 +921,7 @@ async function probePortOutput(port, timeoutMs = 2000) {
       if (result && result.value) {
         const decoded = decoder.decode(result.value, { stream: true });
         collected += decoded;
-        debugMsg(`probePortOutput: read ${decoded.length} chars (total: ${collected.length}): "${decoded.replace(/\n/g, '\\n').replace(/\r/g, '\\r').substring(0, 100)}"`);
+//        debugMsg(`probePortOutput: read ${decoded.length} chars (total: ${collected.length}): "${decoded.replace(/\n/g, '\\n').replace(/\r/g, '\\r').substring(0, 100)}"`);
         
         // Check for bootloader patterns
         for (const pat of BOOTLOADER_PATTERNS) {
@@ -1117,7 +1117,6 @@ async function initConsoleUI() {
   logMsg("Console initialized");
   
   // Give device time to start outputting after console initialization
-  logMsg("Waiting for device to initialize...");
   await sleep(1000);
   
   // Function to check console state with retry logic
@@ -1224,8 +1223,7 @@ async function initConsoleUI() {
         }
         return state;
       } else {
-        // state === "output" - device is producing output, likely in firmware mode
-        logMsg("✅ Device is producing output - likely in firmware mode");
+        logMsg("Device is producing output - likely in firmware mode");
         return state;
       }
     }
@@ -1390,12 +1388,12 @@ async function clickConsole() {
           debugMsg(`Port probe (attempt ${attempt}): ${probeState}`);
           
           if (probeState === "bootloader") {
-            logMsg(`⚠️ Device is in bootloader mode (attempt ${attempt})`);
+            logMsg(`Device is in bootloader mode (attempt ${attempt})`);
             logMsg(`Resetting device to firmware mode...`);
             if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
               try {
                 await espLoaderBeforeConsole.resetInConsoleMode();
-                logMsg("✅ Device reset to firmware mode");
+                logMsg("Device reset to firmware mode");
                 // Wait for device to reset
                 await sleep(2000);
                 // If we reset, probe again to check if we're now in firmware mode
