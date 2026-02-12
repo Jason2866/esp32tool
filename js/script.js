@@ -926,8 +926,8 @@ async function probePortOutput(port, timeoutMs = 2000) {
         // Check for bootloader patterns
         for (const pat of BOOTLOADER_PATTERNS) {
           if (pat.test(collected)) {
-            debugMsg(`probePortOutput: BOOTLOADER DETECTED with pattern ${pat}`);
-            debugMsg(`probePortOutput: Full text: "${collected.substring(0, 300)}"`);
+//            debugMsg(`probePortOutput: BOOTLOADER DETECTED with pattern ${pat}`);
+//            debugMsg(`probePortOutput: Full text: "${collected.substring(0, 300)}"`);
             try {
               reader.releaseLock();
             } catch (e) {
@@ -955,11 +955,11 @@ async function probePortOutput(port, timeoutMs = 2000) {
   }
 
   if (collected.length > 0) {
-    debugMsg(`probePortOutput: output (${collected.length} chars): "${collected.substring(0, 200)}"`);
+//    debugMsg(`probePortOutput: output (${collected.length} chars): "${collected.substring(0, 200)}"`);
     // Final check for bootloader patterns
     for (const pat of BOOTLOADER_PATTERNS) {
       if (pat.test(collected)) {
-        debugMsg(`probePortOutput: bootloader detected in final check`);
+//        debugMsg(`probePortOutput: bootloader detected in final check`);
         return "bootloader";
       }
     }
