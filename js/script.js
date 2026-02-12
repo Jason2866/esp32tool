@@ -970,6 +970,52 @@ async function probePortOutput(port, timeoutMs = 2000) {
   return "silent";
 }
 
+/**
+ * Probe port and reset device to firmware mode if in bootloader.
+ * Tries up to 2 times to detect and reset from bootloader mode.
+ * @param {SerialPort} port - The serial port to probe
+ * @param {ESPLoader} espLoader - The ESP loader instance for reset
+ * @returns {Promise<string>} Final state: "firmware", "bootloader", or "silent"
+ */
+async function ensureFirmwareMode(port, espLoader) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const probeState = await probePortOutput(port);
+    debugMsg(`Port probe (attempt ${attempt}): ${probeState}`);
+    
+    if (probeState === "bootloader") {
+      logMsg(`⚠️ Device is in bootloader mode (attempt ${attempt})`);
+      logMsg(`Resetting device to firmware mode...`);
+      if (espLoader && typeof espLoader.resetInConsoleMode === 'function') {
+        try {
+          await espLoader.resetInConsoleMode();
+          logMsg("✅ Device reset to firmware mode");
+          // Wait for device to reset and potentially re-enumerate
+          await sleep(2000);
+          // If we reset, probe again to check if we're now in firmware mode
+          if (attempt < 2) {
+            logMsg("Checking if device is now in firmware mode...");
+            continue;
+          }
+        } catch (err) {
+          errorMsg("❌ Failed to reset to firmware: " + err.message);
+        }
+      } else {
+        errorMsg("❌ Cannot reset device: resetInConsoleMode function not available");
+      }
+      return "bootloader";
+    } else if (probeState === "output") {
+      logMsg("Device is producing output - likely in firmware mode");
+      return "firmware";
+    } else if (probeState === "silent") {
+      logMsg("Device is silent - may be booting or in firmware mode without output");
+      return "silent";
+    }
+  }
+  
+  // Fallback if loop completes without returning
+  return "silent";
+}
+
 async function openConsolePortAndInit(newPort) {
   // Open the port at 115200 for console
   await newPort.open({ baudRate: 115200 });
@@ -987,40 +1033,8 @@ async function openConsolePortAndInit(newPort) {
   debugMsg("Port opened for console at 115200 baud");
   
   // Probe port output to detect bootloader mode before opening console
-  // Try up to 2 times to reset from bootloader to firmware mode
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    const probeState = await probePortOutput(newPort);
-    debugMsg(`Port probe (attempt ${attempt}): ${probeState}`);
-    
-    if (probeState === "bootloader") {
-      logMsg(`⚠️ Device is in bootloader mode (attempt ${attempt})`);
-      logMsg(`Resetting device to firmware mode...`);
-      if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
-        try {
-          await espLoaderBeforeConsole.resetInConsoleMode();
-          logMsg("✅ Device reset to firmware mode");
-          // Wait for device to reset and potentially re-enumerate
-          await sleep(2000);
-          // If we reset, probe again to check if we're now in firmware mode
-          if (attempt < 2) {
-            logMsg("Checking if device is now in firmware mode...");
-            continue;
-          }
-        } catch (err) {
-          errorMsg("❌ Failed to reset to firmware: " + err.message);
-        }
-      } else {
-        errorMsg("❌ Cannot reset device: resetInConsoleMode function not available");
-      }
-      break;
-    } else if (probeState === "output") {
-      logMsg("Device is producing output - likely in firmware mode");
-      break;
-    } else if (probeState === "silent") {
-      logMsg("Device is silent - may be booting or in firmware mode without output");
-      break;
-    }
-  }
+  await ensureFirmwareMode(newPort, espLoaderBeforeConsole);
+
   
   consoleSwitch.checked = true;
   saveSetting("console", true);
@@ -1382,40 +1396,7 @@ async function clickConsole() {
         await sleep(500);
         
         // Probe port output to detect bootloader mode before opening console
-        // Try up to 2 times to reset from bootloader to firmware mode
-        for (let attempt = 1; attempt <= 2; attempt++) {
-          const probeState = await probePortOutput(espStub.port);
-          debugMsg(`Port probe (attempt ${attempt}): ${probeState}`);
-          
-          if (probeState === "bootloader") {
-            logMsg(`Device is in bootloader mode (attempt ${attempt})`);
-            logMsg(`Resetting device to firmware mode...`);
-            if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
-              try {
-                await espLoaderBeforeConsole.resetInConsoleMode();
-                logMsg("Device reset to firmware mode");
-                // Wait for device to reset
-                await sleep(2000);
-                // If we reset, probe again to check if we're now in firmware mode
-                if (attempt < 2) {
-                  logMsg("Checking if device is now in firmware mode...");
-                  continue;
-                }
-              } catch (err) {
-                errorMsg("❌ Failed to reset to firmware: " + err.message);
-              }
-            } else {
-              errorMsg("❌ Cannot reset device: resetInConsoleMode function not available");
-            }
-            break;
-          } else if (probeState === "output") {
-            logMsg("Device is producing output - likely in firmware mode");
-            break;
-          } else if (probeState === "silent") {
-            logMsg("Device is silent - may be booting or in firmware mode without output");
-            break;
-          }
-        }
+        await ensureFirmwareMode(espStub.port, espLoaderBeforeConsole);
         
         // Initialize console UI and handlers
         await initConsoleUI();
