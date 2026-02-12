@@ -3803,6 +3803,8 @@ export class ESPLoader extends EventTarget {
   }
 
   private async _resetToFirmwareIfNeeded(): Promise<boolean> {
+    // Detect if we need WDT reset (USB-JTAG/OTG) or classic reset
+    const isUsbJtagOrOtg = await this.detectUsbConnectionType();
     try {
       // Check if port is open - if not, assume device is already in firmware mode
       if (!this.port.writable || !this.port.readable) {
@@ -3811,9 +3813,6 @@ export class ESPLoader extends EventTarget {
         );
         return false;
       }
-
-      // Detect if we need WDT reset (USB-JTAG/OTG) or classic reset
-      const isUsbJtagOrOtg = await this.detectUsbConnectionType();
 
       if (isUsbJtagOrOtg) {
         // USB-JTAG/OTG: DON'T release reader/writer before WDT reset
@@ -3861,10 +3860,14 @@ export class ESPLoader extends EventTarget {
     } catch (err) {
       this.logger.error(`Reset to firmware mode failed: ${err}`);
 
-      // CRITICAL: For USB-JTAG/OTG, even if reset fails, the port is likely dead
-      // Return true to force port reselection
-      this.logger.debug("Forcing port reselection due to reset failure");
-      return true;
+      // For USB-JTAG/OTG, the port is likely dead after a failed reset
+      // For external serial, the port is usually still fine
+      if (isUsbJtagOrOtg) {
+        this.logger.debug("Forcing port reselection due to USB-JTAG/OTG reset failure");
+        return true;
+      }
+      this.logger.debug("External serial reset failed, but port should still be usable");
+      return false;
     }
   }
 
