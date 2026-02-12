@@ -206,6 +206,9 @@ export class ESP32ToolConsole {
             write: (chunk) => {
               const cleaned = chunk.replace(/\r\n$/, "\n");
               this.console.addLine(cleaned);
+              if (this._onLineCallback) {
+                this._onLineCallback(cleaned);
+              }
             },
           })
         );
@@ -253,6 +256,52 @@ export class ESP32ToolConsole {
     }
     input.value = "";
     input.focus();
+  }
+
+  monitorOutput(timeoutMs = 3000) {
+    return new Promise((resolve) => {
+      const collected = [];
+      let resolved = false;
+
+      const finish = (status) => {
+        if (resolved) return;
+        resolved = true;
+        this._onLineCallback = null;
+        resolve({ status, lines: collected });
+      };
+
+      const BOOTLOADER_PATTERNS = [
+        /waiting for download/i,
+        /boot:\s*0x/i,
+        /download[_ ]mode/i,
+        /flash read err/i,
+        /ets_main\.c/i,
+        /ets [A-Z][a-z]{2}\s/,
+      ];
+
+      this._onLineCallback = (line) => {
+        collected.push(line);
+
+        for (const pat of BOOTLOADER_PATTERNS) {
+          if (pat.test(line)) {
+            finish("bootloader");
+            return;
+          }
+        }
+
+        if (collected.length >= 2) {
+          finish("output");
+        }
+      };
+
+      setTimeout(() => {
+        if (collected.length > 0 && !resolved) {
+          finish("output");
+        } else {
+          finish("silent");
+        }
+      }, timeoutMs);
+    });
   }
 
   clear() {

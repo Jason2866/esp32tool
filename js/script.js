@@ -942,6 +942,33 @@ async function initConsoleUI() {
   consoleContainer.addEventListener('console-close', consoleCloseHandler);
   
   logMsg("Console initialized");
+  
+  // Monitor output to detect device state
+  const monitor = await consoleInstance.monitorOutput(3000);
+  
+  if (monitor.status === "bootloader") {
+    logMsg("Bootloader detected - device is in download mode, resetting to firmware...");
+    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
+      try {
+        await espLoaderBeforeConsole.resetInConsoleMode();
+        logMsg("Device reset to firmware mode");
+      } catch (err) {
+        errorMsg("Failed to reset device to firmware mode: " + err.message);
+      }
+    }
+  } else if (monitor.status === "silent") {
+    logMsg("No output from device - firmware may not produce serial output");
+    // Try a console reset to trigger boot messages
+    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function'
+        && espLoaderBeforeConsole.isConsoleResetSupported()) {
+      try {
+        logMsg("Resetting device to check for output...");
+        await espLoaderBeforeConsole.resetInConsoleMode();
+      } catch (err) {
+        debugMsg("Reset attempt failed: " + err.message);
+      }
+    }
+  }
 }
 
 /**
