@@ -851,6 +851,70 @@ async function clickShowLog() {
  * Helper to open port for console and initialize console UI
  * Avoids code duplication across different console init flows
  */
+async function probePortOutput(port, timeoutMs = 2000) {
+  const BOOTLOADER_PATTERNS = [
+    /waiting for download/i,
+    /boot:\s*0x/i,
+    /DOWNLOAD\(/i,
+    /download[_ ]mode/i,
+    /flash read err/i,
+    /ets_main\.c/i,
+  ];
+
+  if (!port.readable) {
+    return "silent";
+  }
+
+  let reader;
+  try {
+    reader = port.readable.getReader();
+  } catch (e) {
+    debugMsg(`probePortOutput: cannot get reader: ${e}`);
+    return "silent";
+  }
+
+  const decoder = new TextDecoder();
+  let collected = "";
+
+  try {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+
+      const timer = new Promise((resolve) => setTimeout(() => resolve(null), remaining));
+      const readResult = reader.read();
+      const result = await Promise.race([readResult, timer]);
+
+      if (result === null) break;
+      if (result.done) break;
+
+      collected += decoder.decode(result.value, { stream: true });
+
+      for (const pat of BOOTLOADER_PATTERNS) {
+        if (pat.test(collected)) {
+          debugMsg(`probePortOutput: bootloader detected in "${collected.substring(0, 200)}"`);
+          return "bootloader";
+        }
+      }
+    }
+  } catch (e) {
+    debugMsg(`probePortOutput: read error: ${e}`);
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  if (collected.length > 0) {
+    debugMsg(`probePortOutput: output (${collected.length} chars): "${collected.substring(0, 200)}"`);
+    return "output";
+  }
+  return "silent";
+}
+
 async function openConsolePortAndInit(newPort) {
   // Open the port at 115200 for console
   await newPort.open({ baudRate: 115200 });
@@ -867,8 +931,23 @@ async function openConsolePortAndInit(newPort) {
   
   debugMsg("Port opened for console at 115200 baud");
   
-  // Device is already in firmware mode, port is open at 115200
-  // Initialize console directly
+  // Probe port output to detect bootloader mode before opening console
+  const probeState = await probePortOutput(newPort);
+  if (probeState === "bootloader") {
+    logMsg("Device is in bootloader mode - resetting to firmware...");
+    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
+      try {
+        await espLoaderBeforeConsole.resetInConsoleMode();
+        logMsg("Device reset to firmware mode");
+        await sleep(500);
+      } catch (err) {
+        errorMsg("Failed to reset to firmware: " + err.message);
+      }
+    }
+  } else {
+    debugMsg(`Port probe: ${probeState}`);
+  }
+  
   consoleSwitch.checked = true;
   saveSetting("console", true);
   
@@ -945,7 +1024,10 @@ async function initConsoleUI() {
   
   // Wait for device output to arrive, then check what was received
   await sleep(2000);
+  const consoleText = consoleInstance.logs();
+  debugMsg(`Console output check (${consoleText.length} chars): "${consoleText.substring(0, 200)}"`);
   const state = consoleInstance.checkOutputState();
+  debugMsg(`Console state: ${state}`);
   
   if (state === "bootloader") {
     logMsg("Bootloader detected - device is in download mode, resetting to firmware...");
@@ -1115,10 +1197,25 @@ async function clickConsole() {
           return;
         }
         
-        // Wait for:
-        // - Firmware to start after reset
-        // - Port to be ready for new reader
+        // Wait for firmware to start after reset
         await sleep(200);
+        
+        // Probe port output to detect bootloader mode before opening console
+        const probeState = await probePortOutput(espStub.port);
+        if (probeState === "bootloader") {
+          logMsg("Device is in bootloader mode - resetting to firmware...");
+          if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
+            try {
+              await espLoaderBeforeConsole.resetInConsoleMode();
+              logMsg("Device reset to firmware mode");
+              await sleep(500);
+            } catch (err) {
+              errorMsg("Failed to reset to firmware: " + err.message);
+            }
+          }
+        } else {
+          debugMsg(`Port probe: ${probeState}`);
+        }
         
         // Initialize console UI and handlers
         await initConsoleUI();
