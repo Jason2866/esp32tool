@@ -1759,7 +1759,7 @@ export class ESPLoader extends EventTarget {
 
       if (isUsbJtagOrOtg) {
         // USB-JTAG/OTG devices need special handling
-        this.logger.debug("USB-JTAG/OTG detected - using WDT reset strategy");
+        this.logger.debug("USB-JTAG/OTG detected - checking WDT reset support");
 
         // Get detailed USB mode information
         let usbMode: {
@@ -1776,6 +1776,37 @@ export class ESPLoader extends EventTarget {
           // Fall back to generic USB-JTAG/OTG handling
           usbMode = { mode: "usb-jtag-serial", uartNo: 0 };
         }
+
+        // Check if chip supports WDT reset
+        // WDT reset is not needed for ESP32-C3
+        // WDT reset is supported by: ESP32-S2, ESP32-S3, ESP32-C5, ESP32-P4
+        // WDT reset is NOT supported by: ESP32-C6, ESP32-C61, ESP32-H2
+        const supportsWdtReset =
+          this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+          this.chipFamily === CHIP_FAMILY_ESP32S3 ||
+          this.chipFamily === CHIP_FAMILY_ESP32C5 ||
+          this.chipFamily === CHIP_FAMILY_ESP32P4;
+
+        if (!supportsWdtReset) {
+          this.logger.debug(
+            `${this.chipName} does not support WDT reset - using classic reset instead`,
+          );
+
+          // Use classic reset for chips without WDT support
+          if (this.isWebUSB()) {
+            await this.hardResetToFirmwareWebUSB();
+          } else {
+            await this.hardResetToFirmware();
+          }
+
+          this.logger.debug("Classic reset to firmware complete");
+          return false; // Port stays open
+        }
+
+        // WDT reset is supported - proceed with WDT reset logic
+        this.logger.debug(
+          `${this.chipName} supports WDT reset - using WDT reset strategy`,
+        );
 
         // CRITICAL: WDT register writes require ROM (not stub) and baudrate 115200
 
@@ -3863,10 +3894,14 @@ export class ESPLoader extends EventTarget {
       // For USB-JTAG/OTG, the port is likely dead after a failed reset
       // For external serial, the port is usually still fine
       if (isUsbJtagOrOtg) {
-        this.logger.debug("Forcing port reselection due to USB-JTAG/OTG reset failure");
+        this.logger.debug(
+          "Forcing port reselection due to USB-JTAG/OTG reset failure",
+        );
         return true;
       }
-      this.logger.debug("External serial reset failed, but port should still be usable");
+      this.logger.debug(
+        "External serial reset failed, but port should still be usable",
+      );
       return false;
     }
   }
