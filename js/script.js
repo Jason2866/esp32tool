@@ -1091,7 +1091,25 @@ async function initConsoleUI() {
   };
   consoleContainer.addEventListener('console-close', consoleCloseHandler);
   
-  logMsg("Console initialized");
+  // Listen for console bootloader detection events
+  // The console detects bootloader patterns in real-time as data arrives
+  // and dispatches this event when bootloader is detected
+  const consoleBootloaderHandler = async () => {
+    logMsg(`⚠️ Console detected bootloader mode - resetting to firmware...`);
+    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
+      try {
+        await espLoaderBeforeConsole.resetInConsoleMode();
+        logMsg("✅ Device reset to firmware mode");
+        // Clear console to see new output after reset
+        if (consoleInstance && typeof consoleInstance.clear === 'function') {
+          consoleInstance.clear();
+        }
+      } catch (err) {
+        errorMsg("❌ Failed to reset device: " + err.message);
+      }
+    }
+  };
+  consoleContainer.addEventListener('console-bootloader', consoleBootloaderHandler);
   
   logMsg("Console initialized");
   
