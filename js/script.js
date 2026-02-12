@@ -46,6 +46,7 @@ const BOOTLOADER_PATTERNS = [
   /download[_ ]mode/i,
   /flash read err/i,
   /ets_main\.c/i,
+  /ets [A-Z][a-z]{2}\s/,
   /ESP-ROM:/i,
   /rst:0x[0-9a-fA-F]+/i,
   /USB_UART_CHIP_RESET/i,
