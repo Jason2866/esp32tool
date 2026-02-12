@@ -2,6 +2,21 @@ import { ColoredConsole, coloredConsoleStyles } from "./util/console-color.js";
 import { LineBreakTransformer } from "./util/line-break-transformer.js";
 
 export class ESP32ToolConsole {
+  // Bootloader detection patterns
+  static BOOTLOADER_PATTERNS = [
+    /waiting for download/i,
+    /boot:\s*0x/i,
+    /DOWNLOAD\(/i,
+    /download[_ ]mode/i,
+    /flash read err/i,
+    /ets_main\.c/i,
+    /ets [A-Z][a-z]{2}\s/,
+    /ESP-ROM:/i,
+    /rst:0x[0-9a-fA-F]+/i,
+    /USB_UART_CHIP_RESET/i,
+    /Saved PC:/i,
+  ];
+
   constructor(port, containerElement, allowInput = true) {
     this.port = port;
     this.containerElement = containerElement;
@@ -194,18 +209,8 @@ export class ESP32ToolConsole {
       return;
     }
 
-    const BOOTLOADER_PATTERNS = [
-      /waiting for download/i,
-      /boot:\s*0x/i,
-      /DOWNLOAD\(/i,
-      /download[_ ]mode/i,
-      /flash read err/i,
-      /ets_main\.c/i,
-      /ESP-ROM:/i,
-      /rst:0x[0-9a-fA-F]+/i,
-      /USB_UART_CHIP_RESET/i,
-      /Saved PC:/i,
-    ];
+    // Use static BOOTLOADER_PATTERNS defined at class level
+    const BOOTLOADER_PATTERNS = ESP32ToolConsole.BOOTLOADER_PATTERNS;
     let bootloaderDetected = false;
     let lineCount = 0;
 
@@ -287,19 +292,8 @@ export class ESP32ToolConsole {
       return "silent";
     }
 
-    const BOOTLOADER_PATTERNS = [
-      /waiting for download/i,
-      /boot:\s*0x/i,
-      /DOWNLOAD\(/i,
-      /download[_ ]mode/i,
-      /flash read err/i,
-      /ets_main\.c/i,
-      /ets [A-Z][a-z]{2}\s/,
-      /ESP-ROM:/i,
-      /rst:0x[0-9a-fA-F]+/i,
-      /USB_UART_CHIP_RESET/i,
-      /Saved PC:/i,
-    ];
+    // Use static BOOTLOADER_PATTERNS defined at class level
+    const BOOTLOADER_PATTERNS = ESP32ToolConsole.BOOTLOADER_PATTERNS;
 
     for (const pat of BOOTLOADER_PATTERNS) {
       if (pat.test(text)) {

@@ -37,6 +37,20 @@ let chipFamilyBeforeConsole = null; // Store chipFamily before opening console
 let consoleResetHandler = null;
 let consoleCloseHandler = null;
 
+// Bootloader detection patterns
+const BOOTLOADER_PATTERNS = [
+  /waiting for download/i,
+  /boot:\s*0x/i,
+  /DOWNLOAD\(/i,
+  /download[_ ]mode/i,
+  /flash read err/i,
+  /ets_main\.c/i,
+  /ESP-ROM:/i,
+  /rst:0x[0-9a-fA-F]+/i,
+  /USB_UART_CHIP_RESET/i,
+  /Saved PC:/i,
+];
+
 /**
  * Get display name for current filesystem type
  */
@@ -852,18 +866,7 @@ async function clickShowLog() {
  * Avoids code duplication across different console init flows
  */
 async function probePortOutput(port, timeoutMs = 2000) {
-  const BOOTLOADER_PATTERNS = [
-    /waiting for download/i,
-    /boot:\s*0x/i,
-    /DOWNLOAD\(/i,
-    /download[_ ]mode/i,
-    /flash read err/i,
-    /ets_main\.c/i,
-    /ESP-ROM:/i,
-    /rst:0x[0-9a-fA-F]+/i,
-    /USB_UART_CHIP_RESET/i,
-    /Saved PC:/i,
-  ];
+  // Use global BOOTLOADER_PATTERNS defined at top of file
 
   if (!port.readable) {
     debugMsg(`probePortOutput: port not readable`);
@@ -1159,18 +1162,7 @@ async function initConsoleUI() {
           if (directText.length > 0) {
             debugMsg(`Direct console element check: ${directText.length} chars: "${directText.substring(0, 200)}"`);
             // Check for bootloader patterns in direct text
-            const BOOTLOADER_PATTERNS = [
-              /waiting for download/i,
-              /boot:\s*0x/i,
-              /DOWNLOAD\(/i,
-              /download[_ ]mode/i,
-              /flash read err/i,
-              /ets_main\.c/i,
-              /ESP-ROM:/i,
-              /rst:0x[0-9a-fA-F]+/i,
-              /USB_UART_CHIP_RESET/i,
-              /Saved PC:/i,
-            ];
+            // Use global BOOTLOADER_PATTERNS defined at top of file
             for (const pat of BOOTLOADER_PATTERNS) {
               if (pat.test(directText)) {
                 logMsg(`⚠️ Bootloader detected in direct console element (attempt ${attempt})`);
