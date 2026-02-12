@@ -992,48 +992,37 @@ async function probePortOutput(port, timeoutMs = 2000) {
 
 /**
  * Probe port and reset device to firmware mode if in bootloader.
- * Tries up to 2 times to detect and reset from bootloader mode.
  * @param {SerialPort} port - The serial port to probe
  * @param {ESPLoader} espLoader - The ESP loader instance for reset
  * @returns {Promise<string>} Final state: "firmware", "bootloader", or "silent"
  */
 async function ensureFirmwareMode(port, espLoader) {
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    const probeState = await probePortOutput(port);
-    debugMsg(`Port probe (attempt ${attempt}): ${probeState}`);
-    
-    if (probeState === "bootloader") {
-      logMsg(`⚠️ Device is in bootloader mode (attempt ${attempt})`);
-      logMsg(`Resetting device to firmware mode...`);
-      if (espLoader && typeof espLoader.resetInConsoleMode === 'function') {
-        try {
-          await espLoader.resetInConsoleMode();
-          logMsg("✅ Device reset to firmware mode");
-          // Wait for device to reset and potentially re-enumerate
-          await sleep(2000);
-          // If we reset, probe again to check if we're now in firmware mode
-          if (attempt < 2) {
-            logMsg("Checking if device is now in firmware mode...");
-            continue;
-          }
-        } catch (err) {
-          errorMsg("❌ Failed to reset to firmware: " + err.message);
-        }
-      } else {
-        errorMsg("❌ Cannot reset device: resetInConsoleMode function not available");
-      }
-      return "bootloader";
-    } else if (probeState === "output") {
-      logMsg("Device is producing output - likely in firmware mode");
-      return "firmware";
-    } else if (probeState === "silent") {
-      logMsg("Device is silent - may be booting or in firmware mode without output");
-      return "silent";
-    }
-  }
+  const probeState = await probePortOutput(port);
+  debugMsg(`Port probe: ${probeState}`);
   
-  // Fallback if loop completes without returning
-  return "silent";
+  if (probeState === "bootloader") {
+    logMsg(`⚠️ Device is in bootloader mode`);
+    logMsg(`Resetting device to firmware mode...`);
+    if (espLoader && typeof espLoader.resetInConsoleMode === 'function') {
+      try {
+        await espLoader.resetInConsoleMode();
+        logMsg("✅ Device reset to firmware mode");
+        // Wait for device to reset and potentially re-enumerate
+        await sleep(2000);
+      } catch (err) {
+        errorMsg("❌ Failed to reset to firmware: " + err.message);
+      }
+    } else {
+      errorMsg("❌ Cannot reset device: resetInConsoleMode function not available");
+    }
+    return "bootloader";
+  } else if (probeState === "output") {
+    logMsg("Device is producing output - likely in firmware mode");
+    return "firmware";
+  } else {
+    logMsg("Device is silent - may be booting or in firmware mode without output");
+    return "silent";
+  }
 }
 
 async function openConsolePortAndInit(newPort) {
@@ -1156,119 +1145,35 @@ async function initConsoleUI() {
   // Give device time to start outputting after console initialization
   await sleep(1000);
   
-  // Function to check console state with retry logic
-  const checkConsoleStateWithRetry = async (retryCount = 3) => {
-    for (let attempt = 1; attempt <= retryCount; attempt++) {
-      // Wait for device output to arrive - longer wait for first attempt
-      const waitTime = attempt === 1 ? 4000 : 2000;
-      logMsg(`Waiting ${waitTime}ms for device output (attempt ${attempt}/${retryCount})...`);
-      await sleep(waitTime);
-      
-      const consoleText = consoleInstance.logs();
-      debugMsg(`Console output check (${consoleText.length} chars): "${consoleText.substring(0, 200)}"`);
-      const state = consoleInstance.checkOutputState();
-      debugMsg(`Console state: ${state}`);
-      
-      if (state === "bootloader") {
-        logMsg(`⚠️ Bootloader detected (attempt ${attempt}) - device is in download mode`);
-        logMsg(`Resetting device to firmware mode...`);
-        if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
-          try {
-            await espLoaderBeforeConsole.resetInConsoleMode();
-            logMsg("✅ Device reset to firmware mode");
-            // After reset, clear console and wait for new output
-            consoleInstance.clear();
-            logMsg("Waiting for device to boot after reset...");
-            await sleep(3000);
-            continue; // Check again after reset
-          } catch (err) {
-            errorMsg("❌ Failed to reset device to firmware mode: " + err.message);
-            return state; // Return current state on error
-          }
-        } else {
-          errorMsg("❌ Cannot reset device: resetInConsoleMode function not available");
-        }
-        return state;
-      } else if (state === "silent") {
-        // Special case: If console is silent but we suspect bootloader mode,
-        // check if we can see any output in the console element directly
-        const consoleElement = consoleContainer.querySelector('.log');
-        if (consoleElement) {
-          const directText = consoleElement.textContent || consoleElement.innerText || '';
-          if (directText.length > 0) {
-            debugMsg(`Direct console element check: ${directText.length} chars: "${directText.substring(0, 200)}"`);
-            // Check for bootloader patterns in direct text
-            // Use global BOOTLOADER_PATTERNS defined at top of file
-            for (const pat of BOOTLOADER_PATTERNS) {
-              if (pat.test(directText)) {
-                logMsg(`⚠️ Bootloader detected in direct console element (attempt ${attempt})`);
-                logMsg(`Resetting device to firmware mode...`);
-                if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
-                  try {
-                    await espLoaderBeforeConsole.resetInConsoleMode();
-                    logMsg("✅ Device reset to firmware mode");
-                    consoleInstance.clear();
-                    logMsg("Waiting for device to boot after reset...");
-                    await sleep(3000);
-                    continue;
-                  } catch (err) {
-                    errorMsg("❌ Failed to reset device: " + err.message);
-                  }
-                }
-                return "bootloader";
-              }
-            }
-          }
-        }
-        
-        if (attempt < retryCount) {
-          logMsg(`No output from device (attempt ${attempt}) - device may be booting or in bootloader mode`);
-          logMsg(`Trying to reset device to firmware mode...`);
-          if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function'
-              && espLoaderBeforeConsole.isConsoleResetSupported()) {
-            try {
-              await espLoaderBeforeConsole.resetInConsoleMode();
-              logMsg("✅ Device reset to firmware mode");
-              // After reset, clear console and wait for new output
-              consoleInstance.clear();
-              logMsg("Waiting for device to boot after reset...");
-              await sleep(3000);
-              continue; // Check again after reset
-            } catch (err) {
-              debugMsg("Reset attempt failed: " + err.message);
-            }
-          } else {
-            debugMsg("Console reset not supported for this device");
-          }
-        } else {
-          logMsg(`No output from device after ${retryCount} attempts`);
-          logMsg(`Possible reasons:`);
-          logMsg(`1. Device firmware doesn't produce serial output`);
-          logMsg(`2. Device is still in bootloader mode`);
-          logMsg(`3. Serial connection issue`);
-          
-          // Final check: if we still have no output, try one more reset
-          logMsg("Performing final reset attempt...");
-          if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
-            try {
-              await espLoaderBeforeConsole.resetInConsoleMode();
-              logMsg("Final reset completed");
-            } catch (err) {
-              debugMsg("Final reset failed: " + err.message);
-            }
-          }
-        }
-        return state;
-      } else {
-        logMsg("Device is producing output - likely in firmware mode");
-        return state;
-      }
-    }
-    return "silent"; // Default if all retries fail
-  };
+  // Wait for device to initialize and check console state
+  logMsg("Waiting for device to initialize...");
+  await sleep(4000);
   
-  // Check console state with retry logic
-  await checkConsoleStateWithRetry();
+  const consoleText = consoleInstance.logs();
+  debugMsg(`Console output check (${consoleText.length} chars): "${consoleText.substring(0, 200)}"`);
+  const state = consoleInstance.checkOutputState();
+  debugMsg(`Console state: ${state}`);
+  
+  if (state === "bootloader") {
+    logMsg(`⚠️ Bootloader detected - device is in download mode`);
+    logMsg(`Resetting device to firmware mode...`);
+    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
+      try {
+        await espLoaderBeforeConsole.resetInConsoleMode();
+        logMsg("✅ Device reset to firmware mode");
+        consoleInstance.clear();
+      } catch (err) {
+        errorMsg("❌ Failed to reset device to firmware mode: " + err.message);
+      }
+    } else {
+      errorMsg("❌ Cannot reset device: resetInConsoleMode function not available");
+    }
+  } else if (state === "output") {
+    logMsg("✅ Device is producing output - likely in firmware mode");
+  } else {
+    logMsg("Device is silent - may be booting or in firmware mode without output");
+  }
+
 }
 
 /**
