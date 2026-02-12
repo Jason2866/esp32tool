@@ -206,9 +206,6 @@ export class ESP32ToolConsole {
             write: (chunk) => {
               const cleaned = chunk.replace(/\r\n$/, "\n");
               this.console.addLine(cleaned);
-              if (this._onLineCallback) {
-                this._onLineCallback(cleaned);
-              }
             },
           })
         );
@@ -258,57 +255,29 @@ export class ESP32ToolConsole {
     input.focus();
   }
 
-  monitorOutput(timeoutMs = 3000, settleMs = 500) {
-    return new Promise((resolve) => {
-      const collected = [];
-      let resolved = false;
-      let settleTimer = null;
-      let totalTimer = null;
+  checkOutputState() {
+    const text = this.logs();
+    if (!text || text.trim().length === 0) {
+      return "silent";
+    }
 
-      const finish = (status) => {
-        if (resolved) return;
-        resolved = true;
-        this._onLineCallback = null;
-        if (settleTimer) clearTimeout(settleTimer);
-        if (totalTimer) clearTimeout(totalTimer);
-        resolve({ status, lines: collected });
-      };
+    const BOOTLOADER_PATTERNS = [
+      /waiting for download/i,
+      /boot:\s*0x/i,
+      /DOWNLOAD\(/i,
+      /download[_ ]mode/i,
+      /flash read err/i,
+      /ets_main\.c/i,
+      /ets [A-Z][a-z]{2}\s/,
+    ];
 
-      const BOOTLOADER_PATTERNS = [
-        /waiting for download/i,
-        /boot:\s*0x/i,
-        /DOWNLOAD\(/i,
-        /download[_ ]mode/i,
-        /flash read err/i,
-        /ets_main\.c/i,
-        /ets [A-Z][a-z]{2}\s/,
-      ];
+    for (const pat of BOOTLOADER_PATTERNS) {
+      if (pat.test(text)) {
+        return "bootloader";
+      }
+    }
 
-      const checkBootloader = (line) => {
-        for (const pat of BOOTLOADER_PATTERNS) {
-          if (pat.test(line)) return true;
-        }
-        return false;
-      };
-
-      this._onLineCallback = (line) => {
-        collected.push(line);
-
-        if (checkBootloader(line)) {
-          finish("bootloader");
-          return;
-        }
-
-        if (settleTimer) clearTimeout(settleTimer);
-        settleTimer = setTimeout(() => {
-          finish("output");
-        }, settleMs);
-      };
-
-      totalTimer = setTimeout(() => {
-        finish(collected.length > 0 ? "output" : "silent");
-      }, timeoutMs);
-    });
+    return "output";
   }
 
   clear() {

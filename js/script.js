@@ -943,10 +943,11 @@ async function initConsoleUI() {
   
   logMsg("Console initialized");
   
-  // Monitor output to detect device state
-  const monitor = await consoleInstance.monitorOutput(3000);
+  // Wait for device output to arrive, then check what was received
+  await sleep(2000);
+  const state = consoleInstance.checkOutputState();
   
-  if (monitor.status === "bootloader") {
+  if (state === "bootloader") {
     logMsg("Bootloader detected - device is in download mode, resetting to firmware...");
     if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
       try {
@@ -956,9 +957,8 @@ async function initConsoleUI() {
         errorMsg("Failed to reset device to firmware mode: " + err.message);
       }
     }
-  } else if (monitor.status === "silent") {
+  } else if (state === "silent") {
     logMsg("No output from device - firmware may not produce serial output");
-    // Try a console reset to trigger boot messages
     if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function'
         && espLoaderBeforeConsole.isConsoleResetSupported()) {
       try {
