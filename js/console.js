@@ -295,8 +295,13 @@ export class ESP32ToolConsole {
     // Use static BOOTLOADER_PATTERNS defined at class level
     const BOOTLOADER_PATTERNS = ESP32ToolConsole.BOOTLOADER_PATTERNS;
 
+    // Only check the first 30 lines (same as _connect) to avoid false positives
+    // from bootloader patterns appearing later in normal firmware output
+    const lines = text.split('\n');
+    const firstLines = lines.slice(0, 30).join('\n');
+
     for (const pat of BOOTLOADER_PATTERNS) {
-      if (pat.test(text)) {
+      if (pat.test(firstLines)) {
         return "bootloader";
       }
     }
