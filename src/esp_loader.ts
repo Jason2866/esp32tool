@@ -1777,31 +1777,47 @@ export class ESPLoader extends EventTarget {
           usbMode = { mode: "usb-jtag-serial", uartNo: 0 };
         }
 
+        // CRITICAL: WDT register writes require ROM (not stub) and baudrate 115200
+
         // If on stub, need to return to ROM first
         if (this.IS_STUB) {
-          this.logger.debug("On stub - returning to ROM before reset");
+          this.logger.debug("On stub - returning to ROM before WDT reset");
 
           // Change baudrate back to ROM baudrate if needed
           if (this.currentBaudRate !== ESP_ROM_BAUD) {
             this.logger.debug(
               `Changing baudrate from ${this.currentBaudRate} to ${ESP_ROM_BAUD}`,
             );
-            try {
-              await this.reconfigurePort(ESP_ROM_BAUD);
-              this.currentBaudRate = ESP_ROM_BAUD;
-            } catch (err) {
-              this.logger.debug(`Baudrate change failed: ${err}`);
-            }
+            await this.reconfigurePort(ESP_ROM_BAUD);
+            this.currentBaudRate = ESP_ROM_BAUD;
+            this.logger.debug("Baudrate changed to 115200");
           }
+
+          // CRITICAL: Temporarily clear console mode flag so hardReset(true) works
+          const wasInConsoleMode = this._consoleMode;
+          this._consoleMode = false;
 
           // Reset to bootloader (ROM)
           await this.hardReset(true);
           await sleep(200);
 
+          // Restore console mode flag
+          this._consoleMode = wasInConsoleMode;
+
           // Sync with ROM
           await this.sync();
           this.IS_STUB = false;
           this.logger.debug("Now on ROM");
+        } else {
+          // Even if not on stub, ensure baudrate is 115200 for WDT register writes
+          if (this.currentBaudRate !== ESP_ROM_BAUD) {
+            this.logger.debug(
+              `Not on stub, but baudrate is ${this.currentBaudRate} - changing to ${ESP_ROM_BAUD} for WDT reset`,
+            );
+            await this.reconfigurePort(ESP_ROM_BAUD);
+            this.currentBaudRate = ESP_ROM_BAUD;
+            this.logger.debug("Baudrate changed to 115200");
+          }
         }
 
         // Clear force download boot flag if requested (USB-OTG only)
@@ -1816,15 +1832,15 @@ export class ESPLoader extends EventTarget {
         await this.rtcWdtResetChipSpecific();
         this.logger.debug("WDT reset performed - device will boot to firmware");
 
-        // Check if port will change (USB-OTG on ESP32-S2/P4)
+        // Check if port will change after WDT reset
+        // USB-OTG (ESP32-S2/P4): Port always changes
+        // USB-JTAG/Serial (ESP32-S3/C3/C5/C6/C61/H2/P4): Port may change depending on platform
         const portWillChange =
-          usbMode.mode === "usb-otg" &&
-          (this.chipFamily === CHIP_FAMILY_ESP32S2 ||
-            this.chipFamily === CHIP_FAMILY_ESP32P4);
+          usbMode.mode === "usb-otg" || usbMode.mode === "usb-jtag-serial";
 
         if (portWillChange) {
           this.logger.debug(
-            "Port will change after reset - port reselection needed",
+            `Port will change after WDT reset (${usbMode.mode}) - port reselection needed`,
           );
           return true;
         }
@@ -3422,26 +3438,27 @@ export class ESPLoader extends EventTarget {
       this._writer = undefined;
     }
 
-    // Cancel and release reader
+    // Cancel reader - let readLoop's finally block handle releaseLock()
     if (this._reader) {
-      const reader = this._reader;
       try {
         // Suppress disconnect event during console mode switching
         this._suppressDisconnect = true;
-        await reader.cancel();
-        this.logger.debug("Reader cancelled");
+
+        // Cancel will cause readLoop to exit and call releaseLock() in its finally block
+        await this._reader.cancel();
+        this.logger.debug("Reader cancelled - waiting for readLoop to finish");
+
+        // CRITICAL: Wait a bit for readLoop's finally block to complete
+        // The finally block needs time to call releaseLock() and set _reader = undefined
+        // This is much faster than waiting for browser to unlock (just waiting for JS execution)
+        await this.sleep(50);
+
+        this.logger.debug("ReadLoop cleanup should be complete");
       } catch (err) {
         this.logger.debug(`Reader cancel error: ${err}`);
-      } finally {
-        try {
-          reader.releaseLock();
-        } catch (err) {
-          this.logger.debug(`Reader release error: ${err}`);
-        }
       }
-      if (this._reader === reader) {
-        this._reader = undefined;
-      }
+      // Don't call releaseLock() or set _reader to undefined here
+      // Let readLoop's finally block handle it to avoid race conditions
     }
   }
 
@@ -3629,14 +3646,15 @@ export class ESPLoader extends EventTarget {
           `Cannot enter console mode: USB connection type unknown and detection failed: ${err}`,
         );
       }
-      // Set console mode flag
-      this._consoleMode = false;
 
       this.logger.debug(
         `USB detection failed, using cached value: ${this.isUsbJtagOrOtg}`,
       );
       isUsbJtag = this.isUsbJtagOrOtg;
     }
+
+    // Set console mode flag BEFORE any operations
+    this._consoleMode = true;
 
     // Release reader/writer so console can create new ones
     // This is needed for Desktop (Web Serial) to unlock streams
@@ -3654,9 +3672,15 @@ export class ESPLoader extends EventTarget {
       }
 
       // Hardware reset to firmware mode (IO0=HIGH)
+      // Use classic reset, NOT hardReset(false) which might use WDT reset
       try {
-        await this.hardReset(false);
-        this.logger.log("Device reset to firmware mode");
+        if (this.isWebUSB()) {
+          await this.hardResetToFirmwareWebUSB();
+          this.logger.debug("Device reset to firmware mode (WebUSB)");
+        } else {
+          await this.hardResetToFirmware();
+          this.logger.debug("Device reset to firmware mode");
+        }
       } catch (err) {
         this.logger.debug(`Could not reset device: ${err}`);
       }
@@ -3668,11 +3692,41 @@ export class ESPLoader extends EventTarget {
           // without closing the port (important after hardware reset)
           await (this.port as any).recreateStreams();
           this.logger.debug("WebUSB streams recreated for console mode");
+
+          // Wait for streams to be available
+          let retries = 30; // 3 seconds max
+          while (retries > 0 && !this.port.readable) {
+            await this.sleep(100);
+            retries--;
+          }
+
+          if (!this.port.readable) {
+            throw new Error(
+              "Readable stream not available after recreating streams",
+            );
+          }
+
+          this.logger.debug("WebUSB streams are ready for console");
         } catch (err) {
-          // Set console mode flag
+          this.logger.error(`Failed to recreate WebUSB streams: ${err}`);
           this._consoleMode = false;
-          this.logger.debug(`Failed to recreate WebUSB streams: ${err}`);
+          throw err;
         }
+      } else {
+        // For Web Serial (Desktop), wait for streams to be ready after reset
+        let retries = 20; // 2 seconds max
+        while (retries > 0 && !this.port.readable) {
+          await this.sleep(100);
+          retries--;
+        }
+
+        if (!this.port.readable) {
+          this.logger.error("Readable stream not available after reset");
+          this._consoleMode = false;
+          throw new Error("Readable stream not available after reset");
+        }
+
+        this.logger.debug("Port streams are ready for console");
       }
 
       // Set console mode flag
@@ -3758,15 +3812,30 @@ export class ESPLoader extends EventTarget {
         return false;
       }
 
+      // Detect if we need WDT reset (USB-JTAG/OTG) or classic reset
+      const isUsbJtagOrOtg = await this.detectUsbConnectionType();
+
+      if (isUsbJtagOrOtg) {
+        // USB-JTAG/OTG: DON'T release reader/writer before WDT reset
+        // The WDT reset needs active communication to send register write commands
+        // The port will close automatically after the WDT reset anyway
+        this.logger.debug(
+          "USB-JTAG/OTG: Keeping reader/writer active for WDT reset",
+        );
+      } else {
+        // External serial chip: Release reader/writer before classic reset
+        await this.releaseReaderWriter();
+        this.logger.debug(
+          "External serial: Reader/writer released before reset",
+        );
+      }
+
       // Use the new resetToFirmwareMode method which handles all the logic
       const portWillChange = await this.resetToFirmwareMode(true);
 
       if (portWillChange) {
-        // Port will change - release reader/writer and let the port become invalid
-        await this.releaseReaderWriter();
-
         this.logger.debug(
-          `${this.chipName} USB-OTG: Port will change after WDT reset`,
+          `${this.chipName}: Port will change after WDT reset - user must reselect port`,
         );
 
         // Dispatch event to signal port change
@@ -3782,15 +3851,21 @@ export class ESPLoader extends EventTarget {
 
         return true;
       } else {
-        // Port stays the same - release reader/writer so console can use the stream
-        await this.releaseReaderWriter();
+        // Port stays the same - release reader/writer now if not already done
+        if (isUsbJtagOrOtg) {
+          await this.releaseReaderWriter();
+          this.logger.debug("Reader/writer released after reset");
+        }
         return false;
       }
     } catch (err) {
-      this.logger.debug(`Could not reset device to firmware mode: ${err}`);
-      // Continue anyway - console mode might still work
+      this.logger.error(`Reset to firmware mode failed: ${err}`);
+
+      // CRITICAL: For USB-JTAG/OTG, even if reset fails, the port is likely dead
+      // Return true to force port reselection
+      this.logger.debug("Forcing port reselection due to reset failure");
+      return true;
     }
-    return false;
   }
 
   /**
