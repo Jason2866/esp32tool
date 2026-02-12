@@ -851,7 +851,7 @@ async function clickShowLog() {
  * Helper to open port for console and initialize console UI
  * Avoids code duplication across different console init flows
  */
-async function probePortOutput(port, timeoutMs = 4000) {
+async function probePortOutput(port, timeoutMs = 2000) {
   const BOOTLOADER_PATTERNS = [
     /waiting for download/i,
     /boot:\s*0x/i,
@@ -880,69 +880,69 @@ async function probePortOutput(port, timeoutMs = 4000) {
 
   const decoder = new TextDecoder();
   let collected = "";
-  let lastReadTime = Date.now();
 
   try {
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) break;
-
-      // Use a shorter timeout for each read attempt
-      const readTimeout = Math.min(500, remaining);
-      const timer = new Promise((resolve) => setTimeout(() => resolve(null), readTimeout));
-      const readResult = reader.read();
-      
-      let result;
+    // Try to read with a simple timeout
+    const readWithTimeout = async () => {
       try {
-        result = await Promise.race([readResult, timer]);
+        const readPromise = reader.read();
+        const timeoutPromise = new Promise(resolve => 
+          setTimeout(() => resolve({ timeout: true }), timeoutMs)
+        );
+        
+        return await Promise.race([readPromise, timeoutPromise]);
       } catch (e) {
-        debugMsg(`probePortOutput: read promise error: ${e}`);
+        return { error: e };
+      }
+    };
+
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeoutMs) {
+      const result = await readWithTimeout();
+      
+      if (result && result.timeout) {
+        debugMsg(`probePortOutput: timeout after ${Date.now() - startTime}ms`);
         break;
       }
-
-      if (result === null) {
-        // Timer expired, no data available
-        debugMsg(`probePortOutput: read timeout after ${readTimeout}ms`);
-        // Check if we've collected any data so far
-        if (collected.length > 0) {
-          break; // We got some data, stop waiting
-        }
-        // No data yet, continue waiting
-        continue;
+      
+      if (result && result.error) {
+        debugMsg(`probePortOutput: read error: ${result.error}`);
+        break;
       }
       
-      if (result.done) {
+      if (result && result.done) {
         debugMsg(`probePortOutput: reader done`);
         break;
       }
-
-      const decoded = decoder.decode(result.value, { stream: true });
-      collected += decoded;
-      lastReadTime = Date.now();
-      debugMsg(`probePortOutput: read ${decoded.length} chars (total: ${collected.length}): "${decoded.replace(/\n/g, '\\n').replace(/\r/g, '\\r').substring(0, 100)}"`);
-
-      // Check for bootloader patterns
-      for (const pat of BOOTLOADER_PATTERNS) {
-        if (pat.test(collected)) {
-          debugMsg(`probePortOutput: bootloader detected with pattern ${pat} in "${collected.substring(0, 200)}"`);
-          try {
-            reader.releaseLock();
-          } catch (e) {
-            // ignore
+      
+      if (result && result.value) {
+        const decoded = decoder.decode(result.value, { stream: true });
+        collected += decoded;
+        debugMsg(`probePortOutput: read ${decoded.length} chars (total: ${collected.length}): "${decoded.replace(/\n/g, '\\n').replace(/\r/g, '\\r').substring(0, 100)}"`);
+        
+        // Check for bootloader patterns
+        for (const pat of BOOTLOADER_PATTERNS) {
+          if (pat.test(collected)) {
+            debugMsg(`probePortOutput: BOOTLOADER DETECTED with pattern ${pat}`);
+            debugMsg(`probePortOutput: Full text: "${collected.substring(0, 300)}"`);
+            try {
+              reader.releaseLock();
+            } catch (e) {
+              // ignore
+            }
+            return "bootloader";
           }
-          return "bootloader";
         }
+        
+        // If we got data, continue reading quickly
+        continue;
       }
       
-      // If we've collected a significant amount of data and it's not bootloader, assume it's output
-      if (collected.length > 100) {
-        debugMsg(`probePortOutput: collected ${collected.length} chars, assuming normal output`);
-        break;
-      }
+      // No data, break
+      break;
     }
   } catch (e) {
-    debugMsg(`probePortOutput: read error: ${e}`);
+    debugMsg(`probePortOutput: outer error: ${e}`);
   } finally {
     try {
       reader.releaseLock();
@@ -953,16 +953,17 @@ async function probePortOutput(port, timeoutMs = 4000) {
 
   if (collected.length > 0) {
     debugMsg(`probePortOutput: output (${collected.length} chars): "${collected.substring(0, 200)}"`);
-    // Final check for bootloader patterns in all collected data
+    // Final check for bootloader patterns
     for (const pat of BOOTLOADER_PATTERNS) {
       if (pat.test(collected)) {
-        debugMsg(`probePortOutput: bootloader detected in final check with pattern ${pat}`);
+        debugMsg(`probePortOutput: bootloader detected in final check`);
         return "bootloader";
       }
     }
     return "output";
   }
-  debugMsg(`probePortOutput: no output collected after ${timeoutMs}ms`);
+  
+  debugMsg(`probePortOutput: silent (no data)`);
   return "silent";
 }
 
@@ -1132,6 +1133,48 @@ async function initConsoleUI() {
         }
         return state;
       } else if (state === "silent") {
+        // Special case: If console is silent but we suspect bootloader mode,
+        // check if we can see any output in the console element directly
+        const consoleElement = consoleContainer.querySelector('.log');
+        if (consoleElement) {
+          const directText = consoleElement.textContent || consoleElement.innerText || '';
+          if (directText.length > 0) {
+            debugMsg(`Direct console element check: ${directText.length} chars: "${directText.substring(0, 200)}"`);
+            // Check for bootloader patterns in direct text
+            const BOOTLOADER_PATTERNS = [
+              /waiting for download/i,
+              /boot:\s*0x/i,
+              /DOWNLOAD\(/i,
+              /download[_ ]mode/i,
+              /flash read err/i,
+              /ets_main\.c/i,
+              /ESP-ROM:/i,
+              /rst:0x[0-9a-fA-F]+/i,
+              /USB_UART_CHIP_RESET/i,
+              /Saved PC:/i,
+            ];
+            for (const pat of BOOTLOADER_PATTERNS) {
+              if (pat.test(directText)) {
+                logMsg(`⚠️ Bootloader detected in direct console element (attempt ${attempt})`);
+                logMsg(`Resetting device to firmware mode...`);
+                if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
+                  try {
+                    await espLoaderBeforeConsole.resetInConsoleMode();
+                    logMsg("✅ Device reset to firmware mode");
+                    consoleInstance.clear();
+                    logMsg("Waiting for device to boot after reset...");
+                    await sleep(3000);
+                    continue;
+                  } catch (err) {
+                    errorMsg("❌ Failed to reset device: " + err.message);
+                  }
+                }
+                return "bootloader";
+              }
+            }
+          }
+        }
+        
         if (attempt < retryCount) {
           logMsg(`No output from device (attempt ${attempt}) - device may be booting or in bootloader mode`);
           logMsg(`Trying to reset device to firmware mode...`);
