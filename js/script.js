@@ -851,8 +851,10 @@ async function clickShowLog() {
  * @name openConsolePortAndInit
  * Helper to open port for console and initialize console UI
  * Avoids code duplication across different console init flows
+ * @param {SerialPort} newPort - The port to open
+ * @param {boolean} needsEnterConsoleMode - If true, calls enterConsoleMode() to reset from bootloader to firmware
  */
-async function openConsolePortAndInit(newPort) {
+async function openConsolePortAndInit(newPort, needsEnterConsoleMode = false) {
   try {
     await newPort.open({ baudRate: 115200 });
   } catch (e) {
@@ -898,8 +900,9 @@ async function openConsolePortAndInit(newPort) {
 /**
  * Handle port loss after console reset (ESP32-S2 USB-OTG)
  * Disconnects console, clears port references, and shows reconnect modal
+ * @param {boolean} needsEnterConsoleMode - If true, device is in bootloader and needs enterConsoleMode; if false, device is in firmware
  */
-async function handleConsolePortLost() {
+async function handleConsolePortLost(needsEnterConsoleMode = true) {
   logMsg("Device reset - USB port will re-enumerate...");
   
   if (consoleInstance) {
@@ -964,7 +967,8 @@ async function handleConsolePortLost() {
       const newPort = isWebUSB
         ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
         : await navigator.serial.requestPort();
-      await openConsolePortAndInit(newPort);
+      // Pass needsEnterConsoleMode to openConsolePortAndInit
+      await openConsolePortAndInit(newPort, needsEnterConsoleMode);
     } catch (err) {
       errorMsg(`Failed to reconnect: ${err.message}`);
     }
@@ -1001,7 +1005,14 @@ async function initConsoleUI() {
         debugMsg("Resetting device from console...");
         const portLost = await espLoaderBeforeConsole.resetInConsoleMode();
         if (portLost) {
-          await handleConsolePortLost();
+          // For ESP32-S2, resetInConsoleMode does BOTH port changes internally:
+          // 1. Firmware → Bootloader (exitConsoleMode)
+          // 2. Bootloader → Firmware (_resetToFirmwareIfNeeded)
+          // Device is now in FIRMWARE mode, just need to select the new port
+          // Wait for port re-enumeration
+          debugMsg("Waiting for firmware port to appear...");
+          await sleep(500);
+          await handleConsolePortLost(false); // false = device already in firmware
         } else {
           debugMsg("Device reset successful");
         }
