@@ -38,21 +38,6 @@ let consoleResetHandler = null;
 let consoleCloseHandler = null;
 let consoleBootloaderHandlerModule = null;
 
-// Bootloader detection patterns
-const BOOTLOADER_PATTERNS = [
-  /waiting for download/i,
-  /boot:\s*0x/i,
-  /DOWNLOAD\(/i,
-  /download[_ ]mode/i,
-  /flash read err/i,
-  /ets_main\.c/i,
-  /ets [A-Z][a-z]{2}\s/,
-  /ESP-ROM:/i,
-  /rst:0x[0-9a-fA-F]+/i,
-  /USB_UART_CHIP_RESET/i,
-  /Saved PC:/i,
-];
-
 /**
  * Get display name for current filesystem type
  */
@@ -867,171 +852,11 @@ async function clickShowLog() {
  * Helper to open port for console and initialize console UI
  * Avoids code duplication across different console init flows
  */
-async function probePortOutput(port, timeoutMs = 2000) {
-  // Use global BOOTLOADER_PATTERNS defined at top of file
-
-  if (!port.readable) {
-    debugMsg(`probePortOutput: port not readable`);
-    return "silent";
-  }
-
-  let reader;
-  try {
-    reader = port.readable.getReader();
-  } catch (e) {
-    debugMsg(`probePortOutput: cannot get reader: ${e}`);
-    return "silent";
-  }
-
-  const decoder = new TextDecoder();
-  let collected = "";
-
-  try {
-    // Try to read with a simple timeout
-    const readWithTimeout = async () => {
-      try {
-        const readPromise = reader.read();
-        const timeoutPromise = new Promise(resolve => 
-          setTimeout(() => resolve({ timeout: true }), timeoutMs)
-        );
-        
-        return await Promise.race([readPromise, timeoutPromise]);
-      } catch (e) {
-        return { error: e };
-      }
-    };
-
-    const startTime = Date.now();
-    while (Date.now() - startTime < timeoutMs) {
-      const result = await readWithTimeout();
-      
-      if (result && result.timeout) {
-        debugMsg(`probePortOutput: timeout after ${Date.now() - startTime}ms`);
-        // Cancel pending read before releasing lock
-        try {
-          await reader.cancel();
-        } catch (e) {
-          // ignore
-        }
-        break;
-      }
-      
-      if (result && result.error) {
-        debugMsg(`probePortOutput: read error: ${result.error}`);
-        break;
-      }
-      
-      if (result && result.done) {
-        debugMsg(`probePortOutput: reader done`);
-        break;
-      }
-      
-      if (result && result.value) {
-        const decoded = decoder.decode(result.value, { stream: true });
-        collected += decoded;
-//        debugMsg(`probePortOutput: read ${decoded.length} chars (total: ${collected.length}): "${decoded.replace(/\n/g, '\\n').replace(/\r/g, '\\r').substring(0, 100)}"`);
-        
-        // Check for bootloader patterns
-        for (const pat of BOOTLOADER_PATTERNS) {
-          if (pat.test(collected)) {
-//            debugMsg(`probePortOutput: BOOTLOADER DETECTED with pattern ${pat}`);
-//            debugMsg(`probePortOutput: Full text: "${collected.substring(0, 300)}"`);
-            // Cancel pending read before releasing lock
-            try {
-              await reader.cancel();
-            } catch (e) {
-              // ignore
-            }
-            try {
-              reader.releaseLock();
-            } catch (e) {
-              // ignore
-            }
-            return "bootloader";
-          }
-        }
-        
-        // If we got data, continue reading quickly
-        continue;
-      }
-      
-      // No data, break
-      break;
-    }
-  } catch (e) {
-    debugMsg(`probePortOutput: outer error: ${e}`);
-  } finally {
-    // Cancel any pending read before releasing lock
-    try {
-      await reader.cancel();
-    } catch (e) {
-      // ignore
-    }
-    try {
-      reader.releaseLock();
-    } catch (e) {
-      // ignore
-    }
-  }
-
-  if (collected.length > 0) {
-//    debugMsg(`probePortOutput: output (${collected.length} chars): "${collected.substring(0, 200)}"`);
-    // Final check for bootloader patterns
-    for (const pat of BOOTLOADER_PATTERNS) {
-      if (pat.test(collected)) {
-//        debugMsg(`probePortOutput: bootloader detected in final check`);
-        return "bootloader";
-      }
-    }
-    return "output";
-  }
-  
-  debugMsg(`probePortOutput: silent (no data)`);
-  return "silent";
-}
-
-/**
- * Probe port and reset device to firmware mode if in bootloader.
- * @param {SerialPort} port - The serial port to probe
- * @param {ESPLoader} espLoader - The ESP loader instance for reset
- * @returns {Promise<string>} Final state: "firmware", "bootloader", or "silent"
- */
-async function ensureFirmwareMode(port, espLoader) {
-  const probeState = await probePortOutput(port);
-  debugMsg(`Port probe: ${probeState}`);
-  
-  if (probeState === "bootloader") {
-    logMsg(`⚠️ Device is in bootloader mode`);
-    logMsg(`Resetting device to firmware mode...`);
-    if (espLoader && typeof espLoader.resetInConsoleMode === 'function') {
-      try {
-        await espLoader.resetInConsoleMode();
-        logMsg("✅ Device reset to firmware mode");
-        // Wait for device to reset and potentially re-enumerate
-        await sleep(2000);
-      } catch (err) {
-        errorMsg("❌ Failed to reset to firmware: " + err.message);
-      }
-    } else {
-      errorMsg("❌ Cannot reset device: resetInConsoleMode function not available");
-    }
-    return "bootloader";
-  } else if (probeState === "output") {
-    logMsg("Device is producing output - likely in firmware mode");
-    return "firmware";
-  } else {
-    logMsg("Device is silent - may be booting or in firmware mode without output");
-    return "silent";
-  }
-}
-
 async function openConsolePortAndInit(newPort) {
-  // Open the port at 115200 for console
   await newPort.open({ baudRate: 115200 });
   espStub.port = newPort;
   espStub.connected = true;
   
-  // Keep parent/loader in sync (used by closeConsole)
   if (espStub._parent) {
     espStub._parent.port = newPort;
   }
@@ -1041,14 +866,9 @@ async function openConsolePortAndInit(newPort) {
   
   debugMsg("Port opened for console at 115200 baud");
   
-  // Probe port output to detect bootloader mode before opening console
-  await ensureFirmwareMode(newPort, espLoaderBeforeConsole);
-
-  
   consoleSwitch.checked = true;
   saveSetting("console", true);
   
-  // Initialize console UI and handlers
   await initConsoleUI();
 }
 
@@ -1141,39 +961,6 @@ async function initConsoleUI() {
   consoleContainer.addEventListener('console-bootloader', consoleBootloaderHandlerModule);
   
   logMsg("Console initialized");
-  
-  // Give device time to start outputting after console initialization
-  await sleep(1000);
-  
-  // Wait for device to initialize and check console state
-  logMsg("Waiting for device to initialize...");
-  await sleep(4000);
-  
-  const consoleText = consoleInstance.logs();
-  debugMsg(`Console output check (${consoleText.length} chars): "${consoleText.substring(0, 200)}"`);
-  const state = consoleInstance.checkOutputState();
-  debugMsg(`Console state: ${state}`);
-  
-  if (state === "bootloader") {
-    logMsg(`⚠️ Bootloader detected - device is in download mode`);
-    logMsg(`Resetting device to firmware mode...`);
-    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
-      try {
-        await espLoaderBeforeConsole.resetInConsoleMode();
-        logMsg("✅ Device reset to firmware mode");
-        consoleInstance.clear();
-      } catch (err) {
-        errorMsg("❌ Failed to reset device to firmware mode: " + err.message);
-      }
-    } else {
-      errorMsg("❌ Cannot reset device: resetInConsoleMode function not available");
-    }
-  } else if (state === "output") {
-    logMsg("✅ Device is producing output - likely in firmware mode");
-  } else {
-    logMsg("Device is silent - may be booting or in firmware mode without output");
-  }
-
 }
 
 /**
@@ -1320,13 +1107,8 @@ async function clickConsole() {
           return;
         }
         
-        // Wait for firmware to start after reset
         await sleep(500);
         
-        // Probe port output to detect bootloader mode before opening console
-        await ensureFirmwareMode(espStub.port, espLoaderBeforeConsole);
-        
-        // Initialize console UI and handlers
         await initConsoleUI();
         
         saveSetting("console", true);
