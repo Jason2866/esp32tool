@@ -855,26 +855,6 @@ async function clickShowLog() {
  * @param {boolean} needsEnterConsoleMode - If true, calls enterConsoleMode() to reset from bootloader to firmware
  */
 async function openConsolePortAndInit(newPort, needsEnterConsoleMode = false) {
-  try {
-    await newPort.open({ baudRate: 115200 });
-  } catch (e) {
-    if (e.message && e.message.includes('already open')) {
-      debugMsg("Port already open, reusing");
-    } else {
-      throw e;
-    }
-  }
-  
-  if (newPort.writable && newPort.writable.locked) {
-    debugMsg("Writable stream locked - closing and reopening port");
-    try {
-      await newPort.close();
-      await sleep(200);
-      await newPort.open({ baudRate: 115200 });
-    } catch (e) {
-      debugMsg("Port reopen error: " + e.message);
-    }
-  }
   espStub.port = newPort;
   espStub.connected = true;
   
