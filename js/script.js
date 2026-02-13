@@ -853,8 +853,26 @@ async function clickShowLog() {
  * Avoids code duplication across different console init flows
  */
 async function openConsolePortAndInit(newPort) {
-  // Open the port at 115200 for console
-  await newPort.open({ baudRate: 115200 });
+  try {
+    await newPort.open({ baudRate: 115200 });
+  } catch (e) {
+    if (e.message && e.message.includes('already open')) {
+      debugMsg("Port already open, reusing");
+    } else {
+      throw e;
+    }
+  }
+  
+  if (newPort.writable && newPort.writable.locked) {
+    debugMsg("Writable stream locked - closing and reopening port");
+    try {
+      await newPort.close();
+      await sleep(200);
+      await newPort.open({ baudRate: 115200 });
+    } catch (e) {
+      debugMsg("Port reopen error: " + e.message);
+    }
+  }
   espStub.port = newPort;
   espStub.connected = true;
   
@@ -878,9 +896,84 @@ async function openConsolePortAndInit(newPort) {
 }
 
 /**
+ * Handle port loss after console reset (ESP32-S2 USB-OTG)
+ * Disconnects console, clears port references, and shows reconnect modal
+ */
+async function handleConsolePortLost() {
+  logMsg("Device reset - USB port will re-enumerate...");
+  
+  if (consoleInstance) {
+    try { await consoleInstance.disconnect(); } catch (e) { /* ignore */ }
+    consoleInstance = null;
+  }
+  
+  if (espStub._writer) {
+    try { espStub._writer.releaseLock(); } catch (e) { /* ignore */ }
+  }
+  if (espStub._reader) {
+    try { await espStub._reader.cancel(); } catch (e) { /* ignore */ }
+  }
+  espStub.port = null;
+  espStub.connected = false;
+  espStub._writer = undefined;
+  espStub._reader = undefined;
+  if (espStub._parent) {
+    if (espStub._parent._writer) {
+      try { espStub._parent._writer.releaseLock(); } catch (e) { /* ignore */ }
+    }
+    if (espStub._parent._reader) {
+      try { await espStub._parent._reader.cancel(); } catch (e) { /* ignore */ }
+    }
+    espStub._parent.port = null;
+    espStub._parent.connected = false;
+    espStub._parent._writer = undefined;
+    espStub._parent._reader = undefined;
+  }
+  if (espLoaderBeforeConsole) {
+    if (espLoaderBeforeConsole._writer) {
+      try { espLoaderBeforeConsole._writer.releaseLock(); } catch (e) { /* ignore */ }
+    }
+    if (espLoaderBeforeConsole._reader) {
+      try { await espLoaderBeforeConsole._reader.cancel(); } catch (e) { /* ignore */ }
+    }
+    espLoaderBeforeConsole.port = null;
+    espLoaderBeforeConsole.connected = false;
+    espLoaderBeforeConsole._writer = undefined;
+    espLoaderBeforeConsole._reader = undefined;
+  }
+  
+  const isWebUSB = isUsingWebUSB();
+  const waitTime = isWebUSB ? 1000 : 500;
+  await sleep(waitTime);
+  
+  const modal = document.getElementById("esp32s2Modal");
+  const reconnectBtn = document.getElementById("butReconnectS2");
+  const modalTitle = modal.querySelector("h2");
+  const modalText = modal.querySelector("p");
+  if (modalTitle) modalTitle.textContent = "Device has been reset";
+  if (modalText) {
+    modalText.textContent = isWebUSB
+      ? "Please click the button below to select the USB device for console."
+      : "Please click the button below to select the serial port for console.";
+  }
+  modal.classList.remove("hidden");
+  
+  reconnectBtn.addEventListener("click", async () => {
+    modal.classList.add("hidden");
+    try {
+      const newPort = isWebUSB
+        ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
+        : await navigator.serial.requestPort();
+      await openConsolePortAndInit(newPort);
+    } catch (err) {
+      errorMsg(`Failed to reconnect: ${err.message}`);
+    }
+  }, { once: true });
+}
+
+/**
  * @name initConsoleUI
  * Initialize console UI, event handlers, and start console instance
- * Extracted helper to avoid duplication across different console init flows
  */
 async function initConsoleUI() {
   // Wait for port to be ready
@@ -898,20 +991,6 @@ async function initConsoleUI() {
   consoleInstance = new ESP32ToolConsole(espStub.port, consoleContainer, true);
   await consoleInstance.init();
   
-  // Check if console reset is supported and hide button if not
-  if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.isConsoleResetSupported === 'function') {
-    const resetSupported = espLoaderBeforeConsole.isConsoleResetSupported();
-    const resetBtn = consoleContainer.querySelector("#console-reset-btn");
-    if (resetBtn) {
-      if (resetSupported) {
-        resetBtn.style.display = "";
-      } else {
-        resetBtn.style.display = "none";
-        debugMsg("Console reset disabled for ESP32-S2 USB-JTAG/CDC (hardware limitation)");
-      }
-    }
-  }
-  
   // Listen for console reset events
   if (consoleResetHandler) {
     consoleContainer.removeEventListener('console-reset', consoleResetHandler);
@@ -920,8 +999,12 @@ async function initConsoleUI() {
     if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
       try {
         debugMsg("Resetting device from console...");
-        await espLoaderBeforeConsole.resetInConsoleMode();
-        debugMsg("Device reset successful");
+        const portLost = await espLoaderBeforeConsole.resetInConsoleMode();
+        if (portLost) {
+          await handleConsolePortLost();
+        } else {
+          debugMsg("Device reset successful");
+        }
       } catch (err) {
         errorMsg("Failed to reset device: " + err.message);
       }
@@ -942,24 +1025,24 @@ async function initConsoleUI() {
   };
   consoleContainer.addEventListener('console-close', consoleCloseHandler);
   
-  // Listen for console bootloader detection events
-  // The console detects bootloader patterns in real-time as data arrives
-  // and dispatches this event when bootloader is detected
   if (consoleBootloaderHandlerModule) {
     consoleContainer.removeEventListener('console-bootloader', consoleBootloaderHandlerModule);
   }
   consoleBootloaderHandlerModule = async () => {
-    logMsg(`⚠️ Console detected bootloader mode - resetting to firmware...`);
+    logMsg("Console detected bootloader mode - resetting to firmware...");
     if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
       try {
-        await espLoaderBeforeConsole.resetInConsoleMode();
-        logMsg("✅ Device reset to firmware mode");
-        // Clear console to see new output after reset
-        if (consoleInstance && typeof consoleInstance.clear === 'function') {
-          consoleInstance.clear();
+        const portLost = await espLoaderBeforeConsole.resetInConsoleMode();
+        if (portLost) {
+          await handleConsolePortLost();
+        } else {
+          logMsg("Device reset to firmware mode");
+          if (consoleInstance && typeof consoleInstance.clear === 'function') {
+            consoleInstance.clear();
+          }
         }
       } catch (err) {
-        errorMsg("❌ Failed to reset device: " + err.message);
+        errorMsg("Failed to reset device: " + err.message);
       }
     }
   };

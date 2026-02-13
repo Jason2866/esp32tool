@@ -4262,25 +4262,30 @@ export class ESPLoader extends EventTarget {
   /**
    * @name resetInConsoleMode
    * Reset device while in console mode (firmware mode)
-   *
-   * NOTE: For ESP32-S2 USB-JTAG/CDC, ANY reset (hardware or software) causes
-   * the USB port to be lost because the device switches USB modes during reset.
-   * This is a hardware limitation - use isConsoleResetSupported() to check first.
+   * @returns true if port was lost and reconnect is needed (ESP32-S2 USB-OTG),
+   *          false if port stays open
    */
-  async resetInConsoleMode(): Promise<void> {
+  async resetInConsoleMode(): Promise<boolean> {
     if (this._parent) {
       return await this._parent.resetInConsoleMode();
     }
 
-    if (!this.isConsoleResetSupported()) {
-      this.logger.debug(
-        "Console reset not supported for ESP32-S2 USB-JTAG/CDC",
-      );
-      return; // Do nothing
-    }
-
-    // For other devices: Use standard firmware reset
     const isWebUSB = (this.port as any).isWebUSB === true;
+    const isS2UsbOtg =
+      this.chipFamily === CHIP_FAMILY_ESP32S2 &&
+      (this._isUsbJtagOrOtg === true || this._isUsbJtagOrOtg === undefined);
+
+    if (isS2UsbOtg) {
+      this.logger.debug(
+        "ESP32-S2 USB-OTG: performing WDT reset (port will be lost)",
+      );
+      try {
+        await this.rtcWdtResetChipSpecific();
+      } catch (err) {
+        this.logger.debug(`WDT reset command error (expected): ${err}`);
+      }
+      return true;
+    }
 
     try {
       this.logger.debug("Resetting device in console mode");
@@ -4292,6 +4297,7 @@ export class ESPLoader extends EventTarget {
       }
 
       this.logger.debug("Device reset complete");
+      return false;
     } catch (err) {
       this.logger.error(`Reset failed: ${err}`);
       throw err;
