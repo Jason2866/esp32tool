@@ -1011,7 +1011,6 @@ async function initConsoleUI() {
           // Device is now in FIRMWARE mode, just need to select the new port
           // Wait for port re-enumeration
           debugMsg("Waiting for firmware port to appear...");
-          await sleep(500);
           await handleConsolePortLost(false); // false = device already in firmware
         } else {
           debugMsg("Device reset successful");
