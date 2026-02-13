@@ -5,16 +5,8 @@ export class ESP32ToolConsole {
   // Bootloader detection patterns
   static BOOTLOADER_PATTERNS = [
     /waiting for download/i,
-    /boot:\s*0x/i,
     /DOWNLOAD\(/i,
     /download[_ ]mode/i,
-    /flash read err/i,
-    /ets_main\.c/i,
-    /ets [A-Z][a-z]{2}\s/,
-    /ESP-ROM:/i,
-    /rst:0x[0-9a-fA-F]+/i,
-    /USB_UART_CHIP_RESET/i,
-    /Saved PC:/i,
   ];
 
   constructor(port, containerElement, allowInput = true) {
