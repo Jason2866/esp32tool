@@ -950,7 +950,8 @@ async function initConsoleUI() {
   }
   consoleBootloaderHandlerModule = async () => {
     logMsg(`⚠️ Console detected bootloader mode - resetting to firmware...`);
-    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
+    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function'
+        && espLoaderBeforeConsole.isConsoleResetSupported()) {
       try {
         await espLoaderBeforeConsole.resetInConsoleMode();
         logMsg("✅ Device reset to firmware mode");
