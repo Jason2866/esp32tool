@@ -197,6 +197,7 @@ export class ESP32ToolConsole {
   async _connect(abortSignal) {
     console.log("Starting console read loop");
 
+    // Check if port.readable is available
     if (!this.port.readable) {
       this.console.addLine("");
       this.console.addLine("");
@@ -247,6 +248,7 @@ export class ESP32ToolConsole {
         this.console.addLine("Terminal disconnected");
       }
     } catch (e) {
+      // Only log disconnect errors if the abort was NOT intentional
       if (!abortSignal.aborted && !(e instanceof DOMException && e.name === 'AbortError')) {
         this.console.addLine("");
         this.console.addLine("");

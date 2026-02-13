@@ -853,10 +853,12 @@ async function clickShowLog() {
  * Avoids code duplication across different console init flows
  */
 async function openConsolePortAndInit(newPort) {
+  // Open the port at 115200 for console
   await newPort.open({ baudRate: 115200 });
   espStub.port = newPort;
   espStub.connected = true;
   
+  // Keep parent/loader in sync (used by closeConsole)
   if (espStub._parent) {
     espStub._parent.port = newPort;
   }
@@ -866,9 +868,12 @@ async function openConsolePortAndInit(newPort) {
   
   debugMsg("Port opened for console at 115200 baud");
   
+  // Device is already in firmware mode, port is open at 115200
+  // Initialize console directly
   consoleSwitch.checked = true;
   saveSetting("console", true);
   
+  // Initialize console UI and handlers
   await initConsoleUI();
 }
 
@@ -1107,8 +1112,12 @@ async function clickConsole() {
           return;
         }
         
+        // Wait for:
+        // - Firmware to start after reset
+        // - Port to be ready for new reader
         await sleep(500);
         
+        // Initialize console UI and handlers
         await initConsoleUI();
         
         saveSetting("console", true);
