@@ -36,6 +36,7 @@ let espLoaderBeforeConsole = null; // Store original ESPLoader before console
 let chipFamilyBeforeConsole = null; // Store chipFamily before opening console
 let consoleResetHandler = null;
 let consoleCloseHandler = null;
+let consoleBootloaderHandlerModule = null;
 
 /**
  * Get display name for current filesystem type
@@ -941,6 +942,29 @@ async function initConsoleUI() {
   };
   consoleContainer.addEventListener('console-close', consoleCloseHandler);
   
+  // Listen for console bootloader detection events
+  // The console detects bootloader patterns in real-time as data arrives
+  // and dispatches this event when bootloader is detected
+  if (consoleBootloaderHandlerModule) {
+    consoleContainer.removeEventListener('console-bootloader', consoleBootloaderHandlerModule);
+  }
+  consoleBootloaderHandlerModule = async () => {
+    logMsg(`⚠️ Console detected bootloader mode - resetting to firmware...`);
+    if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
+      try {
+        await espLoaderBeforeConsole.resetInConsoleMode();
+        logMsg("✅ Device reset to firmware mode");
+        // Clear console to see new output after reset
+        if (consoleInstance && typeof consoleInstance.clear === 'function') {
+          consoleInstance.clear();
+        }
+      } catch (err) {
+        errorMsg("❌ Failed to reset device: " + err.message);
+      }
+    }
+  };
+  consoleContainer.addEventListener('console-bootloader', consoleBootloaderHandlerModule);
+  
   logMsg("Console initialized");
 }
 
@@ -1091,7 +1115,7 @@ async function clickConsole() {
         // Wait for:
         // - Firmware to start after reset
         // - Port to be ready for new reader
-        await sleep(200);
+        await sleep(500);
         
         // Initialize console UI and handlers
         await initConsoleUI();
@@ -1142,6 +1166,20 @@ async function closeConsole() {
         debugMsg("Error disconnecting console: " + err);
       }
       consoleInstance = null;
+    }
+    
+    // Remove console event handlers
+    if (consoleResetHandler) {
+      consoleContainer.removeEventListener('console-reset', consoleResetHandler);
+      consoleResetHandler = null;
+    }
+    if (consoleCloseHandler) {
+      consoleContainer.removeEventListener('console-close', consoleCloseHandler);
+      consoleCloseHandler = null;
+    }
+    if (consoleBootloaderHandlerModule) {
+      consoleContainer.removeEventListener('console-bootloader', consoleBootloaderHandlerModule);
+      consoleBootloaderHandlerModule = null;
     }
     
     // Use esp_loader's exitConsoleMode function

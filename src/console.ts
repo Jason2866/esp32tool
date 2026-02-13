@@ -179,18 +179,35 @@ export class ESP32ToolConsole {
   private async _connect(abortSignal: AbortSignal) {
     console.log("Starting console read loop");
 
-    // Check if port.readable is available
-    if (!this.port.readable) {
-      this.console!.addLine("");
-      this.console!.addLine("");
-      this.console!.addLine(
-        `Terminal disconnected: Port readable stream not available`,
-      );
-      console.error(
-        "Port readable stream not available - port may need to be reopened at correct baudrate",
-      );
-      return;
+    // Wait for readable stream to be available with timeout
+    const maxWaitTime = 3000; // 3 seconds
+    const startTime = Date.now();
+
+    while (!this.port.readable) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > maxWaitTime) {
+        this.console!.addLine("");
+        this.console!.addLine("");
+        this.console!.addLine(
+          `Terminal disconnected: Port readable stream not available after ${maxWaitTime}ms`,
+        );
+        this.console!.addLine(`This can happen if:`);
+        this.console!.addLine(
+          `1. Port was just opened and streams are not ready yet`,
+        );
+        this.console!.addLine(
+          `2. Device was reset and port needs to be reopened`,
+        );
+        this.console!.addLine(`3. USB device re-enumerated after reset`);
+        console.error(
+          "Port readable stream not available - port may need to be reopened at correct baudrate",
+        );
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
+
+    console.log("Port readable stream is ready - starting console");
 
     try {
       await this.port

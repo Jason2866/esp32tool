@@ -2,6 +2,21 @@ import { ColoredConsole, coloredConsoleStyles } from "./util/console-color.js";
 import { LineBreakTransformer } from "./util/line-break-transformer.js";
 
 export class ESP32ToolConsole {
+  // Bootloader detection patterns
+  static BOOTLOADER_PATTERNS = [
+    /waiting for download/i,
+    /boot:\s*0x/i,
+    /DOWNLOAD\(/i,
+    /download[_ ]mode/i,
+    /flash read err/i,
+    /ets_main\.c/i,
+    /ets [A-Z][a-z]{2}\s/,
+    /ESP-ROM:/i,
+    /rst:0x[0-9a-fA-F]+/i,
+    /USB_UART_CHIP_RESET/i,
+    /Saved PC:/i,
+  ];
+
   constructor(port, containerElement, allowInput = true) {
     this.port = port;
     this.containerElement = containerElement;
@@ -195,6 +210,11 @@ export class ESP32ToolConsole {
       return;
     }
 
+    // Use static BOOTLOADER_PATTERNS defined at class level
+    const BOOTLOADER_PATTERNS = ESP32ToolConsole.BOOTLOADER_PATTERNS;
+    let bootloaderDetected = false;
+    let lineCount = 0;
+
     try {
       await this.port.readable
         .pipeThrough(new TextDecoderStream(), {
@@ -206,6 +226,19 @@ export class ESP32ToolConsole {
             write: (chunk) => {
               const cleaned = chunk.replace(/\r\n$/, "\n");
               this.console.addLine(cleaned);
+
+              if (!bootloaderDetected && lineCount < 30) {
+                lineCount++;
+                for (const pat of BOOTLOADER_PATTERNS) {
+                  if (pat.test(cleaned)) {
+                    bootloaderDetected = true;
+                    this.containerElement.dispatchEvent(
+                      new CustomEvent("console-bootloader", { bubbles: true })
+                    );
+                    break;
+                  }
+                }
+              }
             },
           })
         );
@@ -253,6 +286,29 @@ export class ESP32ToolConsole {
     }
     input.value = "";
     input.focus();
+  }
+
+  checkOutputState() {
+    const text = this.logs();
+    if (!text || text.trim().length === 0) {
+      return "silent";
+    }
+
+    // Use static BOOTLOADER_PATTERNS defined at class level
+    const BOOTLOADER_PATTERNS = ESP32ToolConsole.BOOTLOADER_PATTERNS;
+
+    // Only check the first 30 lines (same as _connect) to avoid false positives
+    // from bootloader patterns appearing later in normal firmware output
+    const lines = text.split('\n');
+    const firstLines = lines.slice(0, 30).join('\n');
+
+    for (const pat of BOOTLOADER_PATTERNS) {
+      if (pat.test(firstLines)) {
+        return "bootloader";
+      }
+    }
+
+    return "output";
   }
 
   clear() {
