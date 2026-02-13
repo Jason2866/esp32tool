@@ -855,6 +855,8 @@ async function clickShowLog() {
  * @param {boolean} needsEnterConsoleMode - If true, calls enterConsoleMode() to reset from bootloader to firmware
  */
 async function openConsolePortAndInit(newPort, needsEnterConsoleMode = false) {
+  // Open the port at 115200 for console
+  await newPort.open({ baudRate: 115200 });
   espStub.port = newPort;
   espStub.connected = true;
   
