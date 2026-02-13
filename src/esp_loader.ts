@@ -1906,8 +1906,61 @@ export class ESPLoader extends EventTarget {
         );
         return;
       }
-      // Simple hardware reset to restart firmware (IO0=HIGH)
+      // Hardware reset to restart firmware
       this.logger.debug("Performing hardware reset (console mode)...");
+
+      // Only ESP32-S2 requires WDT reset in console mode for USB-OTG
+      if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
+        try {
+          const isUsbJtagOrOtg = await this.detectUsbConnectionType();
+
+          if (isUsbJtagOrOtg) {
+            this.logger.debug(
+              "ESP32-S2 with USB-OTG in console mode - using WDT reset sequence",
+            );
+
+            // WDT register writes require ROM - must enter bootloader first
+            // Temporarily clear console mode flag
+            this._consoleMode = false;
+
+            try {
+              // Enter bootloader (ROM)
+              this.logger.debug("Entering bootloader for WDT reset...");
+              await this.hardReset(true);
+              await this.sleep(200);
+
+              // Sync with ROM
+              await this.sync();
+              this.logger.debug("Synced with ROM");
+
+              // Ensure baudrate is 115200 for WDT register writes
+              if (this.currentBaudRate !== ESP_ROM_BAUD) {
+                this.logger.debug(
+                  `Changing baudrate to ${ESP_ROM_BAUD} for WDT reset`,
+                );
+                await this.reconfigurePort(ESP_ROM_BAUD);
+                this.currentBaudRate = ESP_ROM_BAUD;
+              }
+
+              // Perform WDT reset to restart firmware
+              this.logger.debug("Triggering WDT reset...");
+              await this.rtcWdtResetChipSpecific();
+              this.logger.debug("WDT reset complete - device will restart");
+            } finally {
+              // Restore console mode flag
+              this._consoleMode = true;
+            }
+            return;
+          }
+        } catch (err) {
+          this.logger.debug(
+            `Could not perform WDT reset, using classic reset: ${err}`,
+          );
+          // Fall through to classic reset
+        }
+      }
+
+      // Classic hardware reset for all other chips
       if (this.isWebUSB()) {
         await this.hardResetToFirmwareWebUSB();
       } else {
