@@ -4161,10 +4161,9 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name exitConsoleMode
-   * Exit console mode and return to bootloader mode
-   * For USB-JTAG/OTG devices, this is done by reconnecting to bootloader (port will change)
-   * For external serial chip devices, this is done by resetting to bootloader mode (port stays the same)
-   * @returns
+   * Exit console mode and return to bootloader
+   * For ESP32-S2, uses reconnectToBootloader which will trigger port change
+   * @returns true if manual reconnection is needed (ESP32-S2), false otherwise
    */
   async exitConsoleMode(): Promise<boolean> {
     if (this._parent) {
@@ -4174,6 +4173,65 @@ export class ESPLoader extends EventTarget {
     // Clear console mode flag
     this._consoleMode = false;
 
+    // Check if this is a USB-OTG device (ESP32-S2 or ESP32-P4)
+    const isUsbOtgChip =
+      this.chipFamily === CHIP_FAMILY_ESP32S2 ||
+      this.chipFamily === CHIP_FAMILY_ESP32P4;
+
+    // For USB-OTG chips: if _isUsbJtagOrOtg is undefined, try to detect it
+    // If detection fails or is undefined, assume USB-JTAG/OTG (conservative/safe path)
+    let isUsbJtagOrOtg = this._isUsbJtagOrOtg;
+    if (isUsbOtgChip && isUsbJtagOrOtg === undefined) {
+      try {
+        isUsbJtagOrOtg = await this.detectUsbConnectionType();
+      } catch (err) {
+        this.logger.debug(
+          `USB detection failed, assuming USB-JTAG/OTG for ${this.chipName}: ${err}`,
+        );
+        isUsbJtagOrOtg = true; // Conservative fallback
+      }
+    }
+
+    if (isUsbOtgChip && isUsbJtagOrOtg) {
+      // USB-OTG devices: Need to reset to bootloader, which will cause port change
+      this.logger.debug(`${this.chipName} USB: Resetting to bootloader mode`);
+
+      // Perform hardware reset to bootloader (GPIO0=LOW)
+      // This will cause the port to change from CDC (firmware) to JTAG (bootloader)
+      try {
+        if (this.isWebUSB()) {
+          await this.hardResetClassicWebUSB();
+        } else {
+          await this.hardResetClassic();
+        }
+        this.logger.debug("Reset to bootloader initiated");
+      } catch (err) {
+        this.logger.debug(`Reset error: ${err}`);
+      }
+
+      // Wait for reset to complete and port to change
+      await sleep(500);
+
+      this.logger.debug(
+        `${this.chipName}: Port changed. Please select the bootloader port.`,
+      );
+
+      // Dispatch event to signal port change
+      this.dispatchEvent(
+        new CustomEvent("usb-otg-port-change", {
+          detail: {
+            chipName: this.chipName,
+            message: `${this.chipName}: Port changed. Please select the bootloader port.`,
+            reason: "exit-console-to-bootloader",
+          },
+        }),
+      );
+
+      // Port will change, so return true to indicate manual reconnection needed
+      return true;
+    }
+
+    // For other devices, use standard reconnectToBootloader
     await this.reconnectToBootloader();
     return false; // No manual reconnection needed
   }
@@ -4200,62 +4258,25 @@ export class ESPLoader extends EventTarget {
   /**
    * @name resetInConsoleMode
    * Reset device while in console mode (firmware mode)
-   * @returns true if port was lost and reconnect is needed (ESP32-S2 USB-OTG),
-   *          false if port stays open
+   *
+   * NOTE: For ESP32-S2 USB-JTAG/CDC, ANY reset (hardware or software) causes
+   * the USB port to be lost because the device switches USB modes during reset.
+   * This is a hardware limitation - use isConsoleResetSupported() to check first.
    */
-  async resetInConsoleMode(): Promise<boolean> {
+  async resetInConsoleMode(): Promise<void> {
     if (this._parent) {
       return await this._parent.resetInConsoleMode();
     }
-    const isWebUSB = (this.port as any).isWebUSB === true;
-    // ESP32-S2 USB-OTG console reset:
-    // Any reset causes USB re-enumeration, so we need user gestures for port selection.
-    // Flow: close port → user selects bootloader port → sync + WDT reset →
-    //       user selects firmware port → console reconnects
-    if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
-      const isUsbJtagOrOtg = await this.detectUsbConnectionType();
 
-      if (isUsbJtagOrOtg) {
-        this.logger.debug(
-          "ESP32-S2 USB-OTG: sending reset to enter bootloader (port will re-enumerate)",
-        );
-
-        // Console streams must already be disconnected by caller
-        this._consoleMode = false;
-        this.connected = false;
-        this.IS_STUB = false;
-
-        try {
-          await this.releaseReaderWriter();
-        } catch (err) {
-          this.logger.debug(`Release error: ${err}`);
-        }
-
-        // WRONG WRONG WRONG no DTR/RTS control on ESP32-S2 USB-OTG !!!!
-        // Send DTR/RTS to enter bootloader - port will die (USB re-enumeration)
-        try {
-          await this.hardResetUSBJTAGSerial();
-        } catch (err) {
-          this.logger.debug(`Reset signal error (expected): ${err}`);
-        }
-
-        try {
-          await this.port.close();
-        } catch (err) {
-          this.logger.debug(`Port close error: ${err}`);
-        }
-
-        this.logger.debug(
-          "Port closed - device entering bootloader on new USB port",
-        );
-
-        // Caller must: 1) user gesture for bootloader port
-        //              2) call syncAndWdtReset(newPort)
-        //              3) user gesture for firmware port
-        //              4) open console
-        return true;
-      }
+    if (!this.isConsoleResetSupported()) {
+      this.logger.debug(
+        "Console reset not supported for ESP32-S2 USB-JTAG/CDC",
+      );
+      return; // Do nothing
     }
+
+    // For other devices: Use standard firmware reset
+    const isWebUSB = (this.port as any).isWebUSB === true;
 
     try {
       this.logger.debug("Resetting device in console mode");
@@ -4267,7 +4288,6 @@ export class ESPLoader extends EventTarget {
       }
 
       this.logger.debug("Device reset complete");
-      return false;
     } catch (err) {
       this.logger.error(`Reset failed: ${err}`);
       throw err;
