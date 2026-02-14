@@ -4296,9 +4296,10 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name syncAndWdtReset
-   * Open a new bootloader port, sync with ROM (no stub, no reset strategies),
-   * and fire WDT reset. Used by ESP32-S2 USB-OTG console reset after the user
-   * selects the bootloader port. After WDT reset the port will re-enumerate again.
+   * Open a new bootloader port, sync with ROM (no stub, no reset strategies), and fire WDT reset. 
+   * This is used for ESP32-S2 USB-OTG devices which require WDT reset to switch modes.
+   * After WDT reset the port will re-enumerate again.
+   * The user must select the new port after this method is called.
    * @param newPort - The bootloader port selected by the user
    */
   async syncAndWdtReset(newPort: SerialPort): Promise<void> {
