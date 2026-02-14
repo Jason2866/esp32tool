@@ -3763,12 +3763,6 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * @name _resetToFirmwareIfNeeded
-   * Reset device from bootloader to firmware when switching to console mode
-   * Detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
-   * @returns true if reconnect was performed, false otherwise
-   */
-  /**
    * @name _clearForceDownloadBootIfNeeded
    * Read and clear the force download boot flag if it is set
    * This should ONLY be called when on ROM (not stub) and before WDT reset
@@ -3885,6 +3879,12 @@ export class ESPLoader extends EventTarget {
     }
   }
 
+  /**
+   * @name _resetToFirmwareIfNeeded
+   * Reset device from bootloader to firmware when switching to console mode
+   * Detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
+   * @returns true if reconnect was performed, false otherwise
+   */
   private async _resetToFirmwareIfNeeded(): Promise<boolean> {
     // Detect if we need WDT reset (USB-JTAG/OTG) or classic reset
     const isUsbJtagOrOtg = await this.detectUsbConnectionType();
@@ -4327,9 +4327,12 @@ export class ESPLoader extends EventTarget {
 
     if (!this.isConsoleResetSupported()) {
       this.logger.debug(
-        "Console reset not supported for ESP32-S2 USB-JTAG/CDC",
+        "Simple Console reset not supported for ESP32-S2 USB-JTAG/CDC, doing a WDT reset instead (port will change)",
       );
-      return; // Do nothing
+      await this.reconnectToBootloader();
+      await this.enterConsoleMode();
+      this.logger.debug("S2 Device reset complete");
+      return;
     }
 
     // For other devices: Use standard firmware reset
