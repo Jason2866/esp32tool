@@ -4099,12 +4099,24 @@ export class ESPLoader extends EventTarget {
         this._reader = undefined;
       }
 
-      // Close port
-      try {
-        await this.port.close();
-        this.logger.debug("Port closed");
-      } catch (err) {
-        this.logger.debug(`Port close error: ${err}`);
+      // Wait for stream locks to fully release (console pipeThrough may need time)
+      await sleep(150);
+
+      // Close port with retry - stream locks from console pipe may need time to release
+      let portClosed = false;
+      for (let attempt = 0; attempt < 3 && !portClosed; attempt++) {
+        try {
+          await this.port.close();
+          this.logger.debug("Port closed");
+          portClosed = true;
+        } catch (err) {
+          this.logger.debug(
+            `Port close attempt ${attempt + 1}/3 error: ${err}`,
+          );
+          if (attempt < 2) {
+            await sleep(200);
+          }
+        }
       }
 
       // Open the port
@@ -4114,6 +4126,11 @@ export class ESPLoader extends EventTarget {
         this.connected = true;
         this.currentBaudRate = ESP_ROM_BAUD;
       } catch (err) {
+        if (!portClosed) {
+          throw new Error(
+            `Failed to open port (port close also failed - stream may still be locked): ${err}`,
+          );
+        }
         throw new Error(`Failed to open port: ${err}`);
       }
 
@@ -4161,9 +4178,10 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name exitConsoleMode
-   * Exit console mode and return to bootloader
-   * For ESP32-S2, uses reconnectToBootloader which will trigger port change
-   * @returns true if manual reconnection is needed (ESP32-S2), false otherwise
+   * Exit console mode and return to bootloader mode
+   * For USB-JTAG/OTG devices, this is done by reconnecting to bootloader (port will change)
+   * For external serial chip devices, this is done by resetting to bootloader mode (port stays the same)
+   * @returns
    */
   async exitConsoleMode(): Promise<boolean> {
     if (this._parent) {
@@ -4173,65 +4191,6 @@ export class ESPLoader extends EventTarget {
     // Clear console mode flag
     this._consoleMode = false;
 
-    // Check if this is a USB-OTG device (ESP32-S2 or ESP32-P4)
-    const isUsbOtgChip =
-      this.chipFamily === CHIP_FAMILY_ESP32S2 ||
-      this.chipFamily === CHIP_FAMILY_ESP32P4;
-
-    // For USB-OTG chips: if _isUsbJtagOrOtg is undefined, try to detect it
-    // If detection fails or is undefined, assume USB-JTAG/OTG (conservative/safe path)
-    let isUsbJtagOrOtg = this._isUsbJtagOrOtg;
-    if (isUsbOtgChip && isUsbJtagOrOtg === undefined) {
-      try {
-        isUsbJtagOrOtg = await this.detectUsbConnectionType();
-      } catch (err) {
-        this.logger.debug(
-          `USB detection failed, assuming USB-JTAG/OTG for ${this.chipName}: ${err}`,
-        );
-        isUsbJtagOrOtg = true; // Conservative fallback
-      }
-    }
-
-    if (isUsbOtgChip && isUsbJtagOrOtg) {
-      // USB-OTG devices: Need to reset to bootloader, which will cause port change
-      this.logger.debug(`${this.chipName} USB: Resetting to bootloader mode`);
-
-      // Perform hardware reset to bootloader (GPIO0=LOW)
-      // This will cause the port to change from CDC (firmware) to JTAG (bootloader)
-      try {
-        if (this.isWebUSB()) {
-          await this.hardResetClassicWebUSB();
-        } else {
-          await this.hardResetClassic();
-        }
-        this.logger.debug("Reset to bootloader initiated");
-      } catch (err) {
-        this.logger.debug(`Reset error: ${err}`);
-      }
-
-      // Wait for reset to complete and port to change
-      await sleep(500);
-
-      this.logger.debug(
-        `${this.chipName}: Port changed. Please select the bootloader port.`,
-      );
-
-      // Dispatch event to signal port change
-      this.dispatchEvent(
-        new CustomEvent("usb-otg-port-change", {
-          detail: {
-            chipName: this.chipName,
-            message: `${this.chipName}: Port changed. Please select the bootloader port.`,
-            reason: "exit-console-to-bootloader",
-          },
-        }),
-      );
-
-      // Port will change, so return true to indicate manual reconnection needed
-      return true;
-    }
-
-    // For other devices, use standard reconnectToBootloader
     await this.reconnectToBootloader();
     return false; // No manual reconnection needed
   }
@@ -4266,25 +4225,51 @@ export class ESPLoader extends EventTarget {
       return await this._parent.resetInConsoleMode();
     }
     const isWebUSB = (this.port as any).isWebUSB === true;
-    // Only ESP32-S2 requires WDT reset in console mode for USB-OTG
+    // ESP32-S2 USB-OTG console reset:
+    // Any reset causes USB re-enumeration, so we need user gestures for port selection.
+    // Flow: close port → user selects bootloader port → sync + WDT reset →
+    //       user selects firmware port → console reconnects
     if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
       const isUsbJtagOrOtg = await this.detectUsbConnectionType();
 
       if (isUsbJtagOrOtg) {
+        this.logger.debug(
+          "ESP32-S2 USB-OTG: sending reset to enter bootloader (port will re-enumerate)",
+        );
+
+        // Console streams must already be disconnected by caller
+        this._consoleMode = false;
+        this.connected = false;
+        this.IS_STUB = false;
+
         try {
-          await this.exitConsoleMode();
+          await this.releaseReaderWriter();
         } catch (err) {
-          this.logger.debug(
-            `Device restart, step 1: Reset to bootloader error: ${err}`,
-          );
+          this.logger.debug(`Release error: ${err}`);
         }
+
+        // WRONG WRONG WRONG no DTR/RTS control on ESP32-S2 USB-OTG !!!!
+        // Send DTR/RTS to enter bootloader - port will die (USB re-enumeration)
         try {
-          await this._resetToFirmwareIfNeeded();
+          await this.hardResetUSBJTAGSerial();
         } catch (err) {
-          this.logger.debug(
-            `Device restart, step 2: Reset to firmware error: ${err}`,
-          );
+          this.logger.debug(`Reset signal error (expected): ${err}`);
         }
+
+        try {
+          await this.port.close();
+        } catch (err) {
+          this.logger.debug(`Port close error: ${err}`);
+        }
+
+        this.logger.debug(
+          "Port closed - device entering bootloader on new USB port",
+        );
+
+        // Caller must: 1) user gesture for bootloader port
+        //              2) call syncAndWdtReset(newPort)
+        //              3) user gesture for firmware port
+        //              4) open console
         return true;
       }
     }
@@ -4304,6 +4289,46 @@ export class ESPLoader extends EventTarget {
       this.logger.error(`Reset failed: ${err}`);
       throw err;
     }
+  }
+
+  /**
+   * @name syncAndWdtReset
+   * Open a new bootloader port, sync with ROM (no stub, no reset strategies),
+   * and fire WDT reset. Used by ESP32-S2 USB-OTG console reset after the user
+   * selects the bootloader port. After WDT reset the port will re-enumerate again.
+   * @param newPort - The bootloader port selected by the user
+   */
+  async syncAndWdtReset(newPort: SerialPort): Promise<void> {
+    if (this._parent) {
+      await this._parent.syncAndWdtReset(newPort);
+      return;
+    }
+
+    this.port = newPort;
+    this.connected = false;
+    this.IS_STUB = false;
+    this.__inputBuffer = [];
+    this.__inputBufferReadIndex = 0;
+    this.__totalBytesRead = 0;
+
+    this.logger.debug("Opening bootloader port at 115200...");
+    await this.port.open({ baudRate: ESP_ROM_BAUD });
+    this.connected = true;
+    this.currentBaudRate = ESP_ROM_BAUD;
+
+    // Start read loop
+    this.readLoop();
+    await sleep(100);
+
+    // Sync with ROM only - no reset strategies, device is already in bootloader
+    this.logger.debug("Syncing with bootloader ROM...");
+    await this.sync();
+    this.logger.debug("Bootloader sync OK, no stub");
+
+    // Fire WDT reset → device boots into firmware
+    this.logger.debug("Firing WDT reset...");
+    await this.rtcWdtResetChipSpecific();
+    this.logger.debug("WDT reset fired - device will boot to firmware");
   }
 
   /**

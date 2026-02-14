@@ -985,16 +985,87 @@ async function initConsoleUI() {
     if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
       try {
         debugMsg("Resetting device from console...");
+        // CRITICAL: Disconnect console BEFORE resetInConsoleMode to release
+        // the pipe lock on the port's readable stream. Without this, 
+        // reconnectToBootloader() cannot close/reopen the port.
+        if (consoleInstance) {
+          try {
+            await consoleInstance.disconnect();
+          } catch (e) {
+            debugMsg("Console disconnect error: " + e);
+          }
+        }
         const portLost = await espLoaderBeforeConsole.resetInConsoleMode();
         if (portLost) {
-          // For ESP32-S2, resetInConsoleMode does BOTH port changes internally:
-          // 1. Firmware → Bootloader (exitConsoleMode)
-          // 2. Bootloader → Firmware (_resetToFirmwareIfNeeded)
-          // Device is now in FIRMWARE mode, just need to select the new port
-          // Wait for port re-enumeration
-          debugMsg("Waiting for firmware port to appear...");
-          await sleep(500);
-          await handleConsolePortLost(false); // false = device already in firmware
+          // ESP32-S2 USB-OTG: DTR/RTS sent, device entering bootloader on new USB port.  WRONG WRONG WRONG no DTR/RTS exists!!!!
+          // Two user gestures needed:
+          // 1) Select bootloader port → sync + WDT reset
+          // 2) Select firmware port → console reconnects
+          const isWebUSB = isUsingWebUSB();
+          await sleep(isWebUSB ? 1000 : 500);
+          
+          // Clear old port references
+          espStub.port = null;
+          espStub.connected = false;
+          espStub._writer = undefined;
+          espStub._reader = undefined;
+          if (espStub._parent) {
+            espStub._parent.port = null;
+            espStub._parent.connected = false;
+            espStub._parent._writer = undefined;
+            espStub._parent._reader = undefined;
+          }
+          
+          // Gesture 1: Select bootloader port
+          const modal = document.getElementById("esp32s2Modal");
+          const reconnectBtn = document.getElementById("butReconnectS2");
+          const modalTitle = modal.querySelector("h2");
+          const modalText = modal.querySelector("p");
+          if (modalTitle) modalTitle.textContent = "Device is resetting";
+          if (modalText) {
+            modalText.textContent = isWebUSB
+              ? "Please click to select the USB device (bootloader)."
+              : "Please click to select the serial port (bootloader).";
+          }
+          modal.classList.remove("hidden");
+          
+          reconnectBtn.addEventListener("click", async () => {
+            modal.classList.add("hidden");
+            try {
+              const bootloaderPort = isWebUSB
+                ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
+                : await navigator.serial.requestPort();
+              
+              debugMsg("Bootloader port selected, syncing + WDT reset...");
+              await espLoaderBeforeConsole.syncAndWdtReset(bootloaderPort);
+              
+              debugMsg("WDT reset fired, waiting for firmware port...");
+              await sleep(isWebUSB ? 1500 : 1000);
+              
+              // Gesture 2: Select firmware port
+              if (modalTitle) modalTitle.textContent = "Device has been reset";
+              if (modalText) {
+                modalText.textContent = isWebUSB
+                  ? "Please click to select the USB device for console."
+                  : "Please click to select the serial port for console.";
+              }
+              modal.classList.remove("hidden");
+              
+              reconnectBtn.addEventListener("click", async () => {
+                modal.classList.add("hidden");
+                try {
+                  const firmwarePort = isWebUSB
+                    ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
+                    : await navigator.serial.requestPort();
+                  await openConsolePortAndInit(firmwarePort);
+                } catch (err2) {
+                  errorMsg(`Failed to open firmware port: ${err2.message}`);
+                }
+              }, { once: true });
+            } catch (err2) {
+              errorMsg(`Failed to reset device: ${err2.message}`);
+            }
+          }, { once: true });
         } else {
           debugMsg("Device reset successful");
         }
@@ -1025,6 +1096,13 @@ async function initConsoleUI() {
     logMsg("Console detected bootloader mode - resetting to firmware...");
     if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
       try {
+        if (consoleInstance) {
+          try {
+            await consoleInstance.disconnect();
+          } catch (e) {
+            debugMsg("Console disconnect error: " + e);
+          }
+        }
         const portLost = await espLoaderBeforeConsole.resetInConsoleMode();
         if (portLost) {
           await handleConsolePortLost();
