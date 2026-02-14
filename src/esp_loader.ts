@@ -4099,24 +4099,12 @@ export class ESPLoader extends EventTarget {
         this._reader = undefined;
       }
 
-      // Wait for stream locks to fully release (console pipeThrough may need time)
-      await sleep(150);
-
-      // Close port with retry - stream locks from console pipe may need time to release
-      let portClosed = false;
-      for (let attempt = 0; attempt < 3 && !portClosed; attempt++) {
-        try {
-          await this.port.close();
-          this.logger.debug("Port closed");
-          portClosed = true;
-        } catch (err) {
-          this.logger.debug(
-            `Port close attempt ${attempt + 1}/3 error: ${err}`,
-          );
-          if (attempt < 2) {
-            await sleep(200);
-          }
-        }
+      // Close port
+      try {
+        await this.port.close();
+        this.logger.debug("Port closed");
+      } catch (err) {
+        this.logger.debug(`Port close error: ${err}`);
       }
 
       // Open the port
@@ -4126,11 +4114,6 @@ export class ESPLoader extends EventTarget {
         this.connected = true;
         this.currentBaudRate = ESP_ROM_BAUD;
       } catch (err) {
-        if (!portClosed) {
-          throw new Error(
-            `Failed to open port (port close also failed - stream may still be locked): ${err}`,
-          );
-        }
         throw new Error(`Failed to open port: ${err}`);
       }
 
