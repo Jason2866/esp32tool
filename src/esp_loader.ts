@@ -4327,11 +4327,12 @@ export class ESPLoader extends EventTarget {
 
     if (!this.isConsoleResetSupported()) {
       this.logger.debug(
-        "Simple Console reset not supported for ESP32-S2 USB-JTAG/CDC, doing a WDT reset instead (port will change)",
+        "Simple Console reset not supported for ESP32-S2 USB-JTAG/CDC - using exitConsoleMode to enter bootloader",
       );
-      await this.reconnectToBootloader();
-      await this.enterConsoleMode();
-      this.logger.debug("S2 Device reset complete");
+      await this.exitConsoleMode();
+      this.logger.debug(
+        "S2 now in bootloader mode - caller must do syncAndWdtReset on new port, then reconnect console",
+      );
       return;
     }
 

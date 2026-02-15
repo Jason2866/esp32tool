@@ -906,9 +906,94 @@ async function initConsoleUI() {
   consoleResetHandler = async () => {
     if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
       try {
-        debugMsg("Resetting device from console...");
-        await espLoaderBeforeConsole.resetInConsoleMode();
-        debugMsg("Device reset successful");
+        const isS2 = chipFamilyBeforeConsole === 0x3252;
+        
+        if (isS2) {
+          debugMsg("ESP32-S2 console reset: entering bootloader, then WDT reset to firmware...");
+          
+          if (consoleInstance) {
+            await consoleInstance.disconnect();
+          }
+          
+          // exitConsoleMode resets S2 into bootloader (port changes)
+          await espLoaderBeforeConsole.resetInConsoleMode();
+          
+          const isWebUSB = isUsingWebUSB();
+          const waitTime = isWebUSB ? 1000 : 500;
+          await sleep(waitTime);
+          
+          const modal = document.getElementById("esp32s2Modal");
+          const reconnectBtn = document.getElementById("butReconnectS2");
+          const modalTitle = modal.querySelector("h2");
+          const modalText = modal.querySelector("p");
+          
+          // Step 1: Select bootloader port for WDT reset
+          if (modalTitle) modalTitle.textContent = "Select bootloader port";
+          if (modalText) {
+            modalText.textContent = isWebUSB
+              ? "Select the USB device (bootloader) to reset the device."
+              : "Select the serial port (bootloader) to reset the device.";
+          }
+          modal.classList.remove("hidden");
+          
+          reconnectBtn.addEventListener("click", async () => {
+            modal.classList.add("hidden");
+            try {
+              const bootloaderPort = isWebUSB
+                ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
+                : await navigator.serial.requestPort();
+              
+              debugMsg("Syncing with bootloader and performing WDT reset...");
+              await espLoaderBeforeConsole.syncAndWdtReset(bootloaderPort);
+              
+              try { await bootloaderPort.close(); } catch (e) { /* port may already be gone */ }
+              
+              const fwWait = isWebUSB ? 1000 : 500;
+              debugMsg(`Waiting ${fwWait}ms for device to boot into firmware...`);
+              await sleep(fwWait);
+              
+              // Step 2: Select firmware port for console
+              if (modalTitle) modalTitle.textContent = "Select console port";
+              if (modalText) {
+                modalText.textContent = isWebUSB
+                  ? "Select the USB device (firmware) for console."
+                  : "Select the serial port (firmware) for console.";
+              }
+              modal.classList.remove("hidden");
+              
+              reconnectBtn.addEventListener("click", async () => {
+                modal.classList.add("hidden");
+                try {
+                  const consolePort = isWebUSB
+                    ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
+                    : await navigator.serial.requestPort();
+                  
+                  await consolePort.open({ baudRate: 115200 });
+                  espStub.port = consolePort;
+                  espStub.connected = true;
+                  if (espStub._parent) {
+                    espStub._parent.port = consolePort;
+                  }
+                  if (espLoaderBeforeConsole) {
+                    espLoaderBeforeConsole.port = consolePort;
+                    espLoaderBeforeConsole.connected = true;
+                  }
+                  
+                  await consoleInstance.reconnect(consolePort);
+                  debugMsg("Console reconnected after S2 reset");
+                } catch (err) {
+                  errorMsg(`Failed to reconnect console: ${err.message}`);
+                }
+              }, { once: true });
+            } catch (err) {
+              errorMsg(`Failed to reset S2 device: ${err.message}`);
+            }
+          }, { once: true });
+        } else {
+          debugMsg("Resetting device from console...");
+          await espLoaderBeforeConsole.resetInConsoleMode();
+          debugMsg("Device reset successful");
+        }
       } catch (err) {
         errorMsg("Failed to reset device: " + err.message);
       }
