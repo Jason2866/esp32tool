@@ -3823,63 +3823,6 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * @name setForceDownloadBoot
-   * Set the force download boot flag so the chip enters download mode on next reset.
-   * Supported on ESP32-S2, ESP32-S3, and ESP32-P4.
-   * Returns true if the flag was set, false if it was already set or the chip is not supported.
-   */
-  async setForceDownloadBoot(): Promise<boolean> {
-    try {
-      let regAddr: number;
-      let mask: number;
-      let chipName: string;
-
-      if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
-        regAddr = ESP32S2_RTC_CNTL_OPTION1_REG;
-        mask = ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
-        chipName = "ESP32-S2";
-      } else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
-        regAddr = ESP32S3_RTC_CNTL_OPTION1_REG;
-        mask = ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
-        chipName = "ESP32-S3";
-      } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-        regAddr = ESP32P4_RTC_CNTL_OPTION1_REG;
-        mask = ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
-        chipName = "ESP32-P4";
-      } else {
-        this.logger.debug(
-          "Force download boot flag not supported for this chip family",
-        );
-        return false;
-      }
-
-      const currentValue = await this.readRegister(regAddr);
-      this.logger.debug(
-        `${chipName} force download boot register: 0x${currentValue.toString(16)} (mask: 0x${mask.toString(16)})`,
-      );
-
-      const isFlagSet = (currentValue & mask) !== 0;
-
-      if (isFlagSet) {
-        this.logger.debug(
-          `${chipName} force download boot flag is already SET - no action needed`,
-        );
-        return false;
-      }
-
-      this.logger.debug(
-        `${chipName} force download boot flag is CLEAR - setting it`,
-      );
-      await this.writeRegister(regAddr, mask, mask, 0);
-      this.logger.debug(`${chipName} force download boot flag set`);
-      return true;
-    } catch (err) {
-      this.logger.debug(`Error setting force download boot flag: ${err}`);
-      return false;
-    }
-  }
-
-  /**
    * @name _resetToFirmwareIfNeeded
    * Reset device from bootloader to firmware when switching to console mode
    * Detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
