@@ -324,4 +324,16 @@ export class ESP32ToolConsole {
       this.cancelConnection = null;
     }
   }
+
+  async reconnect(newPort) {
+    await this.disconnect();
+    this.port = newPort;
+
+    const abortController = new AbortController();
+    const connection = this._connect(abortController.signal);
+    this.cancelConnection = () => {
+      abortController.abort();
+      return connection;
+    };
+  }
 }
