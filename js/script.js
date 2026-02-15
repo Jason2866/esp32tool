@@ -9,13 +9,14 @@ if (!globalThis.requestSerialPort) {
 }
 
 // Utility functions imported from esptool module
-let toHex, formatMacAddr, sleep;
+let toHex, formatMacAddr, sleep, CHIP_FAMILY_ESP32S2;
 
 // Load utilities from esptool package
 window.esptoolPackage.then((esptoolMod) => {
   toHex = esptoolMod.toHex;
   formatMacAddr = esptoolMod.formatMacAddr;
   sleep = esptoolMod.sleep;
+  CHIP_FAMILY_ESP32S2 = esptoolMod.CHIP_FAMILY_ESP32S2;
 });
 
 let espStub;
@@ -37,8 +38,6 @@ let chipFamilyBeforeConsole = null; // Store chipFamily before opening console
 let consoleResetHandler = null;
 let consoleCloseHandler = null;
 let consoleBootloaderHandlerModule = null;
-
-const CHIP_FAMILY_ESP32S2 = 0x3252;
 
 /**
  * Get display name for current filesystem type
