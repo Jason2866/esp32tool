@@ -984,7 +984,7 @@ export class ESPLoader extends EventTarget {
   }
 
   sleep(ms = 100) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return sleep(ms);
   }
 
   state_DTR = false;
@@ -1017,28 +1017,46 @@ export class ESPLoader extends EventTarget {
     });
   }
 
+  private async runSignalSequence(
+    steps: Array<{ dtr?: boolean; rts?: boolean; delayMs?: number }>,
+  ): Promise<void> {
+    const webusb = (this.port as any).isWebUSB === true;
+    for (const step of steps) {
+      if (step.dtr !== undefined && step.rts !== undefined) {
+        if (webusb) {
+          await this.setDTRandRTSWebUSB(step.dtr, step.rts);
+        } else {
+          await this.setDTRandRTS(step.dtr, step.rts);
+        }
+      } else {
+        if (step.dtr !== undefined) {
+          webusb
+            ? await this.setDTRWebUSB(step.dtr)
+            : await this.setDTR(step.dtr);
+        }
+        if (step.rts !== undefined) {
+          webusb
+            ? await this.setRTSWebUSB(step.rts)
+            : await this.setRTS(step.rts);
+        }
+      }
+      if (step.delayMs) await sleep(step.delayMs);
+    }
+  }
+
   /**
    * @name hardResetUSBJTAGSerial
    * USB-JTAG/Serial reset for Web Serial (Desktop)
    */
   async hardResetUSBJTAGSerial() {
-    await this.setRTS(false);
-    await this.setDTR(false); // Idle
-    await this.sleep(100);
-
-    await this.setDTR(true); // Set IO0
-    await this.setRTS(false);
-    await this.sleep(100);
-
-    await this.setRTS(true); // Reset
-    await this.setDTR(false);
-    await this.setRTS(true);
-    await this.sleep(100);
-
-    await this.setDTR(false);
-    await this.setRTS(false); // Chip out of reset
-
-    await this.sleep(200);
+    await this.runSignalSequence([
+      { rts: false },
+      { dtr: false, delayMs: 100 },
+      { dtr: true, rts: false, delayMs: 100 },
+      { rts: true },
+      { dtr: false, rts: true, delayMs: 100 },
+      { dtr: false, rts: false, delayMs: 200 },
+    ]);
   }
 
   /**
@@ -1046,15 +1064,11 @@ export class ESPLoader extends EventTarget {
    * Classic reset for Web Serial (Desktop) DTR = IO0, RTS = EN
    */
   async hardResetClassic() {
-    await this.setDTR(false); // IO0=HIGH
-    await this.setRTS(true); // EN=LOW, chip in reset
-    await this.sleep(100);
-    await this.setDTR(true); // IO0=LOW
-    await this.setRTS(false); // EN=HIGH, chip out of reset
-    await this.sleep(50);
-    await this.setDTR(false); // IO0=HIGH, done
-
-    await this.sleep(200);
+    await this.runSignalSequence([
+      { dtr: false, rts: true, delayMs: 100 },
+      { dtr: true, rts: false, delayMs: 50 },
+      { dtr: false, delayMs: 200 },
+    ]);
   }
 
   /**
@@ -1062,13 +1076,11 @@ export class ESPLoader extends EventTarget {
    * Keeps IO0=HIGH during reset so chip boots into firmware
    */
   async hardResetToFirmware() {
-    await this.setDTR(false); // IO0=HIGH
-    await this.setRTS(true); // EN=LOW, chip in reset
-    await this.sleep(100);
-    await this.setRTS(false); // EN=HIGH, chip out of reset (IO0 stays HIGH)
-    await this.sleep(50);
-
-    await this.sleep(200);
+    await this.runSignalSequence([
+      { dtr: false, rts: true, delayMs: 100 },
+      { rts: false, delayMs: 50 },
+      { delayMs: 200 },
+    ]);
   }
 
   /**
@@ -1076,13 +1088,7 @@ export class ESPLoader extends EventTarget {
    * Keeps IO0=HIGH during reset so chip boots into firmware
    */
   async hardResetToFirmwareWebUSB() {
-    await this.setDTRWebUSB(false); // IO0=HIGH
-    await this.setRTSWebUSB(true); // EN=LOW, chip in reset
-    await this.sleep(100);
-    await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset (IO0 stays HIGH)
-    await this.sleep(50);
-
-    await this.sleep(200);
+    await this.hardResetToFirmware();
   }
 
   /**
@@ -1090,16 +1096,14 @@ export class ESPLoader extends EventTarget {
    * Unix Tight reset for Web Serial (Desktop) - sets DTR and RTS simultaneously
    */
   async hardResetUnixTight() {
-    await this.setDTRandRTS(true, true);
-    await this.setDTRandRTS(false, false);
-    await this.setDTRandRTS(false, true); // IO0=HIGH & EN=LOW, chip in reset
-    await this.sleep(100);
-    await this.setDTRandRTS(true, false); // IO0=LOW & EN=HIGH, chip out of reset
-    await this.sleep(50);
-    await this.setDTRandRTS(false, false); // IO0=HIGH, done
-    await this.setDTR(false); // Needed in some environments to ensure IO0=HIGH
-
-    await this.sleep(200);
+    await this.runSignalSequence([
+      { dtr: true, rts: true },
+      { dtr: false, rts: false },
+      { dtr: false, rts: true, delayMs: 100 },
+      { dtr: true, rts: false, delayMs: 50 },
+      { dtr: false, rts: false },
+      { dtr: false, delayMs: 200 },
+    ]);
   }
 
   // ============================================================================
@@ -1139,23 +1143,7 @@ export class ESPLoader extends EventTarget {
    * USB-JTAG/Serial reset for WebUSB (Android)
    */
   async hardResetUSBJTAGSerialWebUSB() {
-    await this.setRTSWebUSB(false);
-    await this.setDTRWebUSB(false); // Idle
-    await this.sleep(100);
-
-    await this.setDTRWebUSB(true); // Set IO0
-    await this.setRTSWebUSB(false);
-    await this.sleep(100);
-
-    await this.setRTSWebUSB(true); // Reset
-    await this.setDTRWebUSB(false);
-    await this.setRTSWebUSB(true);
-    await this.sleep(100);
-
-    await this.setDTRWebUSB(false);
-    await this.setRTSWebUSB(false); // Chip out of reset
-
-    await this.sleep(200);
+    await this.hardResetUSBJTAGSerial();
   }
 
   /**
@@ -1163,23 +1151,12 @@ export class ESPLoader extends EventTarget {
    * USB-JTAG/Serial reset with inverted DTR for WebUSB (Android)
    */
   async hardResetUSBJTAGSerialInvertedDTRWebUSB() {
-    await this.setRTSWebUSB(false);
-    await this.setDTRWebUSB(true); // Idle (DTR inverted)
-    await this.sleep(100);
-
-    await this.setDTRWebUSB(false); // Set IO0 (DTR inverted)
-    await this.setRTSWebUSB(false);
-    await this.sleep(100);
-
-    await this.setRTSWebUSB(true); // Reset
-    await this.setDTRWebUSB(true); // (DTR inverted)
-    await this.setRTSWebUSB(true);
-    await this.sleep(100);
-
-    await this.setDTRWebUSB(true); // (DTR inverted)
-    await this.setRTSWebUSB(false); // Chip out of reset
-
-    await this.sleep(200);
+    await this.runSignalSequence([
+      { rts: false, dtr: true, delayMs: 100 },
+      { dtr: false, rts: false, delayMs: 100 },
+      { rts: true, dtr: true, delayMs: 100 },
+      { dtr: true, rts: false, delayMs: 200 },
+    ]);
   }
 
   /**
@@ -1187,14 +1164,7 @@ export class ESPLoader extends EventTarget {
    * Classic reset for WebUSB (Android)
    */
   async hardResetClassicWebUSB() {
-    await this.setDTRWebUSB(false); // IO0=HIGH
-    await this.setRTSWebUSB(true); // EN=LOW, chip in reset
-    await this.sleep(100);
-    await this.setDTRWebUSB(true); // IO0=LOW
-    await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset
-    await this.sleep(50);
-    await this.setDTRWebUSB(false); // IO0=HIGH, done
-    await this.sleep(200);
+    await this.hardResetClassic();
   }
 
   /**
@@ -1202,15 +1172,7 @@ export class ESPLoader extends EventTarget {
    * Unix Tight reset for WebUSB (Android) - sets DTR and RTS simultaneously
    */
   async hardResetUnixTightWebUSB() {
-    await this.setDTRandRTSWebUSB(false, false);
-    await this.setDTRandRTSWebUSB(true, true);
-    await this.setDTRandRTSWebUSB(false, true); // IO0=HIGH & EN=LOW, chip in reset
-    await this.sleep(100);
-    await this.setDTRandRTSWebUSB(true, false); // IO0=LOW & EN=HIGH, chip out of reset
-    await this.sleep(50);
-    await this.setDTRandRTSWebUSB(false, false); // IO0=HIGH, done
-    await this.setDTRWebUSB(false); // Ensure IO0=HIGH
-    await this.sleep(200);
+    await this.hardResetUnixTight();
   }
 
   /**
@@ -1219,14 +1181,11 @@ export class ESPLoader extends EventTarget {
    * Specifically for CP2102/CH340 which may need more time
    */
   async hardResetClassicLongDelayWebUSB() {
-    await this.setDTRWebUSB(false); // IO0=HIGH
-    await this.setRTSWebUSB(true); // EN=LOW, chip in reset
-    await this.sleep(500); // Extra long delay
-    await this.setDTRWebUSB(true); // IO0=LOW
-    await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset
-    await this.sleep(200);
-    await this.setDTRWebUSB(false); // IO0=HIGH, done
-    await this.sleep(500); // Extra long delay
+    await this.runSignalSequence([
+      { dtr: false, rts: true, delayMs: 500 },
+      { dtr: true, rts: false, delayMs: 200 },
+      { dtr: false, delayMs: 500 },
+    ]);
   }
 
   /**

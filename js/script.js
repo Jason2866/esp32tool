@@ -38,6 +38,8 @@ let consoleResetHandler = null;
 let consoleCloseHandler = null;
 let consoleBootloaderHandlerModule = null;
 
+const CHIP_FAMILY_ESP32S2 = 0x3252;
+
 /**
  * Get display name for current filesystem type
  */
@@ -369,16 +371,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize upload rows visibility - only show first row
   updateUploadRowsVisibility();
   
-  autoscroll.addEventListener("click", clickAutoscroll);
+  bindCheckboxSetting(autoscroll, "autoscroll");
   consoleSwitch.addEventListener("click", clickConsole);
   baudRateSelect.addEventListener("change", changeBaudRate);
   advancedMode.addEventListener("change", clickAdvancedMode);
   chunkSizeSelect.addEventListener("change", changeAdvancedParam);
   blockSizeSelect.addEventListener("change", changeAdvancedParam);
   maxInFlightSelect.addEventListener("change", changeAdvancedParam);
-  darkMode.addEventListener("click", clickDarkMode);
-  debugMode.addEventListener("click", clickDebugMode);
-  showLog.addEventListener("click", clickShowLog);
+  bindCheckboxSetting(darkMode, "darkmode", () => updateTheme());
+  bindCheckboxSetting(debugMode, "debugmode", (v) => logMsg("Debug mode " + (v ? "enabled" : "disabled")));
+  bindCheckboxSetting(showLog, "showlog", () => updateLogVisibility());
   window.addEventListener("error", function (event) {
     console.log("Got an uncaught error: ", event.error);
   });
@@ -812,39 +814,11 @@ async function changeBaudRate() {
   }
 }
 
-/**
- * @name clickAutoscroll
- * Change handler for the Autoscroll checkbox.
- */
-async function clickAutoscroll() {
-  saveSetting("autoscroll", autoscroll.checked);
-}
-
-/**
- * @name clickDarkMode
- * Change handler for the Dark Mode checkbox.
- */
-async function clickDarkMode() {
-  updateTheme();
-  saveSetting("darkmode", darkMode.checked);
-}
-
-/**
- * @name clickDebugMode
- * Change handler for the Debug Mode checkbox.
- */
-async function clickDebugMode() {
-  saveSetting("debugmode", debugMode.checked);
-  logMsg("Debug mode " + (debugMode.checked ? "enabled" : "disabled"));
-}
-
-/**
- * @name clickShowLog
- * Change handler for the Show Log checkbox.
- */
-async function clickShowLog() {
-  saveSetting("showlog", showLog.checked);
-  updateLogVisibility();
+function bindCheckboxSetting(checkbox, key, onChange) {
+  checkbox.addEventListener("click", () => {
+    saveSetting(key, checkbox.checked);
+    if (onChange) onChange(checkbox.checked);
+  });
 }
 
 /**
@@ -938,7 +912,7 @@ async function initConsoleUI() {
   consoleResetHandler = async () => {
     if (espLoaderBeforeConsole && typeof espLoaderBeforeConsole.resetInConsoleMode === 'function') {
       try {
-        const isS2 = chipFamilyBeforeConsole === 0x3252;
+        const isS2 = chipFamilyBeforeConsole === CHIP_FAMILY_ESP32S2;
         
         if (isS2) {
           debugMsg("ESP32-S2 console reset: entering bootloader, then WDT reset to firmware...");
@@ -1073,7 +1047,7 @@ async function clickConsole() {
             
             // Check if this is ESP32-S2 or if we're on Android (WebUSB)
             // Both need modal for user gesture
-            const isS2 = chipFamilyBeforeConsole === 0x3252; // CHIP_FAMILY_ESP32S2 = 0x3252
+            const isS2 = chipFamilyBeforeConsole === CHIP_FAMILY_ESP32S2;
             const needsModal = isS2 || isWebUSB;
             
             if (needsModal) {
@@ -1106,24 +1080,15 @@ async function clickConsole() {
                 "Device has been reset to firmware mode",
                 `Please click the button below to select the ${portLabel} for console.`
               );
-              
-              try {
-                const newPort = await requestPort();
-                await openConsolePortAndInit(newPort);
-              } catch (err) {
-                errorMsg(`Failed to open port for console: ${err.message}`);
-                consoleSwitch.checked = false;
-                saveSetting("console", false);
-              }
-            } else {
-              try {
-                const newPort = await requestPort();
-                await openConsolePortAndInit(newPort);
-              } catch (err) {
-                errorMsg(`Failed to open port for console: ${err.message}`);
-                consoleSwitch.checked = false;
-                saveSetting("console", false);
-              }
+            }
+
+            try {
+              const newPort = await requestPort();
+              await openConsolePortAndInit(newPort);
+            } catch (err) {
+              errorMsg(`Failed to open port for console: ${err.message}`);
+              consoleSwitch.checked = false;
+              saveSetting("console", false);
             }
             
             return;
