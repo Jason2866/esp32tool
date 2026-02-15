@@ -848,34 +848,66 @@ async function clickShowLog() {
 }
 
 /**
- * @name openConsolePortAndInit
- * Helper to open port for console and initialize console UI
- * Avoids code duplication across different console init flows
- * @param {SerialPort} newPort - The port to open
- * @param {boolean} needsEnterConsoleMode - If true, calls enterConsoleMode() to reset from bootloader to firmware
+ * @name requestPort
+ * Request a serial port from the user (WebUSB or Web Serial)
  */
-async function openConsolePortAndInit(newPort, needsEnterConsoleMode = false) {
-  // Open the port at 115200 for console
-  await newPort.open({ baudRate: 115200 });
+async function requestPort() {
+  return isUsingWebUSB()
+    ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
+    : await navigator.serial.requestPort();
+}
+
+/**
+ * @name showS2Modal
+ * Show the ESP32-S2 modal with given title/text and return a Promise
+ * that resolves when the user clicks the reconnect button.
+ */
+function showS2Modal(title, text) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("esp32s2Modal");
+    const reconnectBtn = document.getElementById("butReconnectS2");
+    const modalTitle = modal.querySelector("h2");
+    const modalText = modal.querySelector("p");
+    if (modalTitle) modalTitle.textContent = title;
+    if (modalText) modalText.textContent = text;
+    modal.classList.remove("hidden");
+    reconnectBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      resolve();
+    }, { once: true });
+  });
+}
+
+/**
+ * @name assignPort
+ * Assign a new port to espStub, its parent, and espLoaderBeforeConsole
+ */
+function assignPort(newPort) {
   espStub.port = newPort;
   espStub.connected = true;
-  
-  // Keep parent/loader in sync (used by closeConsole)
   if (espStub._parent) {
     espStub._parent.port = newPort;
   }
   if (espLoaderBeforeConsole) {
     espLoaderBeforeConsole.port = newPort;
+    espLoaderBeforeConsole.connected = true;
   }
+}
+
+/**
+ * @name openConsolePortAndInit
+ * Helper to open port for console and initialize console UI
+ * @param {SerialPort} newPort - The port to open
+ */
+async function openConsolePortAndInit(newPort) {
+  await newPort.open({ baudRate: 115200 });
+  assignPort(newPort);
   
   debugMsg("Port opened for console at 115200 baud");
   
-  // Device is already in firmware mode, port is open at 115200
-  // Initialize console directly
   consoleSwitch.checked = true;
   saveSetting("console", true);
   
-  // Initialize console UI and handlers
   await initConsoleUI();
 }
 
@@ -915,80 +947,31 @@ async function initConsoleUI() {
             await consoleInstance.disconnect();
           }
           
-          // exitConsoleMode resets S2 into bootloader (port changes)
           await espLoaderBeforeConsole.resetInConsoleMode();
           
-          const isWebUSB = isUsingWebUSB();
-          const waitTime = isWebUSB ? 1000 : 500;
+          const waitTime = isUsingWebUSB() ? 1000 : 500;
           await sleep(waitTime);
           
-          const modal = document.getElementById("esp32s2Modal");
-          const reconnectBtn = document.getElementById("butReconnectS2");
-          const modalTitle = modal.querySelector("h2");
-          const modalText = modal.querySelector("p");
-          
           // Step 1: Select bootloader port for WDT reset
-          if (modalTitle) modalTitle.textContent = "Select bootloader port";
-          if (modalText) {
-            modalText.textContent = isWebUSB
-              ? "Select the USB device (bootloader) to reset the device."
-              : "Select the serial port (bootloader) to reset the device.";
-          }
-          modal.classList.remove("hidden");
+          const portLabel = isUsingWebUSB() ? "USB device" : "serial port";
+          await showS2Modal("Select bootloader port", `Select the ${portLabel} (bootloader) to reset the device.`);
+          const bootloaderPort = await requestPort();
           
-          reconnectBtn.addEventListener("click", async () => {
-            modal.classList.add("hidden");
-            try {
-              const bootloaderPort = isWebUSB
-                ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
-                : await navigator.serial.requestPort();
-              
-              debugMsg("Syncing with bootloader and performing WDT reset...");
-              await espLoaderBeforeConsole.syncAndWdtReset(bootloaderPort);
-              
-              try { await bootloaderPort.close(); } catch (e) { /* port may already be gone */ }
-              
-              const fwWait = isWebUSB ? 1000 : 500;
-              debugMsg(`Waiting ${fwWait}ms for device to boot into firmware...`);
-              await sleep(fwWait);
-              
-              // Step 2: Select firmware port for console
-              if (modalTitle) modalTitle.textContent = "Select console port";
-              if (modalText) {
-                modalText.textContent = isWebUSB
-                  ? "Select the USB device (firmware) for console."
-                  : "Select the serial port (firmware) for console.";
-              }
-              modal.classList.remove("hidden");
-              
-              reconnectBtn.addEventListener("click", async () => {
-                modal.classList.add("hidden");
-                try {
-                  const consolePort = isWebUSB
-                    ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
-                    : await navigator.serial.requestPort();
-                  
-                  await consolePort.open({ baudRate: 115200 });
-                  espStub.port = consolePort;
-                  espStub.connected = true;
-                  if (espStub._parent) {
-                    espStub._parent.port = consolePort;
-                  }
-                  if (espLoaderBeforeConsole) {
-                    espLoaderBeforeConsole.port = consolePort;
-                    espLoaderBeforeConsole.connected = true;
-                  }
-                  
-                  await consoleInstance.reconnect(consolePort);
-                  debugMsg("Console reconnected after S2 reset");
-                } catch (err) {
-                  errorMsg(`Failed to reconnect console: ${err.message}`);
-                }
-              }, { once: true });
-            } catch (err) {
-              errorMsg(`Failed to reset S2 device: ${err.message}`);
-            }
-          }, { once: true });
+          debugMsg("Syncing with bootloader and performing WDT reset...");
+          await espLoaderBeforeConsole.syncAndWdtReset(bootloaderPort);
+          try { await bootloaderPort.close(); } catch (e) { /* port may already be gone */ }
+          
+          debugMsg("Waiting for device to boot into firmware...");
+          await sleep(waitTime);
+          
+          // Step 2: Select firmware port for console
+          await showS2Modal("Select console port", `Select the ${portLabel} (firmware) for console.`);
+          const consolePort = await requestPort();
+          
+          await consolePort.open({ baudRate: 115200 });
+          assignPort(consolePort);
+          await consoleInstance.reconnect(consolePort);
+          debugMsg("Console reconnected after S2 reset");
         } else {
           debugMsg("Resetting device from console...");
           await espLoaderBeforeConsole.resetInConsoleMode();
@@ -1118,52 +1101,23 @@ async function clickConsole() {
               // Wait for browser to process port closure and USB re-enumeration
               await sleep(300);
               
-              // Show modal for port selection (requires user gesture)
-              const modal = document.getElementById("esp32s2Modal");
-              const reconnectBtn = document.getElementById("butReconnectS2");
+              const portLabel = isWebUSB ? "USB device" : "serial port";
+              await showS2Modal(
+                "Device has been reset to firmware mode",
+                `Please click the button below to select the ${portLabel} for console.`
+              );
               
-              // Update modal text for console mode
-              const modalTitle = modal.querySelector("h2");
-              const modalText = modal.querySelector("p");
-              if (modalTitle) modalTitle.textContent = "Device has been reset to firmware mode";
-              if (modalText) {
-                modalText.textContent = isWebUSB 
-                  ? "Please click the button below to select the USB device for console."
-                  : "Please click the button below to select the serial port for console.";
-              }
-              
-              modal.classList.remove("hidden");
-              
-              // Handle reconnect button click (single-fire to prevent multiple prompts)
-              const handleReconnect = async () => {
-                modal.classList.add("hidden");
-                
-                try {
-                  // Request the NEW port (user gesture from button click)
-                  debugMsg("Please select the port for console mode...");
-                  const newPort = isWebUSB
-                    ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
-                    : await navigator.serial.requestPort();
-                  
-                  // Use helper to open port and initialize console
-                  await openConsolePortAndInit(newPort);
-                } catch (err) {
-                  errorMsg(`Failed to open port for console: ${err.message}`);
-                  consoleSwitch.checked = false;
-                  saveSetting("console", false);
-                }
-              };
-              
-              // Use { once: true } to ensure single-fire and automatic cleanup
-              reconnectBtn.addEventListener("click", handleReconnect, { once: true });
-            } else {
-              // Desktop (Web Serial) with ESP32-S3/C3/C5/C6/H2/P4: Direct requestPort
               try {
-                // Request port selection from user (direct)
-                debugMsg("Please select the serial port again for console mode...");
-                const newPort = await navigator.serial.requestPort();
-                
-                // Use helper to open port and initialize console
+                const newPort = await requestPort();
+                await openConsolePortAndInit(newPort);
+              } catch (err) {
+                errorMsg(`Failed to open port for console: ${err.message}`);
+                consoleSwitch.checked = false;
+                saveSetting("console", false);
+              }
+            } else {
+              try {
+                const newPort = await requestPort();
                 await openConsolePortAndInit(newPort);
               } catch (err) {
                 errorMsg(`Failed to open port for console: ${err.message}`);
