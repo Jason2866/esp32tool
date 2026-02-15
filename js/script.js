@@ -858,6 +858,8 @@ function showS2Modal(title, text) {
 function assignPort(newPort) {
   espStub.port = newPort;
   espStub.connected = true;
+  espStub._writer = undefined;
+  espStub._reader = undefined;
   if (espStub._parent) {
     espStub._parent.port = newPort;
   }
