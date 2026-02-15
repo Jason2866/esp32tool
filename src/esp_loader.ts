@@ -1080,14 +1080,6 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * Reset to firmware mode (not bootloader) for WebUSB
-   * Keeps IO0=HIGH during reset so chip boots into firmware
-   */
-  async hardResetToFirmwareWebUSB() {
-    await this.hardResetToFirmware();
-  }
-
-  /**
    * @name hardResetUnixTight
    * Unix Tight reset for Web Serial (Desktop) - sets DTR and RTS simultaneously
    */
@@ -1135,14 +1127,6 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * @name hardResetUSBJTAGSerialWebUSB
-   * USB-JTAG/Serial reset for WebUSB (Android)
-   */
-  async hardResetUSBJTAGSerialWebUSB() {
-    await this.hardResetUSBJTAGSerial();
-  }
-
-  /**
    * @name hardResetUSBJTAGSerialInvertedDTRWebUSB
    * USB-JTAG/Serial reset with inverted DTR for WebUSB (Android)
    */
@@ -1153,22 +1137,6 @@ export class ESPLoader extends EventTarget {
       { rts: true, dtr: true, delayMs: 100 },
       { dtr: true, rts: false, delayMs: 200 },
     ]);
-  }
-
-  /**
-   * @name hardResetClassicWebUSB
-   * Classic reset for WebUSB (Android)
-   */
-  async hardResetClassicWebUSB() {
-    await this.hardResetClassic();
-  }
-
-  /**
-   * @name hardResetUnixTightWebUSB
-   * Unix Tight reset for WebUSB (Android) - sets DTR and RTS simultaneously
-   */
-  async hardResetUnixTightWebUSB() {
-    await this.hardResetUnixTight();
   }
 
   /**
@@ -1747,12 +1715,7 @@ export class ESPLoader extends EventTarget {
           );
 
           // Use classic reset for chips without WDT support
-          if (this.isWebUSB()) {
-            await this.hardResetToFirmware();
-          } else {
-            await this.hardResetToFirmware();
-          }
-
+          await this.hardResetToFirmware();
           this.logger.debug("Classic reset to firmware complete");
           return false; // Port stays open
         }
@@ -1837,12 +1800,7 @@ export class ESPLoader extends EventTarget {
           "External serial chip detected - using classic reset",
         );
 
-        if (this.isWebUSB()) {
-          await this.hardResetToFirmware();
-        } else {
-          await this.hardResetToFirmware();
-        }
-
+        await this.hardResetToFirmware();
         this.logger.debug("Classic reset to firmware complete");
         return false;
       }
@@ -1874,14 +1832,8 @@ export class ESPLoader extends EventTarget {
         await this.hardResetUSBJTAGSerial();
         this.logger.debug("USB-JTAG/Serial reset to bootloader.");
       } else {
-        // Use different reset strategy for WebUSB (Android) vs Web Serial (Desktop)
-        if (this.isWebUSB()) {
-          await this.hardResetClassicWebUSB();
-          this.logger.debug("Classic reset to bootloader (WebUSB/Android).");
-        } else {
-          await this.hardResetClassic();
-          this.logger.debug("Classic reset to bootloader.");
-        }
+        await this.hardResetClassic();
+        this.logger.debug("Classic reset to bootloader.");
       }
     } else {
       // Reset to firmware mode (exit bootloader)
@@ -3655,13 +3607,8 @@ export class ESPLoader extends EventTarget {
       // Hardware reset to firmware mode (IO0=HIGH)
       // Use classic reset, NOT hardReset(false) which might use WDT reset
       try {
-        if (this.isWebUSB()) {
-          await this.hardResetToFirmware();
-          this.logger.debug("Device reset to firmware mode (WebUSB)");
-        } else {
-          await this.hardResetToFirmware();
-          this.logger.debug("Device reset to firmware mode");
-        }
+        await this.hardResetToFirmware();
+        this.logger.debug("Device reset to firmware mode");
       } catch (err) {
         this.logger.debug(`Could not reset device: ${err}`);
       }
@@ -4154,11 +4101,7 @@ export class ESPLoader extends EventTarget {
       // Perform hardware reset to bootloader (GPIO0=LOW)
       // This will cause the port to change from CDC (firmware) to JTAG (bootloader)
       try {
-        if (this.isWebUSB()) {
-          await this.hardResetClassicWebUSB();
-        } else {
-          await this.hardResetClassic();
-        }
+        await this.hardResetClassic();
         this.logger.debug("Reset to bootloader initiated");
       } catch (err) {
         this.logger.debug(`Reset error: ${err}`);
@@ -4235,17 +4178,9 @@ export class ESPLoader extends EventTarget {
     }
 
     // For other devices: Use standard firmware reset
-    const isWebUSB = (this.port as any).isWebUSB === true;
-
     try {
       this.logger.debug("Resetting device in console mode");
-
-      if (isWebUSB) {
-        await this.hardResetToFirmware();
-      } else {
-        await this.hardResetToFirmware();
-      }
-
+      await this.hardResetToFirmware();
       this.logger.debug("Device reset complete");
     } catch (err) {
       this.logger.error(`Reset failed: ${err}`);
