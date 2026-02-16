@@ -138,6 +138,12 @@ class ImprovSerial extends EventTarget {
     } catch (err) {
       this._rpcFeedback = null;
       throw new Error(`Error fetching current state: ${err}`);
+    } finally {
+      // Always cleanup the state-changed listener
+      if (this._stateChangedReject) {
+        this._stateChangedReject();
+        this._stateChangedReject = null;
+      }
     }
 
     if (this.state !== ImprovSerialCurrentState.PROVISIONED) {
@@ -210,7 +216,7 @@ class ImprovSerial extends EventTarget {
   // ─── Private methods ────────────────────────────────────────────
 
   _sendRPC(command, data) {
-    this.writePacketToStream(ImprovSerialMessageType.RPC, [
+    return this.writePacketToStream(ImprovSerialMessageType.RPC, [
       command,
       data.length,
       ...data,
@@ -784,10 +790,12 @@ export class ImprovDialog {
       this.overlay = null;
     }
 
-    // Reconnect console reader
-    if (this._reconnectConsole) {
+    // Reconnect console reader (guard against concurrent calls)
+    const reconnect = this._reconnectConsole;
+    this._reconnectConsole = null;
+    if (reconnect) {
       await sleep(200);
-      await this._reconnectConsole();
+      await reconnect();
     }
 
     if (this._closeResolve) {
