@@ -3548,6 +3548,48 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
+   * @name _ensureStreamsReady
+   * After a hardware reset, ensure port streams are available.
+   * On WebUSB, recreates streams since they break after reset.
+   * On Web Serial, waits for streams to become available.
+   */
+  private async _ensureStreamsReady(): Promise<void> {
+    if (this.isWebUSB()) {
+      try {
+        await (this.port as any).recreateStreams();
+        this.logger.debug("WebUSB streams recreated");
+
+        let retries = 30;
+        while (retries > 0 && !this.port.readable) {
+          await sleep(100);
+          retries--;
+        }
+        if (!this.port.readable) {
+          throw new Error(
+            "Readable stream not available after recreating streams",
+          );
+        }
+        this.logger.debug("WebUSB streams are ready");
+      } catch (err) {
+        this.logger.error(`Failed to recreate WebUSB streams: ${err}`);
+        this._consoleMode = false;
+        throw err;
+      }
+    } else {
+      let retries = 20;
+      while (retries > 0 && !this.port.readable) {
+        await sleep(100);
+        retries--;
+      }
+      if (!this.port.readable) {
+        this._consoleMode = false;
+        throw new Error("Readable stream not available after reset");
+      }
+      this.logger.debug("Port streams are ready");
+    }
+  }
+
+  /**
    * @name enterConsoleMode
    * Prepare device for console mode by resetting to firmware
    * Handles both USB-JTAG/OTG devices (closes port) and external serial chips (keeps port open)
@@ -3589,12 +3631,16 @@ export class ESPLoader extends EventTarget {
     // Set console mode flag BEFORE any operations
     this._consoleMode = true;
 
-    // Release reader/writer so console can create new ones
-    // This is needed for Desktop (Web Serial) to unlock streams
     if (isUsbJtag) {
-      // USB-JTAG/OTG devices: Use watchdog reset which closes port
+      // USB-JTAG/OTG devices: Use reset which may close port
       const wasReset = await this._resetToFirmwareIfNeeded();
-      return wasReset; // true = port closed, caller must reopen
+      if (wasReset) {
+        return true; // port closed, caller must reopen
+      }
+
+      // Port stayed open (e.g. C3/C5/C6/H2 classic reset)
+      await this._ensureStreamsReady();
+      return false;
     } else {
       // External serial chip devices: Release locks and do simple reset
       try {
@@ -3604,8 +3650,6 @@ export class ESPLoader extends EventTarget {
         this.logger.debug(`Failed to release locks: ${err}`);
       }
 
-      // Hardware reset to firmware mode (IO0=HIGH)
-      // Use classic reset, NOT hardReset(false) which might use WDT reset
       try {
         await this.hardResetToFirmware();
         this.logger.debug("Device reset to firmware mode");
@@ -3613,54 +3657,8 @@ export class ESPLoader extends EventTarget {
         this.logger.debug(`Could not reset device: ${err}`);
       }
 
-      // For WebUSB (Android), recreate streams after hardware reset
-      if (this.isWebUSB()) {
-        try {
-          // Use the public recreateStreams() method to safely recreate streams
-          // without closing the port (important after hardware reset)
-          await (this.port as any).recreateStreams();
-          this.logger.debug("WebUSB streams recreated for console mode");
-
-          // Wait for streams to be available
-          let retries = 30; // 3 seconds max
-          while (retries > 0 && !this.port.readable) {
-            await sleep(100);
-            retries--;
-          }
-
-          if (!this.port.readable) {
-            throw new Error(
-              "Readable stream not available after recreating streams",
-            );
-          }
-
-          this.logger.debug("WebUSB streams are ready for console");
-        } catch (err) {
-          this.logger.error(`Failed to recreate WebUSB streams: ${err}`);
-          this._consoleMode = false;
-          throw err;
-        }
-      } else {
-        // For Web Serial (Desktop), wait for streams to be ready after reset
-        let retries = 20; // 2 seconds max
-        while (retries > 0 && !this.port.readable) {
-          await sleep(100);
-          retries--;
-        }
-
-        if (!this.port.readable) {
-          this.logger.error("Readable stream not available after reset");
-          this._consoleMode = false;
-          throw new Error("Readable stream not available after reset");
-        }
-
-        this.logger.debug("Port streams are ready for console");
-      }
-
-      // Set console mode flag
-      this._consoleMode = true;
-
-      return false; // Port stays open
+      await this._ensureStreamsReady();
+      return false;
     }
   }
 
