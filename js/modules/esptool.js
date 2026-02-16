@@ -5632,9 +5632,6 @@ class ESPLoader extends EventTarget {
         this._suppressDisconnect = false;
         this.logger.debug("Finished read loop");
     }
-    sleep(ms = 100) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    }
     // ============================================================================
     // Web Serial (Desktop) - DTR/RTS Signal Handling & Reset Strategies
     // ============================================================================
@@ -5658,77 +5655,82 @@ class ESPLoader extends EventTarget {
             requestToSend: rts,
         });
     }
+    async runSignalSequence(steps) {
+        const webusb = this.port.isWebUSB === true;
+        for (const step of steps) {
+            if (step.dtr !== undefined && step.rts !== undefined) {
+                if (webusb) {
+                    await this.setDTRandRTSWebUSB(step.dtr, step.rts);
+                }
+                else {
+                    await this.setDTRandRTS(step.dtr, step.rts);
+                }
+            }
+            else {
+                if (step.dtr !== undefined) {
+                    webusb
+                        ? await this.setDTRWebUSB(step.dtr)
+                        : await this.setDTR(step.dtr);
+                }
+                if (step.rts !== undefined) {
+                    webusb
+                        ? await this.setRTSWebUSB(step.rts)
+                        : await this.setRTS(step.rts);
+                }
+            }
+            if (step.delayMs)
+                await sleep(step.delayMs);
+        }
+    }
     /**
      * @name hardResetUSBJTAGSerial
      * USB-JTAG/Serial reset for Web Serial (Desktop)
      */
     async hardResetUSBJTAGSerial() {
-        await this.setRTS(false);
-        await this.setDTR(false); // Idle
-        await this.sleep(100);
-        await this.setDTR(true); // Set IO0
-        await this.setRTS(false);
-        await this.sleep(100);
-        await this.setRTS(true); // Reset
-        await this.setDTR(false);
-        await this.setRTS(true);
-        await this.sleep(100);
-        await this.setDTR(false);
-        await this.setRTS(false); // Chip out of reset
-        await this.sleep(200);
+        await this.runSignalSequence([
+            { rts: false },
+            { dtr: false, delayMs: 100 },
+            { dtr: true, rts: false, delayMs: 100 },
+            { rts: true },
+            { dtr: false, rts: true, delayMs: 100 },
+            { dtr: false, rts: false, delayMs: 200 },
+        ]);
     }
     /**
      * @name hardResetClassic
      * Classic reset for Web Serial (Desktop) DTR = IO0, RTS = EN
      */
     async hardResetClassic() {
-        await this.setDTR(false); // IO0=HIGH
-        await this.setRTS(true); // EN=LOW, chip in reset
-        await this.sleep(100);
-        await this.setDTR(true); // IO0=LOW
-        await this.setRTS(false); // EN=HIGH, chip out of reset
-        await this.sleep(50);
-        await this.setDTR(false); // IO0=HIGH, done
-        await this.sleep(200);
+        await this.runSignalSequence([
+            { dtr: false, rts: true, delayMs: 100 },
+            { dtr: true, rts: false, delayMs: 50 },
+            { dtr: false, delayMs: 200 },
+        ]);
     }
     /**
      * Reset to firmware mode (not bootloader) for Web Serial
      * Keeps IO0=HIGH during reset so chip boots into firmware
      */
     async hardResetToFirmware() {
-        await this.setDTR(false); // IO0=HIGH
-        await this.setRTS(true); // EN=LOW, chip in reset
-        await this.sleep(100);
-        await this.setRTS(false); // EN=HIGH, chip out of reset (IO0 stays HIGH)
-        await this.sleep(50);
-        await this.sleep(200);
-    }
-    /**
-     * Reset to firmware mode (not bootloader) for WebUSB
-     * Keeps IO0=HIGH during reset so chip boots into firmware
-     */
-    async hardResetToFirmwareWebUSB() {
-        await this.setDTRWebUSB(false); // IO0=HIGH
-        await this.setRTSWebUSB(true); // EN=LOW, chip in reset
-        await this.sleep(100);
-        await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset (IO0 stays HIGH)
-        await this.sleep(50);
-        await this.sleep(200);
+        await this.runSignalSequence([
+            { dtr: false, rts: true, delayMs: 100 },
+            { rts: false, delayMs: 50 },
+            { delayMs: 200 },
+        ]);
     }
     /**
      * @name hardResetUnixTight
      * Unix Tight reset for Web Serial (Desktop) - sets DTR and RTS simultaneously
      */
     async hardResetUnixTight() {
-        await this.setDTRandRTS(true, true);
-        await this.setDTRandRTS(false, false);
-        await this.setDTRandRTS(false, true); // IO0=HIGH & EN=LOW, chip in reset
-        await this.sleep(100);
-        await this.setDTRandRTS(true, false); // IO0=LOW & EN=HIGH, chip out of reset
-        await this.sleep(50);
-        await this.setDTRandRTS(false, false); // IO0=HIGH, done
-        await this.setDTR(false); // Needed in some environments to ensure IO0=HIGH
-        await this.sleep(200);
+        await this.runSignalSequence([
+            { dtr: true, rts: true },
+            { dtr: false, rts: false },
+            { dtr: false, rts: true, delayMs: 100 },
+            { dtr: true, rts: false, delayMs: 50 },
+            { dtr: false, rts: false },
+            { dtr: false, delayMs: 200 },
+        ]);
     }
     // ============================================================================
     // WebUSB (Android) - DTR/RTS Signal Handling & Reset Strategies
@@ -5759,71 +5761,16 @@ class ESPLoader extends EventTarget {
         });
     }
     /**
-     * @name hardResetUSBJTAGSerialWebUSB
-     * USB-JTAG/Serial reset for WebUSB (Android)
-     */
-    async hardResetUSBJTAGSerialWebUSB() {
-        await this.setRTSWebUSB(false);
-        await this.setDTRWebUSB(false); // Idle
-        await this.sleep(100);
-        await this.setDTRWebUSB(true); // Set IO0
-        await this.setRTSWebUSB(false);
-        await this.sleep(100);
-        await this.setRTSWebUSB(true); // Reset
-        await this.setDTRWebUSB(false);
-        await this.setRTSWebUSB(true);
-        await this.sleep(100);
-        await this.setDTRWebUSB(false);
-        await this.setRTSWebUSB(false); // Chip out of reset
-        await this.sleep(200);
-    }
-    /**
      * @name hardResetUSBJTAGSerialInvertedDTRWebUSB
      * USB-JTAG/Serial reset with inverted DTR for WebUSB (Android)
      */
     async hardResetUSBJTAGSerialInvertedDTRWebUSB() {
-        await this.setRTSWebUSB(false);
-        await this.setDTRWebUSB(true); // Idle (DTR inverted)
-        await this.sleep(100);
-        await this.setDTRWebUSB(false); // Set IO0 (DTR inverted)
-        await this.setRTSWebUSB(false);
-        await this.sleep(100);
-        await this.setRTSWebUSB(true); // Reset
-        await this.setDTRWebUSB(true); // (DTR inverted)
-        await this.setRTSWebUSB(true);
-        await this.sleep(100);
-        await this.setDTRWebUSB(true); // (DTR inverted)
-        await this.setRTSWebUSB(false); // Chip out of reset
-        await this.sleep(200);
-    }
-    /**
-     * @name hardResetClassicWebUSB
-     * Classic reset for WebUSB (Android)
-     */
-    async hardResetClassicWebUSB() {
-        await this.setDTRWebUSB(false); // IO0=HIGH
-        await this.setRTSWebUSB(true); // EN=LOW, chip in reset
-        await this.sleep(100);
-        await this.setDTRWebUSB(true); // IO0=LOW
-        await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset
-        await this.sleep(50);
-        await this.setDTRWebUSB(false); // IO0=HIGH, done
-        await this.sleep(200);
-    }
-    /**
-     * @name hardResetUnixTightWebUSB
-     * Unix Tight reset for WebUSB (Android) - sets DTR and RTS simultaneously
-     */
-    async hardResetUnixTightWebUSB() {
-        await this.setDTRandRTSWebUSB(false, false);
-        await this.setDTRandRTSWebUSB(true, true);
-        await this.setDTRandRTSWebUSB(false, true); // IO0=HIGH & EN=LOW, chip in reset
-        await this.sleep(100);
-        await this.setDTRandRTSWebUSB(true, false); // IO0=LOW & EN=HIGH, chip out of reset
-        await this.sleep(50);
-        await this.setDTRandRTSWebUSB(false, false); // IO0=HIGH, done
-        await this.setDTRWebUSB(false); // Ensure IO0=HIGH
-        await this.sleep(200);
+        await this.runSignalSequence([
+            { rts: false, dtr: true, delayMs: 100 },
+            { dtr: false, rts: false, delayMs: 100 },
+            { rts: true, dtr: true, delayMs: 100 },
+            { dtr: true, rts: false, delayMs: 200 },
+        ]);
     }
     /**
      * @name hardResetClassicLongDelayWebUSB
@@ -5831,14 +5778,11 @@ class ESPLoader extends EventTarget {
      * Specifically for CP2102/CH340 which may need more time
      */
     async hardResetClassicLongDelayWebUSB() {
-        await this.setDTRWebUSB(false); // IO0=HIGH
-        await this.setRTSWebUSB(true); // EN=LOW, chip in reset
-        await this.sleep(500); // Extra long delay
-        await this.setDTRWebUSB(true); // IO0=LOW
-        await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset
-        await this.sleep(200);
-        await this.setDTRWebUSB(false); // IO0=HIGH, done
-        await this.sleep(500); // Extra long delay
+        await this.runSignalSequence([
+            { dtr: false, rts: true, delayMs: 500 },
+            { dtr: true, rts: false, delayMs: 200 },
+            { dtr: false, delayMs: 500 },
+        ]);
     }
     /**
      * @name hardResetClassicShortDelayWebUSB
@@ -5847,12 +5791,12 @@ class ESPLoader extends EventTarget {
     async hardResetClassicShortDelayWebUSB() {
         await this.setDTRWebUSB(false); // IO0=HIGH
         await this.setRTSWebUSB(true); // EN=LOW, chip in reset
-        await this.sleep(50);
+        await sleep(50);
         await this.setDTRWebUSB(true); // IO0=LOW
         await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset
-        await this.sleep(25);
+        await sleep(25);
         await this.setDTRWebUSB(false); // IO0=HIGH, done
-        await this.sleep(100);
+        await sleep(100);
     }
     /**
      * @name hardResetInvertedWebUSB
@@ -5861,12 +5805,12 @@ class ESPLoader extends EventTarget {
     async hardResetInvertedWebUSB() {
         await this.setDTRWebUSB(true); // IO0=HIGH (inverted)
         await this.setRTSWebUSB(false); // EN=LOW, chip in reset (inverted)
-        await this.sleep(100);
+        await sleep(100);
         await this.setDTRWebUSB(false); // IO0=LOW (inverted)
         await this.setRTSWebUSB(true); // EN=HIGH, chip out of reset (inverted)
-        await this.sleep(50);
+        await sleep(50);
         await this.setDTRWebUSB(true); // IO0=HIGH, done (inverted)
-        await this.sleep(200);
+        await sleep(200);
     }
     /**
      * @name hardResetInvertedDTRWebUSB
@@ -5875,12 +5819,12 @@ class ESPLoader extends EventTarget {
     async hardResetInvertedDTRWebUSB() {
         await this.setDTRWebUSB(true); // IO0=HIGH (DTR inverted)
         await this.setRTSWebUSB(true); // EN=LOW, chip in reset (RTS normal)
-        await this.sleep(100);
+        await sleep(100);
         await this.setDTRWebUSB(false); // IO0=LOW (DTR inverted)
         await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset (RTS normal)
-        await this.sleep(50);
+        await sleep(50);
         await this.setDTRWebUSB(true); // IO0=HIGH, done (DTR inverted)
-        await this.sleep(200);
+        await sleep(200);
     }
     /**
      * @name hardResetInvertedRTSWebUSB
@@ -5889,12 +5833,12 @@ class ESPLoader extends EventTarget {
     async hardResetInvertedRTSWebUSB() {
         await this.setDTRWebUSB(false); // IO0=HIGH (DTR normal)
         await this.setRTSWebUSB(false); // EN=LOW, chip in reset (RTS inverted)
-        await this.sleep(100);
+        await sleep(100);
         await this.setDTRWebUSB(true); // IO0=LOW (DTR normal)
         await this.setRTSWebUSB(true); // EN=HIGH, chip out of reset (RTS inverted)
-        await this.sleep(50);
+        await sleep(50);
         await this.setDTRWebUSB(false); // IO0=HIGH, done (DTR normal)
-        await this.sleep(200);
+        await sleep(200);
     }
     /**
      * Check if we're using WebUSB (Android) or Web Serial (Desktop)
@@ -5938,7 +5882,7 @@ class ESPLoader extends EventTarget {
                     resetStrategies.push({
                         name: "USB-JTAG/Serial (WebUSB) - ESP32-S2",
                         fn: async () => {
-                            return await self.hardResetUSBJTAGSerialWebUSB();
+                            return await self.hardResetUSBJTAGSerial();
                         },
                     });
                     // Strategy 2: USB-JTAG/Serial Inverted DTR (works in JTAG mode)
@@ -5952,14 +5896,14 @@ class ESPLoader extends EventTarget {
                     resetStrategies.push({
                         name: "UnixTight (WebUSB) - ESP32-S2 CDC",
                         fn: async () => {
-                            return await self.hardResetUnixTightWebUSB();
+                            return await self.hardResetUnixTight();
                         },
                     });
                     // Strategy 4: Classic reset (CDC fallback)
                     resetStrategies.push({
                         name: "Classic (WebUSB) - ESP32-S2 CDC",
                         fn: async () => {
-                            return await self.hardResetClassicWebUSB();
+                            return await self.hardResetClassic();
                         },
                     });
                 }
@@ -5974,7 +5918,7 @@ class ESPLoader extends EventTarget {
                     resetStrategies.push({
                         name: "USB-JTAG/Serial (WebUSB)",
                         fn: async () => {
-                            return await self.hardResetUSBJTAGSerialWebUSB();
+                            return await self.hardResetUSBJTAGSerial();
                         },
                     });
                     resetStrategies.push({
@@ -5992,13 +5936,13 @@ class ESPLoader extends EventTarget {
                     resetStrategies.push({
                         name: "UnixTight (WebUSB) - CH34x",
                         fn: async () => {
-                            return await self.hardResetUnixTightWebUSB();
+                            return await self.hardResetUnixTight();
                         },
                     });
                     resetStrategies.push({
                         name: "Classic (WebUSB) - CH34x",
                         fn: async () => {
-                            return await self.hardResetClassicWebUSB();
+                            return await self.hardResetClassic();
                         },
                     });
                     resetStrategies.push({
@@ -6026,13 +5970,13 @@ class ESPLoader extends EventTarget {
                     resetStrategies.push({
                         name: "UnixTight (WebUSB) - CP2102",
                         fn: async () => {
-                            return await self.hardResetUnixTightWebUSB();
+                            return await self.hardResetUnixTight();
                         },
                     });
                     resetStrategies.push({
                         name: "Classic (WebUSB) - CP2102",
                         fn: async () => {
-                            return await self.hardResetClassicWebUSB();
+                            return await self.hardResetClassic();
                         },
                     });
                     resetStrategies.push({
@@ -6059,13 +6003,13 @@ class ESPLoader extends EventTarget {
                     resetStrategies.push({
                         name: "UnixTight (WebUSB)",
                         fn: async () => {
-                            return await self.hardResetUnixTightWebUSB();
+                            return await self.hardResetUnixTight();
                         },
                     });
                     resetStrategies.push({
                         name: "Classic (WebUSB)",
                         fn: async function () {
-                            return await self.hardResetClassicWebUSB();
+                            return await self.hardResetClassic();
                         },
                     });
                     resetStrategies.push({
@@ -6095,7 +6039,7 @@ class ESPLoader extends EventTarget {
                     resetStrategies.push({
                         name: "Classic (WebUSB)",
                         fn: async function () {
-                            return await self.hardResetClassicWebUSB();
+                            return await self.hardResetClassic();
                         },
                     });
                 }
@@ -6103,7 +6047,7 @@ class ESPLoader extends EventTarget {
                 resetStrategies.push({
                     name: "UnixTight (WebUSB)",
                     fn: async function () {
-                        return await self.hardResetUnixTightWebUSB();
+                        return await self.hardResetUnixTight();
                     },
                 });
                 // WebUSB Strategy: Classic with long delays
@@ -6125,7 +6069,7 @@ class ESPLoader extends EventTarget {
                     resetStrategies.push({
                         name: "USB-JTAG/Serial fallback (WebUSB)",
                         fn: async function () {
-                            return await self.hardResetUSBJTAGSerialWebUSB();
+                            return await self.hardResetUSBJTAGSerial();
                         },
                     });
                 }
@@ -6294,7 +6238,7 @@ class ESPLoader extends EventTarget {
         // Lock watchdog registers
         await this.writeRegister(WDTWPROTECT_REG, 0, undefined, 0);
         // Wait for reset to take effect
-        await this.sleep(500);
+        await sleep(500);
     }
     /**
      * Reset device from bootloader mode to firmware mode
@@ -6331,12 +6275,7 @@ class ESPLoader extends EventTarget {
                 if (!supportsWdtReset) {
                     this.logger.debug(`${this.chipName} does not support WDT reset - using classic reset instead`);
                     // Use classic reset for chips without WDT support
-                    if (this.isWebUSB()) {
-                        await this.hardResetToFirmwareWebUSB();
-                    }
-                    else {
-                        await this.hardResetToFirmware();
-                    }
+                    await this.hardResetToFirmware();
                     this.logger.debug("Classic reset to firmware complete");
                     return false; // Port stays open
                 }
@@ -6398,12 +6337,7 @@ class ESPLoader extends EventTarget {
             else {
                 // External serial chip - use classic reset to firmware
                 this.logger.debug("External serial chip detected - using classic reset");
-                if (this.isWebUSB()) {
-                    await this.hardResetToFirmwareWebUSB();
-                }
-                else {
-                    await this.hardResetToFirmware();
-                }
+                await this.hardResetToFirmware();
                 this.logger.debug("Classic reset to firmware complete");
                 return false;
             }
@@ -6433,15 +6367,8 @@ class ESPLoader extends EventTarget {
                 this.logger.debug("USB-JTAG/Serial reset to bootloader.");
             }
             else {
-                // Use different reset strategy for WebUSB (Android) vs Web Serial (Desktop)
-                if (this.isWebUSB()) {
-                    await this.hardResetClassicWebUSB();
-                    this.logger.debug("Classic reset to bootloader (WebUSB/Android).");
-                }
-                else {
-                    await this.hardResetClassic();
-                    this.logger.debug("Classic reset to bootloader.");
-                }
+                await this.hardResetClassic();
+                this.logger.debug("Classic reset to bootloader.");
             }
         }
         else {
@@ -6486,15 +6413,15 @@ class ESPLoader extends EventTarget {
                 if (this.isWebUSB()) {
                     // WebUSB: Use longer delays for better compatibility
                     await this.setRTSWebUSB(true); // EN->LOW
-                    await this.sleep(200);
+                    await sleep(200);
                     await this.setRTSWebUSB(false);
-                    await this.sleep(200);
+                    await sleep(200);
                     this.logger.debug("Hard reset to firmware (WebUSB).");
                 }
                 else {
                     // Web Serial: Standard reset
                     await this.setRTS(true); // EN->LOW
-                    await this.sleep(100);
+                    await sleep(100);
                     await this.setRTS(false);
                     this.logger.debug("Hard reset to firmware.");
                 }
@@ -7722,7 +7649,7 @@ class ESPLoader extends EventTarget {
                 // CRITICAL: Wait a bit for readLoop's finally block to complete
                 // The finally block needs time to call releaseLock() and set _reader = undefined
                 // This is much faster than waiting for browser to unlock (just waiting for JS execution)
-                await this.sleep(50);
+                await sleep(50);
                 this.logger.debug("ReadLoop cleanup should be complete");
             }
             catch (err) {
@@ -7864,6 +7791,46 @@ class ESPLoader extends EventTarget {
         return usbChips.includes(family);
     }
     /**
+     * @name _ensureStreamsReady
+     * After a hardware reset, ensure port streams are available.
+     * On WebUSB, recreates streams since they break after reset.
+     * On Web Serial, waits for streams to become available.
+     */
+    async _ensureStreamsReady() {
+        if (this.isWebUSB()) {
+            try {
+                await this.port.recreateStreams();
+                this.logger.debug("WebUSB streams recreated");
+                let retries = 30;
+                while (retries > 0 && !this.port.readable) {
+                    await sleep(100);
+                    retries--;
+                }
+                if (!this.port.readable) {
+                    throw new Error("Readable stream not available after recreating streams");
+                }
+                this.logger.debug("WebUSB streams are ready");
+            }
+            catch (err) {
+                this.logger.error(`Failed to recreate WebUSB streams: ${err}`);
+                this._consoleMode = false;
+                throw err;
+            }
+        }
+        else {
+            let retries = 20;
+            while (retries > 0 && !this.port.readable) {
+                await sleep(100);
+                retries--;
+            }
+            if (!this.port.readable) {
+                this._consoleMode = false;
+                throw new Error("Readable stream not available after reset");
+            }
+            this.logger.debug("Port streams are ready");
+        }
+    }
+    /**
      * @name enterConsoleMode
      * Prepare device for console mode by resetting to firmware
      * Handles both USB-JTAG/OTG devices (closes port) and external serial chips (keeps port open)
@@ -7895,78 +7862,34 @@ class ESPLoader extends EventTarget {
         }
         // Set console mode flag BEFORE any operations
         this._consoleMode = true;
-        // Release reader/writer so console can create new ones
-        // This is needed for Desktop (Web Serial) to unlock streams
         if (isUsbJtag) {
-            // USB-JTAG/OTG devices: Use watchdog reset which closes port
+            // USB-JTAG/OTG devices: Use reset which may close port
             const wasReset = await this._resetToFirmwareIfNeeded();
-            return wasReset; // true = port closed, caller must reopen
+            if (wasReset) {
+                return true; // port closed, caller must reopen
+            }
+            // Port stayed open (e.g. C3/C5/C6/H2 classic reset)
+            await this._ensureStreamsReady();
+            return false;
         }
         else {
             // External serial chip devices: Release locks and do simple reset
             try {
                 await this.releaseReaderWriter();
-                await this.sleep(100);
+                await sleep(100);
             }
             catch (err) {
                 this.logger.debug(`Failed to release locks: ${err}`);
             }
-            // Hardware reset to firmware mode (IO0=HIGH)
-            // Use classic reset, NOT hardReset(false) which might use WDT reset
             try {
-                if (this.isWebUSB()) {
-                    await this.hardResetToFirmwareWebUSB();
-                    this.logger.debug("Device reset to firmware mode (WebUSB)");
-                }
-                else {
-                    await this.hardResetToFirmware();
-                    this.logger.debug("Device reset to firmware mode");
-                }
+                await this.hardResetToFirmware();
+                this.logger.debug("Device reset to firmware mode");
             }
             catch (err) {
                 this.logger.debug(`Could not reset device: ${err}`);
             }
-            // For WebUSB (Android), recreate streams after hardware reset
-            if (this.isWebUSB()) {
-                try {
-                    // Use the public recreateStreams() method to safely recreate streams
-                    // without closing the port (important after hardware reset)
-                    await this.port.recreateStreams();
-                    this.logger.debug("WebUSB streams recreated for console mode");
-                    // Wait for streams to be available
-                    let retries = 30; // 3 seconds max
-                    while (retries > 0 && !this.port.readable) {
-                        await this.sleep(100);
-                        retries--;
-                    }
-                    if (!this.port.readable) {
-                        throw new Error("Readable stream not available after recreating streams");
-                    }
-                    this.logger.debug("WebUSB streams are ready for console");
-                }
-                catch (err) {
-                    this.logger.error(`Failed to recreate WebUSB streams: ${err}`);
-                    this._consoleMode = false;
-                    throw err;
-                }
-            }
-            else {
-                // For Web Serial (Desktop), wait for streams to be ready after reset
-                let retries = 20; // 2 seconds max
-                while (retries > 0 && !this.port.readable) {
-                    await this.sleep(100);
-                    retries--;
-                }
-                if (!this.port.readable) {
-                    this.logger.error("Readable stream not available after reset");
-                    this._consoleMode = false;
-                    throw new Error("Readable stream not available after reset");
-                }
-                this.logger.debug("Port streams are ready for console");
-            }
-            // Set console mode flag
-            this._consoleMode = true;
-            return false; // Port stays open
+            await this._ensureStreamsReady();
+            return false;
         }
     }
     /**
@@ -8020,53 +7943,6 @@ class ESPLoader extends EventTarget {
         }
         catch (err) {
             this.logger.debug(`Error checking/clearing force download flag: ${err}`);
-            return false;
-        }
-    }
-    /**
-     * @name setForceDownloadBoot
-     * Set the force download boot flag so the chip enters download mode on next reset.
-     * Supported on ESP32-S2, ESP32-S3, and ESP32-P4.
-     * Returns true if the flag was set, false if it was already set or the chip is not supported.
-     */
-    async setForceDownloadBoot() {
-        try {
-            let regAddr;
-            let mask;
-            let chipName;
-            if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
-                regAddr = ESP32S2_RTC_CNTL_OPTION1_REG;
-                mask = ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
-                chipName = "ESP32-S2";
-            }
-            else if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
-                regAddr = ESP32S3_RTC_CNTL_OPTION1_REG;
-                mask = ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
-                chipName = "ESP32-S3";
-            }
-            else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-                regAddr = ESP32P4_RTC_CNTL_OPTION1_REG;
-                mask = ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
-                chipName = "ESP32-P4";
-            }
-            else {
-                this.logger.debug("Force download boot flag not supported for this chip family");
-                return false;
-            }
-            const currentValue = await this.readRegister(regAddr);
-            this.logger.debug(`${chipName} force download boot register: 0x${currentValue.toString(16)} (mask: 0x${mask.toString(16)})`);
-            const isFlagSet = (currentValue & mask) !== 0;
-            if (isFlagSet) {
-                this.logger.debug(`${chipName} force download boot flag is already SET - no action needed`);
-                return false;
-            }
-            this.logger.debug(`${chipName} force download boot flag is CLEAR - setting it`);
-            await this.writeRegister(regAddr, mask, mask, 0);
-            this.logger.debug(`${chipName} force download boot flag set`);
-            return true;
-        }
-        catch (err) {
-            this.logger.debug(`Error setting force download boot flag: ${err}`);
             return false;
         }
     }
@@ -8384,12 +8260,7 @@ class ESPLoader extends EventTarget {
             // Perform hardware reset to bootloader (GPIO0=LOW)
             // This will cause the port to change from CDC (firmware) to JTAG (bootloader)
             try {
-                if (this.isWebUSB()) {
-                    await this.hardResetClassicWebUSB();
-                }
-                else {
-                    await this.hardResetClassic();
-                }
+                await this.hardResetClassic();
                 this.logger.debug("Reset to bootloader initiated");
             }
             catch (err) {
@@ -8448,15 +8319,9 @@ class ESPLoader extends EventTarget {
             return;
         }
         // For other devices: Use standard firmware reset
-        const isWebUSB = this.port.isWebUSB === true;
         try {
             this.logger.debug("Resetting device in console mode");
-            if (isWebUSB) {
-                await this.hardResetToFirmwareWebUSB();
-            }
-            else {
-                await this.hardResetToFirmware();
-            }
+            await this.hardResetToFirmware();
             this.logger.debug("Device reset complete");
         }
         catch (err) {

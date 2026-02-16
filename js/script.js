@@ -880,6 +880,19 @@ async function openConsolePortAndInit(newPort) {
   
   debugMsg("Port opened for console at 115200 baud");
   
+  // WebUSB needs extra time for USB interface and streams to stabilize
+  if (isUsingWebUSB()) {
+    let retries = 30;
+    while (retries > 0 && !newPort.readable) {
+      await sleep(100);
+      retries--;
+    }
+    if (!newPort.readable) {
+      throw new Error("Port readable stream not available after open");
+    }
+    debugMsg("WebUSB port streams ready for console");
+  }
+  
   consoleSwitch.checked = true;
   saveSetting("console", true);
   
