@@ -1,5 +1,6 @@
 import { ColoredConsole, coloredConsoleStyles } from "./util/console-color.js";
 import { LineBreakTransformer } from "./util/line-break-transformer.js";
+import { ImprovDialog } from "./improv.js";
 
 export class ESP32ToolConsole {
   // Bootloader detection patterns
@@ -107,6 +108,7 @@ export class ESP32ToolConsole {
       <div class="esp32tool-console-wrapper">
         <div class="esp32tool-console-header">
           <div class="esp32tool-console-controls">
+            <button id="console-improv-btn" title="Improv Wi-Fi">Improv</button>
             <button id="console-clear-btn">Clear</button>
             <button id="console-reset-btn">Reset Device</button>
             <button id="console-close-btn">Close Console</button>
@@ -147,6 +149,11 @@ export class ESP32ToolConsole {
           new CustomEvent("console-close", { bubbles: true })
         );
       });
+    }
+
+    const improvBtn = this.containerElement.querySelector("#console-improv-btn");
+    if (improvBtn) {
+      improvBtn.addEventListener("click", () => this._openImprov());
     }
 
     if (this.allowInput) {
@@ -323,6 +330,30 @@ export class ESP32ToolConsole {
       await this.cancelConnection();
       this.cancelConnection = null;
     }
+  }
+
+  /**
+   * Open Improv Wi-Fi dialog.
+   * Temporarily disconnects the console reader so Improv can use the serial port,
+   * then reconnects when the dialog is closed.
+   */
+  async _openImprov() {
+    const dialog = new ImprovDialog(this.port);
+    await dialog.open(
+      // disconnectConsole
+      async () => {
+        await this.disconnect();
+      },
+      // reconnectConsole
+      async () => {
+        const abortController = new AbortController();
+        const connection = this._connect(abortController.signal);
+        this.cancelConnection = () => {
+          abortController.abort();
+          return connection;
+        };
+      },
+    );
   }
 
   async reconnect(newPort) {
