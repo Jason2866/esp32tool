@@ -370,6 +370,10 @@ class ImprovSerial extends EventTarget {
       let idx = 2;
       while (idx < 2 + totalLength) {
         const strLen = data[idx];
+        if (idx + 1 + strLen > 2 + totalLength) {
+          this.logger.error("Malformed TLV: string length exceeds packet data");
+          break;
+        }
         result.push(
           String.fromCodePoint(...data.slice(idx + 1, idx + strLen + 1)),
         );
@@ -426,7 +430,7 @@ class ImprovSerial extends EventTarget {
   _setError(error) {
     this.error = error;
     if (error > 0 && this._rpcFeedback) {
-      this._rpcFeedback.reject(ERROR_MSGS[error] || `UNKNOWN_ERROR (${error})`);
+      this._rpcFeedback.reject(new Error(ERROR_MSGS[error] || `UNKNOWN_ERROR (${error})`));
       this._rpcFeedback = null;
     }
     this.dispatchEvent(
@@ -685,6 +689,13 @@ export class ImprovDialog {
    * @param {Function} reconnectConsole – async fn to reconnect the console reader
    */
   async open(disconnectConsole, reconnectConsole) {
+    // Guard against double-open: resolve any existing promise first
+    if (this._closeResolve) {
+      const existingResolve = this._closeResolve;
+      this._closeResolve = null;
+      existingResolve();
+    }
+
     this._disconnectConsole = disconnectConsole;
     this._reconnectConsole = reconnectConsole;
 
