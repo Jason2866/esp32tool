@@ -99,8 +99,8 @@ class ImprovSerial extends EventTarget {
   async close() {
     if (!this._reader) return;
     await new Promise((resolve) => {
-      this._reader.cancel();
       this.addEventListener("disconnect", resolve, { once: true });
+      this._reader.cancel();
     });
   }
 
