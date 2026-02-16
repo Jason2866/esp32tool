@@ -76,18 +76,25 @@ class ImprovSerial extends EventTarget {
    */
   async initialize(timeout = 1000) {
     this.logger.log("Initializing Improv Serial");
-    this._processInput();
+    this._processInput().catch((err) => {
+      this.logger.error("Improv read loop failed to start", err);
+    });
     // Give the input processing time to start
     await sleep(1000);
     if (!this._reader) {
       throw new Error("Port is not ready");
     }
     try {
+      let timer;
       const statePromise = this.requestCurrentState();
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Improv Wi-Fi Serial not detected")), timeout)
-      );
-      await Promise.race([statePromise, timeoutPromise]);
+      const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Improv Wi-Fi Serial not detected")), timeout);
+      });
+      try {
+        await Promise.race([statePromise, timeoutPromise]);
+      } finally {
+        clearTimeout(timer);
+      }
       await this.requestInfo();
     } catch (err) {
       await this.close();
@@ -693,6 +700,10 @@ export class ImprovDialog {
     this.overlay.addEventListener("click", (e) => {
       if (e.target === this.overlay) this.close();
     });
+    this._escHandler = (e) => {
+      if (e.key === "Escape") this.close();
+    };
+    document.addEventListener("keydown", this._escHandler);
     document.body.appendChild(this.overlay);
 
     // Show loading view
@@ -714,7 +725,11 @@ export class ImprovDialog {
       if (this.client.state === ImprovSerialCurrentState.PROVISIONED) {
         const startTime = Date.now();
         while (Date.now() - startTime < 10000) {
-          await this.client.requestCurrentState();
+          try {
+            await this.client.requestCurrentState();
+          } catch (e) {
+            // Ignore transient polling errors
+          }
           if (this.client.nextUrl && !this.client.nextUrl.includes("0.0.0.0")) {
             break;
           }
@@ -748,6 +763,10 @@ export class ImprovDialog {
       this.client = null;
     }
 
+    if (this._escHandler) {
+      document.removeEventListener("keydown", this._escHandler);
+      this._escHandler = null;
+    }
     // Remove overlay
     if (this.overlay) {
       this.overlay.remove();
