@@ -83,20 +83,11 @@ class ImprovSerial extends EventTarget {
       throw new Error("Port is not ready");
     }
     try {
-      await new Promise(async (resolve, reject) => {
-        const timer = setTimeout(
-          () => reject(new Error("Improv Wi-Fi Serial not detected")),
-          timeout,
-        );
-        try {
-          await this.requestCurrentState();
-          clearTimeout(timer);
-          resolve();
-        } catch (err) {
-          clearTimeout(timer);
-          reject(err);
-        }
-      });
+      const statePromise = this.requestCurrentState();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Improv Wi-Fi Serial not detected")), timeout)
+      );
+      await Promise.race([statePromise, timeoutPromise]);
       await this.requestInfo();
     } catch (err) {
       await this.close();
@@ -119,18 +110,24 @@ class ImprovSerial extends EventTarget {
   async requestCurrentState() {
     let rpcResult;
     try {
-      await new Promise(async (resolve, reject) => {
+      const stateChanged = new Promise((resolve, reject) => {
         this.addEventListener("state-changed", resolve, { once: true });
-        const cleanupAndReject = (err) => {
+        // Store reject for cleanup below
+        this._stateChangedReject = () => {
           this.removeEventListener("state-changed", resolve);
-          reject(typeof err === "string" ? new Error(err) : err);
+          reject();
         };
-        rpcResult = this._sendRPCWithResponse(
-          ImprovSerialRPCCommand.REQUEST_CURRENT_STATE,
-          [],
-        );
-        rpcResult.catch(cleanupAndReject);
       });
+      rpcResult = this._sendRPCWithResponse(
+        ImprovSerialRPCCommand.REQUEST_CURRENT_STATE,
+        [],
+      );
+      try {
+        await Promise.race([stateChanged, rpcResult.then(() => {})]);
+      } catch (err) {
+        // rpcResult rejection is the meaningful error
+        throw typeof err === "string" ? new Error(err) : err;
+      }
     } catch (err) {
       this._rpcFeedback = null;
       throw new Error(`Error fetching current state: ${err}`);
@@ -408,11 +405,14 @@ class ImprovSerial extends EventTarget {
 
     this.logger.debug("Writing Improv packet:", payload);
     const writer = this.port.writable.getWriter();
-    await writer.write(payload);
     try {
-      writer.releaseLock();
-    } catch (err) {
-      console.error("Ignoring release lock error", err);
+      await writer.write(payload);
+    } finally {
+      try {
+        writer.releaseLock();
+      } catch (err) {
+        console.error("Ignoring release lock error", err);
+      }
     }
   }
 
@@ -545,7 +545,7 @@ const improvDialogStyles = `
     margin-top: 16px;
   }
   .improv-btn {
-    padding: 16px 20px;
+    padding: 18px 24px;
     border: 1px solid #555;
     border-radius: 6px;
     background: #444;
@@ -816,7 +816,7 @@ export class ImprovDialog {
   _getTitle() {
     switch (this._view) {
       case "loading": return "Improv Wi-Fi";
-      case "dashboard": return this.client?.info?.name || "Device";
+      case "dashboard": return this._esc(this.client?.info?.name || "Device");
       case "wifi": return "Wi-Fi Configuration";
       case "error": return "Improv Wi-Fi";
     }
@@ -1042,8 +1042,18 @@ export class ImprovDialog {
   }
 
   _visitDevice() {
-    if (this.client?.nextUrl) {
-      window.open(this.client.nextUrl, "_blank", "noopener");
+    const url = this.client?.nextUrl;
+    if (url) {
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+          window.open(url, "_blank", "noopener");
+        } else {
+          console.warn("[Improv] Blocked non-HTTP URL:", url);
+        }
+      } catch {
+        console.warn("[Improv] Invalid URL:", url);
+      }
     }
   }
 
