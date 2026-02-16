@@ -541,22 +541,22 @@ const improvDialogStyles = `
   .improv-actions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     margin-top: 16px;
   }
   .improv-btn {
-    padding: 10px 16px;
+    padding: 16px 20px;
     border: 1px solid #555;
     border-radius: 6px;
     background: #444;
     color: #ddd;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     font-family: inherit;
     text-align: left;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     transition: background 0.15s;
   }
   .improv-btn:hover:not(:disabled) {
@@ -575,8 +575,8 @@ const improvDialogStyles = `
     background: #1e88e5;
   }
   .improv-btn-icon {
-    font-size: 18px;
-    width: 24px;
+    font-size: 22px;
+    width: 28px;
     text-align: center;
     flex-shrink: 0;
   }
@@ -586,8 +586,8 @@ const improvDialogStyles = `
   .improv-btn-text small {
     display: block;
     color: #aaa;
-    font-size: 11px;
-    margin-top: 2px;
+    font-size: 12px;
+    margin-top: 3px;
   }
   .improv-wifi-form {
     display: flex;
