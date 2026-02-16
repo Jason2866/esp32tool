@@ -3565,7 +3565,9 @@ export class ESPLoader extends EventTarget {
           retries--;
         }
         if (!this.port.readable) {
-          throw new Error("Readable stream not available after recreating streams");
+          throw new Error(
+            "Readable stream not available after recreating streams",
+          );
         }
         this.logger.debug("WebUSB streams are ready");
       } catch (err) {
