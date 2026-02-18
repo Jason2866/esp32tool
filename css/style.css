@@ -2732,3 +2732,380 @@ body.hexeditor-active .main {
     width: 70px;
   }
 }
+
+/* ========== NVS Editor Container ========== */
+.nvseditor-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1001;
+  background-color: #1c1c1c;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #ddd;
+}
+
+.nvseditor-container.hidden {
+  display: none;
+}
+
+/* Hide header and commands when NVS editor is active */
+body.nvseditor-active .header {
+  display: none !important;
+}
+body.nvseditor-active #commands {
+  display: none !important;
+}
+body.nvseditor-active #notSupported {
+  display: none !important;
+}
+body.nvseditor-active .main {
+  padding-top: 0 !important;
+  overflow: hidden !important;
+}
+
+/* NVS Editor Toolbar */
+.nvseditor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #252525;
+  border-bottom: 1px solid #444;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.nvseditor-toolbar h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #eee;
+  white-space: nowrap;
+}
+
+.nvseditor-toolbar .nvs-info {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+}
+
+.nvseditor-toolbar .spacer {
+  flex: 1;
+}
+
+.nvseditor-toolbar button {
+  padding: 4px 12px;
+  border: 1px solid #555;
+  border-radius: 3px;
+  background: #333;
+  color: #ddd;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.nvseditor-toolbar button:hover {
+  background: #444;
+}
+
+.nvseditor-toolbar button.primary {
+  background: #1565c0;
+  border-color: #1976d2;
+  color: #fff;
+}
+
+.nvseditor-toolbar button.primary:hover {
+  background: #1976d2;
+}
+
+.nvseditor-toolbar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.nvseditor-filter input {
+  padding: 3px 8px;
+  border: 1px solid #555;
+  border-radius: 3px;
+  background: #2a2a2a;
+  color: #ddd;
+  font-size: 12px;
+  width: 200px;
+}
+
+.nvseditor-filter input:focus {
+  border-color: #1976d2;
+  outline: none;
+}
+
+/* NVS Editor Body */
+.nvseditor-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  position: relative;
+}
+
+/* Progress overlay */
+.nvseditor-progress-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(28, 28, 28, 0.92);
+  z-index: 10;
+}
+
+.nvseditor-progress-overlay.hidden {
+  display: none;
+}
+
+.nvseditor-progress-overlay .progress-text {
+  color: #ccc;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.nvseditor-progress-overlay .progress-bar-outer {
+  width: 300px;
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.nvseditor-progress-overlay .progress-bar-inner {
+  height: 100%;
+  background: #1976d2;
+  transition: width 0.15s;
+  border-radius: 4px;
+}
+
+/* Status bar */
+.nvseditor-statusbar {
+  display: flex;
+  gap: 16px;
+  padding: 4px 12px;
+  background: #252525;
+  border-top: 1px solid #444;
+  font-size: 11px;
+  color: #888;
+  flex-shrink: 0;
+}
+
+/* NVS Page */
+.nvs-page {
+  margin-bottom: 16px;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.nvs-page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  background: #2a2a2a;
+  font-size: 12px;
+  color: #bbb;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.nvs-page-header.state-active { border-left: 4px solid #43a047; }
+.nvs-page-header.state-full { border-left: 4px solid #ffa726; }
+.nvs-page-header.state-freeing { border-left: 4px solid #ef5350; }
+.nvs-page-header.state-other { border-left: 4px solid #666; }
+
+.nvs-page-state {
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.state-active .nvs-page-state { background: #1b5e20; color: #a5d6a7; }
+.state-full .nvs-page-state { background: #e65100; color: #ffcc80; }
+.state-freeing .nvs-page-state { background: #b71c1c; color: #ef9a9a; }
+.state-other .nvs-page-state { background: #424242; color: #999; }
+
+/* NVS Namespace */
+.nvs-namespace {
+  margin: 0;
+}
+
+.nvs-namespace-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #262626;
+  border-bottom: 1px solid #333;
+  font-size: 13px;
+}
+
+.nvs-ns-icon {
+  font-size: 14px;
+}
+
+.nvs-ns-name {
+  font-weight: 600;
+  color: #90caf9;
+}
+
+.nvs-ns-count {
+  color: #777;
+  font-size: 11px;
+}
+
+/* NVS Table */
+.nvs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.nvs-table thead th {
+  background: #222;
+  color: #999;
+  padding: 5px 8px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid #3a3a3a;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.nvs-table tbody tr {
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.nvs-table tbody tr:hover {
+  background: #2a2a2a;
+}
+
+.nvs-table td {
+  padding: 4px 8px;
+  vertical-align: middle;
+}
+
+.nvs-key {
+  font-weight: 500;
+  color: #e0e0e0;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nvs-type {
+  color: #a5d6a7;
+  white-space: nowrap;
+  width: 80px;
+}
+
+.nvs-value {
+  color: #fff;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 11px;
+}
+
+.nvs-crc {
+  width: 30px;
+  text-align: center;
+}
+
+.nvs-crc.crc-ok {
+  color: #66bb6a;
+}
+
+.nvs-crc.crc-bad {
+  color: #ef5350;
+  font-weight: bold;
+}
+
+.nvs-offset {
+  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+}
+
+.nvs-actions {
+  white-space: nowrap;
+  width: 70px;
+}
+
+.nvs-actions button {
+  padding: 2px 6px;
+  margin-right: 2px;
+  border: 1px solid #555;
+  border-radius: 3px;
+  background: #333;
+  color: #ddd;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.nvs-actions button:hover {
+  background: #444;
+}
+
+.nvs-btn-delete:hover {
+  background: #c62828 !important;
+  border-color: #e53935 !important;
+  color: #fff !important;
+}
+
+.nvs-btn-edit:hover {
+  background: #1565c0 !important;
+  border-color: #1976d2 !important;
+  color: #fff !important;
+}
+
+/* Empty state */
+.nvs-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+  font-size: 16px;
+}
+
+/* NVS content area */
+.nvseditor-content {
+  min-height: 100%;
+}
+
+/* ─── Responsive NVS Editor ─── */
+@media (max-width: 700px) {
+  .nvseditor-toolbar {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .nvseditor-filter input {
+    width: 140px;
+  }
+
+  .nvs-value {
+    max-width: 150px;
+  }
+
+  .nvs-offset {
+    display: none;
+  }
+}

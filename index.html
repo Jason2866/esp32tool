@@ -48,6 +48,7 @@
     </script>
     <script src="js/script.js" type="module" defer></script>
     <script src="js/hex-editor.js" type="module" defer></script>
+    <script src="js/nvs-editor.js" type="module" defer></script>
 
     <script>
       // Service Worker for PWA functionality
@@ -193,6 +194,7 @@
       <div id="app">
         <div id="console-container" class="console-container hidden"></div>
         <div id="hexeditor-container" class="hexeditor-container hidden"></div>
+        <div id="nvseditor-container" class="nvseditor-container hidden"></div>
         <div id="commands">
           <div class="upload">
             <label
@@ -401,6 +403,9 @@
               </button>
               <button id="butHexEditor" type="button" disabled="disabled">
                 Hex Editor
+              </button>
+              <button id="butNVSEditor" type="button" disabled="disabled">
+                NVS Parser
               </button>
             </div>
           </div>

@@ -2,6 +2,7 @@
 import { WebUSBSerial, requestSerialPort } from './webusb-serial.js';
 import { ESP32ToolConsole } from './console.js';
 import { HexEditor } from './hex-editor.js';
+import { NVSEditor } from './nvs-editor.js';
 
 // Make requestSerialPort available globally for esptool.js
 // Use defensive assignment to avoid accidental overwrites
@@ -34,6 +35,7 @@ let currentMacAddr = null; // Store MAC address globally
 let isConnected = false; // Track connection state
 let consoleInstance = null; // ESP32ToolConsole instance
 let hexEditorInstance = null; // HexEditor instance
+let nvsEditorInstance = null; // NVSEditor instance
 let baudRateBeforeConsole = null; // Store baudrate before opening console
 let espLoaderBeforeConsole = null; // Store original ESPLoader before console
 let chipFamilyBeforeConsole = null; // Store chipFamily before opening console
@@ -89,6 +91,14 @@ function clearAllCachedData() {
   
   // Show the Read Partition Table button again
   butReadPartitions.classList.remove('hidden');
+  
+  // Close NVS editor if open
+  if (nvsEditorInstance) {
+    try { nvsEditorInstance.close(); } catch (_) {}
+    nvsEditorInstance = null;
+  }
+  nvseditorContainer.classList.add('hidden');
+  document.body.classList.remove('nvseditor-active');
   
   // Hide Detect FS button
   butDetectFS.classList.add('hidden');
@@ -232,6 +242,8 @@ const tabText = document.getElementById("tabText");
 const tabHex = document.getElementById("tabHex");
 const butHexEditor = document.getElementById("butHexEditor");
 const hexeditorContainer = document.getElementById("hexeditor-container");
+const butNVSEditor = document.getElementById("butNVSEditor");
+const nvseditorContainer = document.getElementById("nvseditor-container");
 
 let currentViewedFile = null;
 let currentViewedFileData = null;
@@ -348,6 +360,7 @@ document.addEventListener("DOMContentLoaded", () => {
   butProgram.addEventListener("click", clickProgram);
   butReadFlash.addEventListener("click", clickReadFlash);
   butHexEditor.addEventListener("click", clickHexEditor);
+  butNVSEditor.addEventListener("click", clickNVSEditor);
   butReadPartitions.addEventListener("click", clickReadPartitions);
   butDetectFS.addEventListener("click", clickDetectFS);
   butOpenFSManager.addEventListener("click", clickOpenFSManager);
@@ -800,12 +813,14 @@ async function clickConnect() {
   if (isESP8266) {
     // Hide partition table button for ESP8266
     butReadPartitions.classList.add('hidden');
+    butNVSEditor.classList.add('hidden');
     
     // Show ESP8266 filesystem detection button
     butDetectFS.classList.remove('hidden');
   } else {
     // Show partition table button for ESP32
     butReadPartitions.classList.remove('hidden');
+    butNVSEditor.classList.remove('hidden');
     
     // Hide ESP8266 filesystem detection button
     if (butDetectFS) {
@@ -1936,6 +1951,103 @@ async function clickHexEditor() {
 }
 
 /**
+ * @name clickNVSEditor
+ * Click handler for the NVS Parser button.
+ * Reads partition table, locates the NVS partition, reads it and opens the NVS editor.
+ */
+async function clickNVSEditor() {
+  butNVSEditor.disabled = true;
+
+  try {
+    // Step 1: Read partition table
+    const PARTITION_TABLE_OFFSET = 0x8000;
+    const PARTITION_TABLE_SIZE = 0x1000;
+
+    // Create and show NVS editor container with progress
+    if (!nvsEditorInstance) {
+      nvsEditorInstance = new NVSEditor(nvseditorContainer);
+    }
+    nvseditorContainer.classList.remove('hidden');
+    document.body.classList.add('nvseditor-active');
+    nvsEditorInstance.initProgressUI();
+    nvsEditorInstance.showProgress('Reading partition table...', 0);
+
+    const ptData = await espStub.readFlash(PARTITION_TABLE_OFFSET, PARTITION_TABLE_SIZE);
+    const partitions = parsePartitionTable(ptData);
+
+    // Step 2: Find NVS partition (type=0x01 data, subtype=0x02 nvs)
+    const nvsPartition = partitions.find(p => p.type === 0x01 && p.subtype === 0x02);
+    if (!nvsPartition) {
+      throw new Error('No NVS partition found in partition table');
+    }
+
+    logMsg(`Found NVS partition "${nvsPartition.name}" at 0x${nvsPartition.offset.toString(16)}, size ${nvsPartition.size} bytes`);
+
+    // Step 3: Read the NVS partition
+    nvsEditorInstance.showProgress('Reading NVS partition...', 10);
+    const options = buildAdvancedOptions();
+    const nvsData = await espStub.readFlash(
+      nvsPartition.offset,
+      nvsPartition.size,
+      (packet, progress, totalSize) => {
+        const pct = 10 + Math.floor((progress / totalSize) * 85);
+        nvsEditorInstance.showProgress(
+          `Reading NVS... ${Math.floor((progress / totalSize) * 100)}% (${(progress / 1024).toFixed(0)} / ${(totalSize / 1024).toFixed(0)} KB)`,
+          pct
+        );
+      },
+      options
+    );
+
+    logMsg(`Successfully read ${nvsData.length} bytes from NVS partition`);
+
+    // Step 4: Open NVS editor
+    nvsEditorInstance.showProgress('Parsing NVS data...', 95);
+    nvsEditorInstance.open(nvsData, nvsPartition.offset, nvsPartition.name);
+
+    // Step 5: Set up write handler
+    nvsEditorInstance.onWriteFlash = async (editedData) => {
+      const editor = nvsEditorInstance;
+      if (!editor) return;
+
+      editor.showProgress('Writing NVS partition...', 0);
+
+      await espStub.flashData(
+        editedData.buffer,
+        (bytesWritten, totalBytes) => {
+          const pct = Math.floor((bytesWritten / totalBytes) * 100);
+          editor.showProgress(`Writing NVS... ${pct}%`, pct);
+        },
+        nvsPartition.offset
+      );
+
+      editor.showProgress('Write complete!', 100);
+      logMsg('NVS partition written successfully');
+      await sleep(500);
+      editor.hideProgress();
+    };
+
+    // Step 6: Set up close handler
+    nvsEditorInstance.onClose = () => {
+      nvseditorContainer.classList.add('hidden');
+      document.body.classList.remove('nvseditor-active');
+      nvsEditorInstance = null;
+    };
+
+  } catch (e) {
+    errorMsg('Failed to open NVS editor: ' + e);
+    nvseditorContainer.classList.add('hidden');
+    document.body.classList.remove('nvseditor-active');
+    if (nvsEditorInstance) {
+      try { nvsEditorInstance.close(); } catch (_) {}
+      nvsEditorInstance = null;
+    }
+  } finally {
+    butNVSEditor.disabled = false;
+  }
+}
+
+/**
  * @name clickOpenFSManager
  * Click handler for the Open FS Manager button (ESP8266)
  */
@@ -2240,6 +2352,7 @@ function toggleUIToolbar(show) {
   butErase.disabled = !show;
   butReadFlash.disabled = !show;
   butHexEditor.disabled = !show;
+  butNVSEditor.disabled = !show;
   butReadPartitions.disabled = !show;
 }
 
