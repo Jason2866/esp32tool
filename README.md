@@ -135,6 +135,8 @@ December 2025 – Now with full LittleFS, SPIFFS, and FATFS support, plus file a
 
 January 2026 – Added Android mobile devices support, standalone CLI.
 
+February 2026 - Added IMPROV support, NEW Feature: Flash Hex Editor.
+
 ---
 
 © Adafruit, Nabu Casa & Johann Obermeier
