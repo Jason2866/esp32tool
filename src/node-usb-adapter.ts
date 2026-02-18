@@ -87,7 +87,7 @@ export function createNodeUSBAdapter(
         if (device.configDescriptor?.bConfigurationValue !== 1) {
           device.setConfiguration(1);
         }
-      } catch (err) {
+      } catch (_err) {
         // Already configured
       }
 
@@ -145,7 +145,7 @@ export function createNodeUSBAdapter(
         if (usbInterface.isKernelDriverActive()) {
           usbInterface.detachKernelDriver();
         }
-      } catch (err) {
+      } catch (_err) {
         // Ignore - may not be supported on all platforms
       }
 
@@ -189,7 +189,7 @@ export function createNodeUSBAdapter(
       if (vendorId === 0x10c4) {
         try {
           // Clear halt on endpoints
-          await new Promise<void>((resolve, reject) => {
+          await new Promise<void>((resolve, _reject) => {
             device.controlTransfer(
               0x02, // Clear Feature, Endpoint
               0x01, // ENDPOINT_HALT
@@ -203,7 +203,7 @@ export function createNodeUSBAdapter(
             );
           });
 
-          await new Promise<void>((resolve, reject) => {
+          await new Promise<void>((resolve, _reject) => {
             device.controlTransfer(
               0x02, // Clear Feature, Endpoint
               0x01, // ENDPOINT_HALT
@@ -216,7 +216,7 @@ export function createNodeUSBAdapter(
               },
             );
           });
-        } catch (err) {
+        } catch (_err) {
           // Ignore
         }
       }
@@ -234,7 +234,7 @@ export function createNodeUSBAdapter(
         try {
           endpointIn.stopPoll();
           endpointIn.removeAllListeners();
-        } catch (err) {
+        } catch (_err) {
           // Ignore
         }
       }
@@ -242,7 +242,7 @@ export function createNodeUSBAdapter(
       if (readableStream) {
         try {
           await readableStream.cancel();
-        } catch (err) {
+        } catch (_err) {
           // Ignore
         }
         readableStream = null;
@@ -251,7 +251,7 @@ export function createNodeUSBAdapter(
       if (writableStream) {
         try {
           await writableStream.close();
-        } catch (err) {
+        } catch (_err) {
           // Ignore
         }
         writableStream = null;
@@ -264,14 +264,14 @@ export function createNodeUSBAdapter(
         try {
           const usbInterface = device.interface(interfaceNumber);
           usbInterface.release(true, () => {});
-        } catch (err) {
+        } catch (_err) {
           // Ignore
         }
       }
 
       try {
         device.close();
-      } catch (err) {
+      } catch (_err) {
         // Ignore
       }
     },
@@ -469,7 +469,7 @@ export function createNodeUSBAdapter(
           try {
             logger.error(`USB read error: ${err.message}`);
             // Don't close on error, just log it
-          } catch (e) {
+          } catch (_e) {
             // Ignore errors in error handler
           }
         });
@@ -477,7 +477,7 @@ export function createNodeUSBAdapter(
         endpointIn!.on("end", () => {
           try {
             controller.close();
-          } catch (err) {
+          } catch (_err) {
             // Ignore errors when closing controller
           }
         });
@@ -488,7 +488,7 @@ export function createNodeUSBAdapter(
           try {
             endpointIn.stopPoll();
             endpointIn.removeAllListeners();
-          } catch (err) {
+          } catch (_err) {
             // Ignore
           }
         }

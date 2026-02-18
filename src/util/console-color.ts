@@ -29,6 +29,7 @@ export class ColoredConsole {
 
   addLine(line: string) {
     // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
+    // eslint-disable-next-line no-control-regex
     const re = /(?:\x1B|\\x1B)(?:\[(.*?)[@-~]|\].*?(?:\x07|\x1B\\))/g;
     let i = 0;
 

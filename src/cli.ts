@@ -280,7 +280,7 @@ async function connectViaUSB(
     if (webPort) {
       try {
         await webPort.close();
-      } catch (closeErr) {
+      } catch (_closeErr) {
         // Ignore close errors
       }
     }
@@ -582,7 +582,7 @@ async function main() {
     if (esploader) {
       try {
         await esploader.disconnect();
-      } catch (disconnectErr) {
+      } catch (_disconnectErr) {
         // Ignore disconnect errors during error handling
       }
     }
