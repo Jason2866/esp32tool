@@ -1925,6 +1925,11 @@ async function clickHexEditor() {
     errorMsg("Failed to read flash for hex editor: " + e);
     hexeditorContainer.classList.add('hidden');
     document.body.classList.remove('hexeditor-active');
+    if (hexEditorInstance) {
+     // close() handles ResizeObserver/keydown cleanup; onClose is not yet wired here so null manually
+     try { hexEditorInstance.close(); } catch (_) {}
+     hexEditorInstance = null;
+   }
   } finally {
     butHexEditor.disabled = false;
   }
