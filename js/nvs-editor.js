@@ -677,7 +677,7 @@ export class NVSEditor {
     // Bind edit buttons
     content.querySelectorAll('.nvs-btn-edit').forEach(btn => {
       btn.addEventListener('click', () => {
-        const off = parseInt(btn.dataset.offset);
+        const off = parseInt(btn.dataset.offset, 10);
         this._editItem(off);
       });
     });
@@ -685,7 +685,7 @@ export class NVSEditor {
     // Bind delete buttons
     content.querySelectorAll('.nvs-btn-delete').forEach(btn => {
       btn.addEventListener('click', () => {
-        const off = parseInt(btn.dataset.offset);
+        const off = parseInt(btn.dataset.offset, 10);
         this._deleteItemUI(off);
       });
     });

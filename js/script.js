@@ -2046,7 +2046,6 @@ async function clickNVSEditor() {
       } finally {
         editor.hideProgress();
       }
-      editor.hideProgress();
     };
 
     // Step 6: Set up close handler
