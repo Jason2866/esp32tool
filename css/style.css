@@ -2281,7 +2281,7 @@ body.console-active .main {
   background-color: #1c1c1c;
   display: flex;
   flex-direction: column;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
   color: #ddd;
 }
 
@@ -2663,4 +2663,72 @@ body.hexeditor-active .main {
 
 .hexeditor-goto input:focus {
   border-color: #71ae1e;
+}
+
+/* Responsive hex editor for narrow viewports */
+@media (max-width: 768px) {
+  .hexeditor-container {
+    font-size: 11px;
+  }
+
+  .hexeditor-toolbar {
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  .hexeditor-toolbar h3 {
+    font-size: 12px;
+  }
+
+  .hexeditor-toolbar button {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .hexeditor-search {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 8px;
+  }
+
+  .hexeditor-search input[type="text"] {
+    width: 140px;
+    font-size: 11px;
+  }
+
+  .hexeditor-addr {
+    width: 64px;
+    min-width: 64px;
+    padding-right: 6px;
+    font-size: 11px;
+  }
+
+  .hexeditor-hex .hex-cell {
+    width: 20px;
+    font-size: 11px;
+  }
+
+  .hexeditor-hex .hex-cell:nth-child(8n) {
+    margin-right: 3px;
+  }
+
+  .hexeditor-ascii .ascii-cell {
+    width: 7px;
+    font-size: 11px;
+  }
+
+  .hexeditor-sep {
+    margin: 0 2px;
+  }
+
+  .hexeditor-statusbar {
+    gap: 8px;
+    padding: 3px 8px;
+    font-size: 10px;
+    flex-wrap: wrap;
+  }
+
+  .hexeditor-goto input {
+    width: 70px;
+  }
 }

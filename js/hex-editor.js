@@ -31,6 +31,8 @@ export class HexEditor {
     // Search state
     this.searchMatches = [];   // array of byte offsets
     this.currentMatchIdx = -1;
+    this._searchMatchLength = 0;
+    this._searchAbort = null; // AbortController for cancelling in-progress search
 
     // Callbacks
     this.onClose = null;
@@ -42,8 +44,8 @@ export class HexEditor {
 
     // DOM references (set in _buildUI)
     this._viewport = null;
-    this._rows = [];
     this._scrollContent = null;
+    this._resizeObserver = null;
     this._statusOffset = null;
     this._statusValue = null;
     this._statusModified = null;
@@ -91,6 +93,13 @@ export class HexEditor {
     this._render();
     this._updateStatus();
     this._scrollToOffset(0);
+
+    // Recalculate layout on resize
+    this._resizeObserver = new ResizeObserver(() => {
+      this._calculateLayout();
+      this._render();
+    });
+    this._resizeObserver.observe(this._viewport);
   }
 
   /** Close hex editor */
@@ -98,6 +107,14 @@ export class HexEditor {
     this.container.classList.add('hidden');
     document.body.classList.remove('hexeditor-active');
     document.removeEventListener('keydown', this._boundHandleKeyDown);
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+    if (this._searchAbort) {
+      this._searchAbort.abort();
+      this._searchAbort = null;
+    }
     this.container.innerHTML = '';
     if (this.onClose) this.onClose();
   }
@@ -126,9 +143,14 @@ export class HexEditor {
   // ──────────────────── UI Build ────────────────────
 
   /**
-   * Build a minimal progress-only UI for showing during flash read.
-   * Called before open() so user sees loading feedback immediately.
+   * Initialize and display a progress overlay.
+   * Called before open() so user sees loading feedback during flash read.
    */
+  initProgressUI() {
+    this._buildProgressUI();
+  }
+
+  /** @private */
   _buildProgressUI() {
     this.container.innerHTML = `
       <div class="hexeditor-body" style="flex:1;">
@@ -584,7 +606,7 @@ export class HexEditor {
 
   // ──────────────────── Search ────────────────────
 
-  _doSearch() {
+  async _doSearch() {
     const query = this._searchInput.value.trim();
     if (!query) return;
 
@@ -600,7 +622,7 @@ export class HexEditor {
       }
       searchBytes = new Uint8Array(cleaned.length / 2);
       for (let i = 0; i < searchBytes.length; i++) {
-        searchBytes[i] = parseInt(cleaned.substr(i * 2, 2), 16);
+        searchBytes[i] = parseInt(cleaned.slice(i * 2, i * 2 + 2), 16);
       }
     } else {
       // ASCII mode
@@ -610,22 +632,26 @@ export class HexEditor {
 
     if (searchBytes.length === 0) return;
 
-    // Find all occurrences
-    this.searchMatches = [];
-    for (let i = 0; i <= this.data.length - searchBytes.length; i++) {
-      let match = true;
-      for (let j = 0; j < searchBytes.length; j++) {
-        if (this.data[i + j] !== searchBytes[j]) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
-        this.searchMatches.push(i);
-      }
-    }
-
     this._searchMatchLength = searchBytes.length;
+
+    // Cancel any in-progress search
+    if (this._searchAbort) {
+      this._searchAbort.abort();
+    }
+    this._searchAbort = new AbortController();
+    const signal = this._searchAbort.signal;
+
+    this.searchMatches = [];
+    this.currentMatchIdx = -1;
+    this._searchInfo.textContent = 'Searching...';
+    this._render();
+
+    // Non-blocking chunked search to keep UI responsive
+    const matches = await this._chunkedSearch(this.data, searchBytes, signal);
+    if (signal.aborted) return; // search was cancelled
+
+    this.searchMatches = matches;
+    this._searchAbort = null;
 
     if (this.searchMatches.length > 0) {
       // Jump to first match at or after current selection
@@ -641,6 +667,57 @@ export class HexEditor {
     }
 
     this._render();
+  }
+
+  /**
+   * Non-blocking chunked search to keep UI responsive for large buffers.
+   * Processes data in chunks and yields between them via setTimeout.
+   * @param {Uint8Array} data
+   * @param {Uint8Array} pattern
+   * @param {AbortSignal} signal
+   * @returns {Promise<number[]>} array of match offsets
+   */
+  _chunkedSearch(data, pattern, signal) {
+    return new Promise((resolve) => {
+      const CHUNK = 256 * 1024; // process 256 KB per chunk
+      const matches = [];
+      const len = data.length - pattern.length;
+      let pos = 0;
+
+      // Build Boyer-Moore-Horspool bad-character table
+      const last = pattern.length - 1;
+      const badChar = new Int32Array(256).fill(pattern.length);
+      for (let i = 0; i < last; i++) {
+        badChar[pattern[i]] = last - i;
+      }
+
+      const processChunk = () => {
+        if (signal.aborted) { resolve([]); return; }
+
+        const end = Math.min(pos + CHUNK, len);
+        while (pos <= end) {
+          let j = last;
+          while (j >= 0 && data[pos + j] === pattern[j]) j--;
+          if (j < 0) {
+            matches.push(pos);
+            pos++;
+          } else {
+            pos += badChar[data[pos + last]] || 1;
+          }
+        }
+
+        if (pos <= len) {
+          // Update progress feedback
+          const pct = Math.floor((pos / (len || 1)) * 100);
+          this._searchInfo.textContent = `Searching... ${pct}%`;
+          setTimeout(processChunk, 0);
+        } else {
+          resolve(matches);
+        }
+      };
+
+      processChunk();
+    });
   }
 
   _navigateSearch(direction) {
