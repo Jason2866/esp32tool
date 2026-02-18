@@ -209,6 +209,22 @@ export class NVSEditor {
     const namespaces = new Map();
     namespaces.set(0, '');
 
+   // ── Pass 1: collect all namespace definitions ──────────────────────────
+   for (let secOff = 0; secOff < this.data.length; secOff += NVS_SECTOR_SIZE) {
+     if (secOff + 64 > this.data.length) break;
+     const state = this._u32(secOff);
+     if (state === NVS_PAGE_STATE.UNINIT || state === NVS_PAGE_STATE.CORRUPT) continue;
+     const stateBitmap = this.data.slice(secOff + 32, secOff + 64);
+     for (let entry = 0; entry < MAX_ENTRY_COUNT; entry++) {
+       if (this._getNVSItemState(stateBitmap, entry) !== 2) continue;
+       const eOff = secOff + 64 + entry * 32;
+       if (eOff + 32 > this.data.length) break;
+       if (this._u8(eOff) === 0 && this._u8(eOff + 1) !== 0xFF && this._u8(eOff + 1) !== 0x00) {
+         namespaces.set(this._u8(eOff + 24), this._readString(eOff + 8, 16));
+       }
+     }
+   }
+
     for (let secOff = 0; secOff < this.data.length; secOff += NVS_SECTOR_SIZE) {
       if (secOff + 64 > this.data.length) break;
       const state = this._u32(secOff);
@@ -339,15 +355,14 @@ export class NVSEditor {
         if (span > 1) entry += span - 1;
       }
 
-      // Resolve namespace names
-      for (const it of page.items) {
-        if (it.nsIndex !== undefined && it.nsIndex !== 0) {
-          it.namespace = namespaces.get(it.nsIndex) || `ns_${it.nsIndex}`;
-        }
-      }
-
       pages.push(page);
     }
+   // Resolve all item namespaces after both passes
+   for (const page of pages)
+     for (const it of page.items)
+       if (it.nsIndex && it.nsIndex !== 0)
+         it.namespace = namespaces.get(it.nsIndex) || `ns_${it.nsIndex}`;
+
     return pages;
   }
 
@@ -355,7 +370,6 @@ export class NVSEditor {
 
   /** Delete an NVS entry by zeroing it and updating the bitmap */
   _deleteEntry(item) {
-    const NVS_SECTOR_SIZE = 4096;
     const pageOff = item.pageOffset;
     const entryIdx = (item.offset - pageOff - 64) / 32;
 
@@ -371,11 +385,18 @@ export class NVSEditor {
     this.modified = true;
   }
 
+  static _parseIntStrict(s, label, min, max) {
+    const n = Number(s);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n < min || n > max)
+      throw new Error(`${label} must be an integer in [${min}, ${max}], got: ${s}`);
+    return n;
+  }
+
   /** Write a primitive value back to an existing entry at item.offset */
   _writeValue(item, newValue) {
     const off = item.offset;
     switch (item.datatype) {
-      case 0x01: { const v = parseInt(newValue, 10); if (!Number.isFinite(v) || v < 0 || v > 255) throw new Error('U8 must be 0-255'); this.data[off + 24] = v & 0xFF; break; }
+      case 0x01: { const v = NVSEditor._parseIntStrict(newValue, 'U8', 0, 255); this.data[off + 24] = v; break; }
       case 0x02: { const v = parseInt(newValue, 10); if (!Number.isFinite(v) || v < 0 || v > 65535) throw new Error('U16 must be 0-65535'); this.data[off + 24] = v & 0xFF; this.data[off + 25] = (v >> 8) & 0xFF; break; }
       case 0x04: { const v = parseInt(newValue, 10); if (!Number.isFinite(v) || v < 0 || v > 4294967295) throw new Error('U32 must be 0-4294967295'); const dv = new DataView(this.data.buffer, off + 24, 4); dv.setUint32(0, v >>> 0, true); break; }
       case 0x08: { let v; try { v = BigInt(newValue); } catch(e) { throw new Error('U64 must be valid BigInt'); } if (v < 0n || v > 0xFFFFFFFFFFFFFFFFn) throw new Error('U64 out of range'); const dv = new DataView(this.data.buffer, off + 24, 8); dv.setBigUint64(0, v, true); break; }

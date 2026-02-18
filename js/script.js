@@ -2026,8 +2026,13 @@ async function clickNVSEditor() {
 
       editor.showProgress('Writing NVS partition...', 0);
 
+      try {
+        const nvsBuffer = editedData.buffer.slice(
+          editedData.byteOffset,
+          editedData.byteOffset + editedData.byteLength
+      );
       await espStub.flashData(
-        editedData.buffer,
+        nvsBuffer,
         (bytesWritten, totalBytes) => {
           const pct = Math.floor((bytesWritten / totalBytes) * 100);
           editor.showProgress(`Writing NVS... ${pct}%`, pct);
@@ -2038,6 +2043,9 @@ async function clickNVSEditor() {
       editor.showProgress('Write complete!', 100);
       logMsg('NVS partition written successfully');
       await sleep(500);
+      } finally {
+        editor.hideProgress();
+      }
       editor.hideProgress();
     };
 
@@ -2401,12 +2409,12 @@ function toggleUIConnected(connected) {
       hexEditorInstance = null;
     }
     // Close NVS editor if open (disconnect or unexpected port loss)
-   if (nvsEditorInstance) {
-     try { nvsEditorInstance.close(); } catch (_) {}
-     nvsEditorInstance = null;
-   }
-   nvseditorContainer.classList.add('hidden');
-   document.body.classList.remove('nvseditor-active');
+    if (nvsEditorInstance) {
+      try { nvsEditorInstance.close(); } catch (_) {}
+      nvsEditorInstance = null;
+    }
+    nvseditorContainer.classList.add('hidden');
+    document.body.classList.remove('nvseditor-active');
   }
   butConnect.textContent = lbl;
 }
