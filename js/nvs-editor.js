@@ -12,6 +12,8 @@
  *   - Page state indicator
  */
 
+import { HexEditor } from './hex-editor.js';
+
 export class NVSEditor {
   /**
    * @param {HTMLElement} container - The container element (#nvseditor-container)
@@ -43,6 +45,10 @@ export class NVSEditor {
 
     // Filter state
     this._filterText = '';
+
+    // Sub hex-editor for large entries
+    this._hexEditorInstance = null;
+    this._hexEditorContainer = null;
   }
 
   // ─────── CRC32 helpers (same as esp32-parser NVSParser) ───────
@@ -373,9 +379,8 @@ export class NVSEditor {
       case 0x18: { const v = BigInt(newValue); const dv = new DataView(this.data.buffer, off + 24, 8); dv.setBigInt64(0, v, true); break; }
       case 0x21: { // String – rewrite in-place if fits
         const enc = new TextEncoder().encode(newValue);
-        const oldSize = this._u16(off + 24);
         const maxPayload = (item.span - 1) * 32;
-        if (enc.length > maxPayload) { alert('String too long for existing slot'); return; }
+        if (enc.length > maxPayload) { alert('String too long for existing slot (max ' + maxPayload + ' bytes)'); return; }
         // Update size
         this.data[off + 24] = enc.length & 0xFF;
         this.data[off + 25] = (enc.length >> 8) & 0xFF;
@@ -389,8 +394,34 @@ export class NVSEditor {
         dv.setUint32(0, crc, true);
         break;
       }
+      case 0x42: { // Blob – rewrite hex bytes in-place
+        const hexBytes = newValue.split(/[\s,]+/).filter(b => b).map(b => parseInt(b, 16));
+        if (hexBytes.some(b => isNaN(b) || b < 0 || b > 255)) { alert('Invalid hex bytes'); return; }
+        const blobData = new Uint8Array(hexBytes);
+        const maxPayload = (item.span - 1) * 32;
+        if (blobData.length > maxPayload) { alert('Blob too long for existing slot (max ' + maxPayload + ' bytes)'); return; }
+        // Update size
+        this.data[off + 24] = blobData.length & 0xFF;
+        this.data[off + 25] = (blobData.length >> 8) & 0xFF;
+        // Clear old data
+        this.data.fill(0xFF, off + 32, off + 32 + maxPayload);
+        // Write new data
+        this.data.set(blobData, off + 32);
+        // Update data CRC
+        const crc = NVSEditor.crc32(blobData);
+        const dv = new DataView(this.data.buffer, off + 28, 4);
+        dv.setUint32(0, crc, true);
+        break;
+      }
+      case 0x48: { // Blob Index – edit totalSize
+        const v = parseInt(newValue);
+        if (isNaN(v) || v < 0) { alert('Invalid total size'); return; }
+        const dv = new DataView(this.data.buffer, off + 24, 4);
+        dv.setUint32(0, v >>> 0, true);
+        break;
+      }
       default:
-        alert('Editing this type is not supported yet');
+        alert('Editing this type is not supported');
         return;
     }
     // Recalculate header CRC
@@ -439,7 +470,10 @@ export class NVSEditor {
       </div>
       <div class="nvseditor-statusbar">
         <span id="nvsStatus">${totalItems} entries in ${this.pages.length} page(s)</span>
-      </div>`;
+      </div>
+      <div id="nvsHexEditorContainer" class="hexeditor-container hidden"></div>`;
+
+    this._hexEditorContainer = this.container.querySelector('#nvsHexEditorContainer');
 
     this._progressOverlay = this.container.querySelector('#nvsProgress');
     this._progressText = this.container.querySelector('#nvsProgressText');
@@ -582,7 +616,7 @@ export class NVSEditor {
           let displayValue = String(item.value ?? '');
           if (displayValue.length > 120) displayValue = displayValue.substring(0, 120) + '…';
 
-          const editable = [0x01, 0x02, 0x04, 0x08, 0x11, 0x12, 0x14, 0x18, 0x21].includes(item.datatype);
+          const editable = true;
 
           html += `<tr>
             <td class="nvs-key" title="${this._esc(item.key)}">${this._esc(item.key)}</td>
@@ -640,19 +674,87 @@ export class NVSEditor {
   _editItem(offset) {
     const item = this._findItem(offset);
     if (!item) return;
+    this._editItemInHexEditor(item);
+  }
 
-    const currentVal = String(item.value ?? '');
-    const newVal = prompt(`Edit ${item.namespace}.${item.key} (${item.typeName}):`, currentVal);
-    if (newVal === null || newVal === currentVal) return;
+  /**
+   * Open the HexEditor for any NVS entry.
+   * Primitive types (U8..I64, Blob Index) → 8-byte data field at off+24.
+   * String / Blob → multi-span payload at off+32.
+   */
+  _editItemInHexEditor(item) {
+    const off = item.offset;
+    const isPrimitive = !(item.datatype === 0x21 || item.datatype === 0x42);
 
-    try {
-      this._writeValue(item, newVal);
-      // Re-parse and refresh
+    let dataOffset, dataSize, maxSize;
+    if (isPrimitive) {
+      // Primitive types store value in 8 bytes at header offset 24
+      dataOffset = off + 24;
+      dataSize = 8;
+      maxSize = 8;
+    } else {
+      // String / Blob: payload after the 32-byte header
+      dataOffset = off + 32;
+      dataSize = item.size || (item.rawValue ? item.rawValue.length : 0);
+      maxSize = (item.span - 1) * 32;
+      if (dataSize <= 0) { alert('No data to edit'); return; }
+    }
+
+    const entryData = this.data.slice(dataOffset, dataOffset + dataSize);
+
+    if (!this._hexEditorInstance) {
+      this._hexEditorInstance = new HexEditor(this._hexEditorContainer);
+    }
+
+    this._hexEditorContainer.classList.remove('hidden');
+    this._hexEditorInstance.open(entryData, 0);
+
+    // Relabel button and show entry info
+    const writeBtn = this._hexEditorContainer.querySelector('#hexedWrite');
+    if (writeBtn) writeBtn.textContent = 'Apply Changes';
+
+    this._hexEditorInstance.onWriteFlash = async (editedData, modifiedOffsets) => {
+      if (modifiedOffsets.size === 0) return;
+
+      if (editedData.length > maxSize) {
+        alert('Edited data exceeds available slot size (' + maxSize + ' bytes)');
+        return;
+      }
+
+      if (isPrimitive) {
+        // Write the 8 data bytes back into the header
+        this.data.set(editedData.slice(0, 8), dataOffset);
+      } else {
+        // Clear payload area, then write
+        this.data.fill(0xFF, dataOffset, dataOffset + maxSize);
+        this.data.set(editedData, dataOffset);
+        // Update size field
+        this.data[off + 24] = editedData.length & 0xFF;
+        this.data[off + 25] = (editedData.length >> 8) & 0xFF;
+        // Update data CRC
+        const crc = NVSEditor.crc32(editedData);
+        const dv = new DataView(this.data.buffer, off + 28, 4);
+        dv.setUint32(0, crc, true);
+      }
+
+      // Recalculate header CRC
+      const hcrc = NVSEditor.crc32Header(this.data, off);
+      const hdv = new DataView(this.data.buffer, off + 4, 4);
+      hdv.setUint32(0, hcrc, true);
+
+      this.modified = true;
+
+      this._hexEditorInstance.showProgress('Applied to NVS!', 100);
+      await new Promise(r => setTimeout(r, 500));
+      this._hexEditorInstance.hideProgress();
+    };
+
+    this._hexEditorInstance.onClose = () => {
+      this._hexEditorContainer.classList.add('hidden');
+      this._hexEditorInstance = null;
       this.pages = this._parse();
       this._renderContent();
-    } catch (e) {
-      alert('Edit failed: ' + e);
-    }
+    };
   }
 
   _deleteItemUI(offset) {
