@@ -424,10 +424,10 @@ export class NVSEditor {
         break;
       }
       case 0x48: { // Blob Index – edit totalSize
-        const v = parseInt(newValue);
-        if (isNaN(v) || v < 0) { alert('Invalid total size'); return; }
+        const v = parseInt(newValue, 10);
+        if (!Number.isFinite(v) || v < 0 || v > 0xFFFFFFFF) { alert('Invalid total size (must be 0-4294967295)'); return; }
         const dv = new DataView(this.data.buffer, off + 24, 4);
-        dv.setUint32(0, v >>> 0, true);
+        dv.setUint32(0, v, true);
         break;
       }
       default:

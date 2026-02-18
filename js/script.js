@@ -1962,6 +1962,19 @@ async function clickHexEditor() {
 async function clickNVSEditor() {
   butNVSEditor.disabled = true;
 
+  // Guard against losing unsaved changes
+  if (nvsEditorInstance && nvsEditorInstance.modified === true) {
+    if (!confirm('You have unsaved changes in the NVS editor. Discard changes and reload?')) {
+      butNVSEditor.disabled = false;
+      return;
+    }
+    // User confirmed - close existing editor
+    nvseditorContainer.classList.add('hidden');
+    document.body.classList.remove('nvseditor-active');
+    try { nvsEditorInstance.close(); } catch (_) {}
+    nvsEditorInstance = null;
+  }
+
   try {
     // Step 1: Read partition table
     // Create and show NVS editor container with progress
