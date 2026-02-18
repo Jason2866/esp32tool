@@ -1,11 +1,9 @@
 import { toByteArray } from "./util";
 
 export interface Logger {
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   log(msg: string, ...args: any[]): void;
   error(msg: string, ...args: any[]): void;
   debug(msg: string, ...args: any[]): void;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
 export const baudRates = [
