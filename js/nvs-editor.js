@@ -219,9 +219,11 @@ export class NVSEditor {
        if (this._getNVSItemState(stateBitmap, entry) !== 2) continue;
        const eOff = secOff + 64 + entry * 32;
        if (eOff + 32 > this.data.length) break;
+       const span = this._u8(eOff + 2);
        if (this._u8(eOff) === 0 && this._u8(eOff + 1) !== 0xFF && this._u8(eOff + 1) !== 0x00) {
          namespaces.set(this._u8(eOff + 24), this._readString(eOff + 8, 16));
        }
+       if (span > 1) entry += span - 1;
      }
    }
 
