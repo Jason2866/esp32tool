@@ -1,6 +1,7 @@
 // Import WebUSB serial support for Android compatibility
 import { WebUSBSerial, requestSerialPort } from './webusb-serial.js';
 import { ESP32ToolConsole } from './console.js';
+import { HexEditor } from './hex-editor.js';
 
 // Make requestSerialPort available globally for esptool.js
 // Use defensive assignment to avoid accidental overwrites
@@ -32,6 +33,7 @@ let currentChipName = null; // Store chip name globally
 let currentMacAddr = null; // Store MAC address globally
 let isConnected = false; // Track connection state
 let consoleInstance = null; // ESP32ToolConsole instance
+let hexEditorInstance = null; // HexEditor instance
 let baudRateBeforeConsole = null; // Store baudrate before opening console
 let espLoaderBeforeConsole = null; // Store original ESPLoader before console
 let chipFamilyBeforeConsole = null; // Store chipFamily before opening console
@@ -228,6 +230,8 @@ const butCloseFileViewer = document.getElementById("butCloseFileViewer");
 const butDownloadFromViewer = document.getElementById("butDownloadFromViewer");
 const tabText = document.getElementById("tabText");
 const tabHex = document.getElementById("tabHex");
+const butHexEditor = document.getElementById("butHexEditor");
+const hexeditorContainer = document.getElementById("hexeditor-container");
 
 let currentViewedFile = null;
 let currentViewedFileData = null;
@@ -343,6 +347,7 @@ document.addEventListener("DOMContentLoaded", () => {
   butErase.addEventListener("click", clickErase);
   butProgram.addEventListener("click", clickProgram);
   butReadFlash.addEventListener("click", clickReadFlash);
+  butHexEditor.addEventListener("click", clickHexEditor);
   butReadPartitions.addEventListener("click", clickReadPartitions);
   butDetectFS.addEventListener("click", clickDetectFS);
   butOpenFSManager.addEventListener("click", clickOpenFSManager);
@@ -563,6 +568,36 @@ function updateTheme() {
 
 function enableStyleSheet(node, enabled) {
   node.disabled = !enabled;
+}
+
+/**
+ * Build advanced flash read/write options from the UI controls.
+ * Returns the options object or undefined if advanced mode is off.
+ * @returns {{ chunkSize?: number, blockSize?: number, maxInFlight?: number } | undefined}
+ */
+function buildAdvancedOptions() {
+  if (!advancedMode.checked) return undefined;
+
+  const validate = (name, value) => {
+    if (value === undefined) return undefined;
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error(`Invalid ${name}: ${value}`);
+    }
+    return value;
+  };
+
+  const chunkSize = validate("chunkSize", parseInt(chunkSizeSelect.value));
+  const blockSize = validate("blockSize", parseInt(blockSizeSelect.value));
+  const maxInFlight = validate("maxInFlight", parseInt(maxInFlightSelect.value));
+
+  // blockSize and maxInFlight must both be finite or both non-finite
+  const hasBlockSize = Number.isFinite(blockSize);
+  const hasMaxInFlight = Number.isFinite(maxInFlight);
+  if (hasBlockSize !== hasMaxInFlight) {
+    throw new Error("blockSize and maxInFlight must be provided together");
+  }
+
+  return { chunkSize, blockSize, maxInFlight };
 }
 
 /**
@@ -1721,30 +1756,8 @@ async function clickReadFlash() {
     const progressBar = readProgress.querySelector("div");
 
     // Prepare options object if advanced mode is enabled
-    // Option validation helpers
-    const validateOption = (name, value) => {
-      if (value === undefined) return undefined;
-      if (!Number.isFinite(value) || value <= 0) {
-        throw new Error(`Invalid ${name}: ${value}`);
-      }
-      return value;
-    };
-
-    let options = undefined;
-    let chunkSizeOpt, blockSizeOpt, maxInFlightOpt;
-    if (advancedMode.checked) {
-      chunkSizeOpt = validateOption("chunkSize", parseInt(chunkSizeSelect.value));
-      blockSizeOpt = validateOption("blockSize", parseInt(blockSizeSelect.value));
-      maxInFlightOpt = validateOption("maxInFlight", parseInt(maxInFlightSelect.value));
-      if ((blockSizeOpt ?? maxInFlightOpt) &&
-          (blockSizeOpt === undefined || maxInFlightOpt === undefined)) {
-        throw new Error("blockSize and maxInFlight must be provided together");
-      }
-      options = {
-        chunkSize: chunkSizeOpt,
-        blockSize: blockSizeOpt,
-        maxInFlight: maxInFlightOpt
-      };
+    const options = buildAdvancedOptions();
+    if (options) {
       logMsg(`Advanced mode: chunkSize=0x${options.chunkSize?.toString(16)}, blockSize=${options.blockSize}, maxInFlight=${options.maxInFlight}`);
     }
 
@@ -1799,6 +1812,126 @@ async function clickReadFlash() {
     butReadFlash.disabled = false;
     readOffset.disabled = false;
     readSize.disabled = false;
+  }
+}
+
+/**
+ * @name clickHexEditor
+ * Click handler for the Hex Editor button.
+ * Reads the entire flash into a hex editor window.
+ */
+async function clickHexEditor() {
+  const offset = parseInt(readOffset.value, 16);
+  const size = parseInt(readSize.value, 16);
+
+  if (isNaN(offset) || isNaN(size) || size <= 0) {
+    errorMsg("Invalid offset or size value");
+    return;
+  }
+
+  // Disable button to prevent concurrent reads
+  butHexEditor.disabled = true;
+
+  try {
+    // Create and show hex editor
+    if (!hexEditorInstance) {
+      hexEditorInstance = new HexEditor(hexeditorContainer);
+    }
+
+    // Show the container and progress overlay immediately
+    hexeditorContainer.classList.remove('hidden');
+    document.body.classList.add('hexeditor-active');
+
+    // Build a temporary UI for progress display
+    hexEditorInstance.initProgressUI();
+    hexEditorInstance.showProgress('Reading flash...', 0);
+
+    // Prepare options
+    const options = buildAdvancedOptions();
+
+    const data = await espStub.readFlash(
+      offset,
+      size,
+      (packet, progress, totalSize) => {
+        const pct = Math.floor((progress / totalSize) * 100);
+        hexEditorInstance.showProgress(
+          `Reading flash... ${pct}% (${(progress / 1024).toFixed(0)} / ${(totalSize / 1024).toFixed(0)} KB)`,
+          pct
+        );
+      },
+      options
+    );
+
+    logMsg(`Successfully read ${data.length} bytes from flash for hex editor`);
+
+    // Open hex editor with the data
+    hexEditorInstance.open(data, offset);
+
+    // Set up write handler
+    hexEditorInstance.onWriteFlash = async (editedData, modifiedOffsets) => {
+      // Snapshot the editor instance to avoid null dereference if disconnected mid-write
+      const editor = hexEditorInstance;
+      if (!editor) return;
+
+      // Group modified bytes into contiguous sectors (4KB aligned)
+      const SECTOR_SIZE = 0x1000;
+      const sectors = new Set();
+      for (const off of modifiedOffsets) {
+        sectors.add(Math.floor(off / SECTOR_SIZE) * SECTOR_SIZE);
+      }
+
+      const sortedSectors = [...sectors].sort((a, b) => a - b);
+      let written = 0;
+      const total = sortedSectors.length;
+
+      for (const sectorOff of sortedSectors) {
+        const sectorEnd = Math.min(sectorOff + SECTOR_SIZE, editedData.length);
+        const sectorData = editedData.slice(sectorOff, sectorEnd);
+        const flashAddr = offset + sectorOff;
+
+        editor.showProgress(
+          `Writing sector at 0x${flashAddr.toString(16).toUpperCase()}... (${written + 1}/${total})`,
+          Math.floor((written / total) * 100)
+        );
+
+        await espStub.flashData(
+          sectorData.buffer,
+          (bytesWritten, totalBytes) => {
+            const sectorPct = Math.floor((bytesWritten / totalBytes) * 100);
+            editor.showProgress(
+              `Writing sector at 0x${flashAddr.toString(16).toUpperCase()}... ${sectorPct}% (${written + 1}/${total})`,
+              Math.floor(((written + bytesWritten / totalBytes) / total) * 100)
+            );
+          },
+          flashAddr
+        );
+        written++;
+      }
+
+      editor.showProgress('Write complete!', 100);
+      logMsg(`Successfully wrote ${total} sector(s) to flash`);
+      await sleep(500);
+      editor.hideProgress();
+    };
+
+    // Set up close handler
+    hexEditorInstance.onClose = () => {
+      hexeditorContainer.classList.add('hidden');
+      document.body.classList.remove('hexeditor-active');
+      hexEditorInstance = null;
+    };
+
+  } catch (e) {
+    errorMsg("Failed to read flash for hex editor: " + e);
+    hexeditorContainer.classList.add('hidden');
+    document.body.classList.remove('hexeditor-active');
+    if (hexEditorInstance) {
+     // close() handles ResizeObserver/keydown cleanup; onClose is not yet wired here so null manually
+     try { hexEditorInstance.close(); } catch (_) {}
+     hexEditorInstance = null;
+   }
+  } finally {
+    butHexEditor.disabled = false;
   }
 }
 
@@ -2106,6 +2239,7 @@ function toggleUIToolbar(show) {
   }
   butErase.disabled = !show;
   butReadFlash.disabled = !show;
+  butHexEditor.disabled = !show;
   butReadPartitions.disabled = !show;
 }
 
@@ -2136,6 +2270,12 @@ function toggleUIConnected(connected) {
     if (commands) commands.classList.remove("hidden");
     consoleSwitch.checked = false;
     saveSetting("console", false);
+    
+    // Close hex editor if open
+    if (hexEditorInstance) {
+      hexEditorInstance.close();
+      hexEditorInstance = null;
+    }
   }
   butConnect.textContent = lbl;
 }

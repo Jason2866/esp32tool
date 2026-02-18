@@ -2269,3 +2269,466 @@ body.console-active .main {
   padding-top: 0 !important;
   overflow: hidden !important;
 }
+
+/* ========== Hex Editor Container ========== */
+.hexeditor-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1001;
+  background-color: #1c1c1c;
+  display: flex;
+  flex-direction: column;
+  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  color: #ddd;
+}
+
+.hexeditor-container.hidden {
+  display: none;
+}
+
+/* Hide header and commands when hex editor is active */
+body.hexeditor-active .header {
+  display: none !important;
+}
+body.hexeditor-active #commands {
+  display: none !important;
+}
+body.hexeditor-active #notSupported {
+  display: none !important;
+}
+body.hexeditor-active .main {
+  padding-top: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Hex Editor Header / Toolbar */
+.hexeditor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: #2a2a2a;
+  border-bottom: 1px solid #444;
+  flex-wrap: wrap;
+  min-height: 40px;
+}
+
+.hexeditor-toolbar h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hexeditor-toolbar .spacer {
+  flex: 1;
+}
+
+.hexeditor-toolbar button {
+  padding: 4px 14px;
+  font-size: 12px;
+  background-color: #444;
+  color: #ddd;
+  border: 1px solid #555;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hexeditor-toolbar button:hover {
+  background-color: #555;
+}
+
+.hexeditor-toolbar button.primary {
+  background-color: #2e7d32;
+  border-color: #388e3c;
+}
+
+.hexeditor-toolbar button.primary:hover {
+  background-color: #388e3c;
+}
+
+.hexeditor-toolbar button.danger {
+  background-color: #c62828;
+  border-color: #d32f2f;
+}
+
+.hexeditor-toolbar button.danger:hover {
+  background-color: #d32f2f;
+}
+
+.hexeditor-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Search bar */
+.hexeditor-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background-color: #252525;
+  border-bottom: 1px solid #333;
+}
+
+.hexeditor-search label {
+  font-size: 12px;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+.hexeditor-search input[type="text"] {
+  padding: 3px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  background-color: #333;
+  color: #ddd;
+  border: 1px solid #555;
+  border-radius: 3px;
+  outline: none;
+  width: 200px;
+}
+
+.hexeditor-search input[type="text"]:focus {
+  border-color: #71ae1e;
+}
+
+.hexeditor-search select {
+  padding: 3px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background-color: #333;
+  color: #ddd;
+  border: 1px solid #555;
+  border-radius: 3px;
+  outline: none;
+}
+
+.hexeditor-search button {
+  padding: 3px 10px;
+  font-size: 12px;
+  background-color: #444;
+  color: #ddd;
+  border: 1px solid #555;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.hexeditor-search button:hover {
+  background-color: #555;
+}
+
+.hexeditor-search .search-info {
+  font-size: 11px;
+  color: #888;
+  margin-left: 4px;
+}
+
+/* Status bar */
+.hexeditor-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 12px;
+  background-color: #1a3a1a;
+  border-top: 1px solid #444;
+  font-size: 11px;
+  color: #aaa;
+}
+
+.hexeditor-statusbar .status-item {
+  white-space: nowrap;
+}
+
+.hexeditor-statusbar .status-modified {
+  color: #ffab40;
+  font-weight: 600;
+}
+
+/* Main hex content area */
+.hexeditor-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.hexeditor-viewport {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  position: relative;
+}
+
+/* Row layout */
+.hexeditor-row {
+  display: flex;
+  line-height: 20px;
+  height: 20px;
+  white-space: nowrap;
+}
+
+.hexeditor-row:hover {
+  background-color: #2a2a2a;
+}
+
+.hexeditor-row.highlight-row {
+  background-color: #3a3a1a !important;
+}
+
+/* Address gutter */
+.hexeditor-addr {
+  width: 80px;
+  min-width: 80px;
+  text-align: right;
+  padding-right: 12px;
+  color: #6a9955;
+  font-size: 12px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Hex cells area */
+.hexeditor-hex {
+  display: flex;
+  gap: 0;
+  padding-right: 16px;
+}
+
+.hexeditor-hex .hex-cell {
+  width: 26px;
+  text-align: center;
+  font-size: 12px;
+  cursor: text;
+  color: #ddd;
+  border: 1px solid transparent;
+  padding: 0 1px;
+  box-sizing: border-box;
+}
+
+.hexeditor-hex .hex-cell:nth-child(8n) {
+  margin-right: 6px;
+}
+
+.hexeditor-hex .hex-cell.modified {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.hexeditor-hex .hex-cell.selected {
+  background-color: #264f78;
+  border-color: #3a7cbf;
+}
+
+.hexeditor-hex .hex-cell.search-match {
+  background-color: #5a5a00;
+  border-color: #8a8a00;
+}
+
+.hexeditor-hex .hex-cell.search-current {
+  background-color: #8a6a00;
+  border-color: #bb9b00;
+}
+
+.hexeditor-hex .hex-cell.editing {
+  background-color: #1e3a5f;
+  border-color: #4a90d9;
+  outline: none;
+}
+
+.hexeditor-hex .hex-cell.zero {
+  color: #555;
+}
+
+.hexeditor-hex .hex-cell.ff {
+  color: #666;
+}
+
+/* Separator between hex and ASCII */
+.hexeditor-sep {
+  width: 2px;
+  min-width: 2px;
+  background-color: #444;
+  margin: 0 4px;
+}
+
+/* ASCII area */
+.hexeditor-ascii {
+  display: flex;
+  gap: 0;
+}
+
+.hexeditor-ascii .ascii-cell {
+  width: 9px;
+  text-align: center;
+  font-size: 12px;
+  cursor: text;
+  color: #b5cea8;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.hexeditor-ascii .ascii-cell.non-printable {
+  color: #555;
+}
+
+.hexeditor-ascii .ascii-cell.modified {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.hexeditor-ascii .ascii-cell.selected {
+  background-color: #264f78;
+  border-color: #3a7cbf;
+}
+
+.hexeditor-ascii .ascii-cell.search-match {
+  background-color: #5a5a00;
+  border-color: #8a8a00;
+}
+
+.hexeditor-ascii .ascii-cell.search-current {
+  background-color: #8a6a00;
+  border-color: #bb9b00;
+}
+
+.hexeditor-ascii .ascii-cell.editing {
+  background-color: #1e3a5f;
+  border-color: #4a90d9;
+  outline: none;
+}
+
+/* Progress overlay for loading */
+.hexeditor-progress-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.hexeditor-progress-overlay.hidden {
+  display: none;
+}
+
+.hexeditor-progress-overlay .progress-text {
+  font-size: 16px;
+  color: #ddd;
+  margin-bottom: 16px;
+}
+
+.hexeditor-progress-overlay .progress-bar-outer {
+  width: 400px;
+  max-width: 80%;
+  height: 20px;
+  background-color: #333;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.hexeditor-progress-overlay .progress-bar-inner {
+  height: 100%;
+  background-color: #71ae1e;
+  width: 0%;
+  transition: width 0.15s linear;
+  border-radius: 10px;
+}
+
+/* Goto address input */
+.hexeditor-goto {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hexeditor-goto input {
+  width: 100px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  background-color: #333;
+  color: #ddd;
+  border: 1px solid #555;
+  border-radius: 3px;
+  outline: none;
+}
+
+.hexeditor-goto input:focus {
+  border-color: #71ae1e;
+}
+
+/* Responsive hex editor for narrow viewports */
+@media (max-width: 768px) {
+  .hexeditor-container {
+    font-size: 11px;
+  }
+
+  .hexeditor-toolbar {
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  .hexeditor-toolbar h3 {
+    font-size: 12px;
+  }
+
+  .hexeditor-toolbar button {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .hexeditor-search {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 8px;
+  }
+
+  .hexeditor-search input[type="text"] {
+    width: 140px;
+    font-size: 11px;
+  }
+
+  .hexeditor-addr {
+    width: 64px;
+    min-width: 64px;
+    padding-right: 6px;
+    font-size: 11px;
+  }
+
+  .hexeditor-hex .hex-cell {
+    width: 20px;
+    font-size: 11px;
+  }
+
+  .hexeditor-hex .hex-cell:nth-child(8n) {
+    margin-right: 3px;
+  }
+
+  .hexeditor-ascii .ascii-cell {
+    width: 7px;
+    font-size: 11px;
+  }
+
+  .hexeditor-sep {
+    margin: 0 2px;
+  }
+
+  .hexeditor-statusbar {
+    gap: 8px;
+    padding: 3px 8px;
+    font-size: 10px;
+    flex-wrap: wrap;
+  }
+
+  .hexeditor-goto input {
+    width: 70px;
+  }
+}

@@ -17,6 +17,7 @@ const CORE_ASSETS = [
   
   // JavaScript
   './js/script.js',
+  './js/hex-editor.js',
   './js/utilities.js',
   './js/webusb-serial.js',
   './js/modules/esptool.js',
