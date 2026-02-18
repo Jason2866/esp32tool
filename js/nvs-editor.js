@@ -140,6 +140,11 @@ export class NVSEditor {
   }
 
   close() {
+    if (this._hexEditorInstance) {
+      this._hexEditorInstance.onClose = null; // prevent re-render on already-closing editor
+      try { this._hexEditorInstance.close(); } catch (_) {}
+      this._hexEditorInstance = null;
+    }
     this.container.classList.add('hidden');
     document.body.classList.remove('nvseditor-active');
     this.container.innerHTML = '';

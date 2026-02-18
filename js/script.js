@@ -245,6 +245,10 @@ const hexeditorContainer = document.getElementById("hexeditor-container");
 const butNVSEditor = document.getElementById("butNVSEditor");
 const nvseditorContainer = document.getElementById("nvseditor-container");
 
+// NVS and partition table layout constants
+const PARTITION_TABLE_OFFSET = 0x8000;
+const PARTITION_TABLE_SIZE   = 0x1000;
+
 let currentViewedFile = null;
 let currentViewedFileData = null;
 
@@ -1960,9 +1964,6 @@ async function clickNVSEditor() {
 
   try {
     // Step 1: Read partition table
-    const PARTITION_TABLE_OFFSET = 0x8000;
-    const PARTITION_TABLE_SIZE = 0x1000;
-
     // Create and show NVS editor container with progress
     if (!nvsEditorInstance) {
       nvsEditorInstance = new NVSEditor(nvseditorContainer);
@@ -2079,8 +2080,6 @@ async function clickOpenFSManager() {
  * Click handler for the read partitions button.
  */
 async function clickReadPartitions() {
-  const PARTITION_TABLE_OFFSET = 0x8000;
-  const PARTITION_TABLE_SIZE = 0x1000; // Read 4KB to get all partitions
 
   butReadPartitions.disabled = true;
   butErase.disabled = true;
@@ -2088,8 +2087,7 @@ async function clickReadPartitions() {
   butReadFlash.disabled = true;
 
   try {
-    logMsg("Reading partition table from 0x8000...");
-    
+    logMsg(`Reading partition table from 0x${PARTITION_TABLE_OFFSET.toString(16)}...`);
     const data = await espStub.readFlash(PARTITION_TABLE_OFFSET, PARTITION_TABLE_SIZE);
     
     const partitions = parsePartitionTable(data);
