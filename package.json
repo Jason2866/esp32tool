@@ -1,6 +1,6 @@
 {
   "name": "esp32tool",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "type": "module",
   "description": "Flash & Read ESP devices using WebSerial, Electron, and also Android mobile via WebUSB",
   "main": "electron/main.cjs",
