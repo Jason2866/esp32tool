@@ -537,7 +537,7 @@ export class NVSEditor {
           <span class="nvs-page-state">${page.state}</span>
           <span>Page @ 0x${page.offset.toString(16).toUpperCase()}</span>
           <span>Seq: ${page.seq}</span>
-          <span>Version: ${page.version}</span>
+          <span>Version: ${page.version === 0xFF ? 'v1' : page.version === 0xFE ? 'v2' : page.version}</span>
           <span>${page.items.length} entries</span>
         </div>`;
 
