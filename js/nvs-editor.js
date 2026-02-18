@@ -282,11 +282,12 @@ export class NVSEditor {
               if (strSize > 0 && strSize < 4096 && eOff + 32 + strSize <= this.data.length) {
                 const strData = this.data.slice(eOff + 32, eOff + 32 + strSize);
                 const allErased = strData.every(b => b === 0xFF);
-                let sv = '';
+                // Find first NUL byte and decode as UTF-8
+                let nullIndex = strData.length;
                 for (let i = 0; i < strData.length; i++) {
-                  if (strData[i] === 0) break;
-                  if (strData[i] >= 32 && strData[i] <= 126) sv += String.fromCharCode(strData[i]);
+                  if (strData[i] === 0) { nullIndex = i; break; }
                 }
+                const sv = nullIndex > 0 ? new TextDecoder('utf-8').decode(strData.subarray(0, nullIndex)) : '';
                 item.value = allErased ? '<erased>' : sv;
                 item.rawValue = strData;
                 item.dataCrcStored = strCrc >>> 0;
@@ -369,27 +370,31 @@ export class NVSEditor {
   _writeValue(item, newValue) {
     const off = item.offset;
     switch (item.datatype) {
-      case 0x01: this.data[off + 24] = parseInt(newValue) & 0xFF; break;
-      case 0x02: { const v = parseInt(newValue); this.data[off + 24] = v & 0xFF; this.data[off + 25] = (v >> 8) & 0xFF; break; }
-      case 0x04: { const v = parseInt(newValue) >>> 0; const dv = new DataView(this.data.buffer, off + 24, 4); dv.setUint32(0, v, true); break; }
-      case 0x08: { const v = BigInt(newValue); const dv = new DataView(this.data.buffer, off + 24, 8); dv.setBigUint64(0, v, true); break; }
-      case 0x11: { const v = parseInt(newValue); this.data[off + 24] = v < 0 ? v + 256 : v; break; }
-      case 0x12: { const v = parseInt(newValue); const dv = new DataView(this.data.buffer, off + 24, 2); dv.setInt16(0, v, true); break; }
-      case 0x14: { const v = parseInt(newValue); const dv = new DataView(this.data.buffer, off + 24, 4); dv.setInt32(0, v, true); break; }
-      case 0x18: { const v = BigInt(newValue); const dv = new DataView(this.data.buffer, off + 24, 8); dv.setBigInt64(0, v, true); break; }
-      case 0x21: { // String – rewrite in-place if fits
+      case 0x01: { const v = parseInt(newValue, 10); if (!Number.isFinite(v) || v < 0 || v > 255) throw new Error('U8 must be 0-255'); this.data[off + 24] = v & 0xFF; break; }
+      case 0x02: { const v = parseInt(newValue, 10); if (!Number.isFinite(v) || v < 0 || v > 65535) throw new Error('U16 must be 0-65535'); this.data[off + 24] = v & 0xFF; this.data[off + 25] = (v >> 8) & 0xFF; break; }
+      case 0x04: { const v = parseInt(newValue, 10); if (!Number.isFinite(v) || v < 0 || v > 4294967295) throw new Error('U32 must be 0-4294967295'); const dv = new DataView(this.data.buffer, off + 24, 4); dv.setUint32(0, v >>> 0, true); break; }
+      case 0x08: { let v; try { v = BigInt(newValue); } catch(e) { throw new Error('U64 must be valid BigInt'); } if (v < 0n || v > 0xFFFFFFFFFFFFFFFFn) throw new Error('U64 out of range'); const dv = new DataView(this.data.buffer, off + 24, 8); dv.setBigUint64(0, v, true); break; }
+      case 0x11: { const v = parseInt(newValue, 10); if (!Number.isFinite(v) || v < -128 || v > 127) throw new Error('I8 must be -128 to 127'); this.data[off + 24] = v < 0 ? v + 256 : v; break; }
+      case 0x12: { const v = parseInt(newValue, 10); if (!Number.isFinite(v) || v < -32768 || v > 32767) throw new Error('I16 must be -32768 to 32767'); const dv = new DataView(this.data.buffer, off + 24, 2); dv.setInt16(0, v, true); break; }
+      case 0x14: { const v = parseInt(newValue, 10); if (!Number.isFinite(v) || v < -2147483648 || v > 2147483647) throw new Error('I32 must be -2147483648 to 2147483647'); const dv = new DataView(this.data.buffer, off + 24, 4); dv.setInt32(0, v, true); break; }
+      case 0x18: { let v; try { v = BigInt(newValue); } catch(e) { throw new Error('I64 must be valid BigInt'); } if (v < -0x8000000000000000n || v > 0x7FFFFFFFFFFFFFFFn) throw new Error('I64 out of range'); const dv = new DataView(this.data.buffer, off + 24, 8); dv.setBigInt64(0, v, true); break; }
+      case 0x21: { // String – rewrite in-place with trailing NUL
         const enc = new TextEncoder().encode(newValue);
         const maxPayload = (item.span - 1) * 32;
-        if (enc.length > maxPayload) { alert('String too long for existing slot (max ' + maxPayload + ' bytes)'); return; }
-        // Update size
-        this.data[off + 24] = enc.length & 0xFF;
-        this.data[off + 25] = (enc.length >> 8) & 0xFF;
+        // Create NUL-terminated buffer
+        const encWithNul = new Uint8Array(enc.length + 1);
+        encWithNul.set(enc, 0);
+        encWithNul[enc.length] = 0;
+        if (encWithNul.length > maxPayload) { alert('String too long for existing slot (max ' + maxPayload + ' bytes)'); return; }
+        // Update size (includes NUL)
+        this.data[off + 24] = encWithNul.length & 0xFF;
+        this.data[off + 25] = (encWithNul.length >> 8) & 0xFF;
         // Clear old data
         this.data.fill(0xFF, off + 32, off + 32 + maxPayload);
-        // Write new data
-        this.data.set(enc, off + 32);
-        // Update data CRC
-        const crc = NVSEditor.crc32(enc);
+        // Write new data with NUL
+        this.data.set(encWithNul, off + 32);
+        // Update data CRC over NUL-terminated buffer
+        const crc = NVSEditor.crc32(encWithNul);
         const dv = new DataView(this.data.buffer, off + 28, 4);
         dv.setUint32(0, crc, true);
         break;

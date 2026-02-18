@@ -2389,6 +2389,13 @@ function toggleUIConnected(connected) {
       hexEditorInstance.close();
       hexEditorInstance = null;
     }
+    // Close NVS editor if open (disconnect or unexpected port loss)
+   if (nvsEditorInstance) {
+     try { nvsEditorInstance.close(); } catch (_) {}
+     nvsEditorInstance = null;
+   }
+   nvseditorContainer.classList.add('hidden');
+   document.body.classList.remove('nvseditor-active');
   }
   butConnect.textContent = lbl;
 }
