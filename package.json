@@ -41,7 +41,7 @@
     "test-pwa": "npx serve . -p 5004"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.6.1",
+    "@electron-forge/cli": "^7.11.1",
     "@electron-forge/maker-deb": "^7.11.1",
     "@electron-forge/maker-dmg": "^7.11.1",
     "@electron-forge/maker-rpm": "^7.11.1",
@@ -62,8 +62,8 @@
     "electron": "^40.4.1",
     "electron-squirrel-startup": "^1.0.1",
     "eslint": "^9.39.2",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.8.1",
     "rollup": "^4.57.0",
