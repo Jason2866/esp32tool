@@ -590,8 +590,10 @@ function buildAdvancedOptions() {
   const blockSize = validate("blockSize", parseInt(blockSizeSelect.value));
   const maxInFlight = validate("maxInFlight", parseInt(maxInFlightSelect.value));
 
-  if ((blockSize ?? maxInFlight) &&
-      (blockSize === undefined || maxInFlight === undefined)) {
+  // blockSize and maxInFlight must both be finite or both non-finite
+  const hasBlockSize = Number.isFinite(blockSize);
+  const hasMaxInFlight = Number.isFinite(maxInFlight);
+  if (hasBlockSize !== hasMaxInFlight) {
     throw new Error("blockSize and maxInFlight must be provided together");
   }
 
@@ -1827,19 +1829,21 @@ async function clickHexEditor() {
     return;
   }
 
-  // Create and show hex editor
-  if (!hexEditorInstance) {
-    hexEditorInstance = new HexEditor(hexeditorContainer);
-  }
-
-  // Show the container and progress overlay immediately
-  hexeditorContainer.classList.remove('hidden');
-  document.body.classList.add('hexeditor-active');
-
-  // Build a temporary UI for progress display
-  hexEditorInstance.initProgressUI();
+  // Disable button to prevent concurrent reads
+  butHexEditor.disabled = true;
 
   try {
+    // Create and show hex editor
+    if (!hexEditorInstance) {
+      hexEditorInstance = new HexEditor(hexeditorContainer);
+    }
+
+    // Show the container and progress overlay immediately
+    hexeditorContainer.classList.remove('hidden');
+    document.body.classList.add('hexeditor-active');
+
+    // Build a temporary UI for progress display
+    hexEditorInstance.initProgressUI();
     hexEditorInstance.showProgress('Reading flash...', 0);
 
     // Prepare options
@@ -1865,6 +1869,10 @@ async function clickHexEditor() {
 
     // Set up write handler
     hexEditorInstance.onWriteFlash = async (editedData, modifiedOffsets) => {
+      // Snapshot the editor instance to avoid null dereference if disconnected mid-write
+      const editor = hexEditorInstance;
+      if (!editor) return;
+
       // Group modified bytes into contiguous sectors (4KB aligned)
       const SECTOR_SIZE = 0x1000;
       const sectors = new Set();
@@ -1881,7 +1889,7 @@ async function clickHexEditor() {
         const sectorData = editedData.slice(sectorOff, sectorEnd);
         const flashAddr = offset + sectorOff;
 
-        hexEditorInstance.showProgress(
+        editor.showProgress(
           `Writing sector at 0x${flashAddr.toString(16).toUpperCase()}... (${written + 1}/${total})`,
           Math.floor((written / total) * 100)
         );
@@ -1890,7 +1898,7 @@ async function clickHexEditor() {
           sectorData.buffer,
           (bytesWritten, totalBytes) => {
             const sectorPct = Math.floor((bytesWritten / totalBytes) * 100);
-            hexEditorInstance.showProgress(
+            editor.showProgress(
               `Writing sector at 0x${flashAddr.toString(16).toUpperCase()}... ${sectorPct}% (${written + 1}/${total})`,
               Math.floor(((written + bytesWritten / totalBytes) / total) * 100)
             );
@@ -1900,22 +1908,25 @@ async function clickHexEditor() {
         written++;
       }
 
-      hexEditorInstance.showProgress('Write complete!', 100);
+      editor.showProgress('Write complete!', 100);
       logMsg(`Successfully wrote ${total} sector(s) to flash`);
       await sleep(500);
-      hexEditorInstance.hideProgress();
+      editor.hideProgress();
     };
 
     // Set up close handler
     hexEditorInstance.onClose = () => {
       hexeditorContainer.classList.add('hidden');
       document.body.classList.remove('hexeditor-active');
+      hexEditorInstance = null;
     };
 
   } catch (e) {
     errorMsg("Failed to read flash for hex editor: " + e);
     hexeditorContainer.classList.add('hidden');
     document.body.classList.remove('hexeditor-active');
+  } finally {
+    butHexEditor.disabled = false;
   }
 }
 
