@@ -4468,7 +4468,7 @@ export class ESPLoader extends EventTarget {
             } catch (err) {
               if (err instanceof SlipReadError) {
                 this.logger.debug(
-                  `SLIP read error at ${resp.length} bytes: ${err.message}`,
+                  `${err.message} at byte 0x${resp.length.toString(16)}`,
                 );
 
                 // Send empty SLIP frame to abort the stub's read operation
@@ -4622,20 +4622,9 @@ export class ESPLoader extends EventTarget {
           if (err instanceof SlipReadError) {
             if (retryCount <= MAX_RETRIES) {
               this.logger.debug(
-                `${err.message} at 0x${currentAddr.toString(16)}. Clearing buffer and retrying (attempt ${retryCount}/${MAX_RETRIES})...`,
+                `Cleared buffer and retrying (attempt ${retryCount}/${MAX_RETRIES})...`,
               );
-
-              try {
-                // Clear application buffer
-                await this.flushSerialBuffers();
-
-                // Wait before retry to let hardware settle
-                await sleep(10);
-
-                // Continue to retry the same chunk (will send NEW read command)
-              } catch (clearErr) {
-                this.logger.debug(`Buffer clear error: ${clearErr}`);
-              }
+              // Continue to retry the same chunk (will send NEW read command)
             } else {
               // All retries exhausted - attempt recovery by reloading stub
               // IMPORTANT: Do NOT close port to keep ESP32 in bootloader mode
