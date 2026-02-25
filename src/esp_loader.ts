@@ -1161,14 +1161,11 @@ export class ESPLoader extends EventTarget {
    * Classic reset with shorter delays for WebUSB (Android)
    */
   async hardResetClassicShortDelayWebUSB() {
-    await this.setDTRWebUSB(false); // IO0=HIGH
-    await this.setRTSWebUSB(true); // EN=LOW, chip in reset
-    await sleep(50);
-    await this.setDTRWebUSB(true); // IO0=LOW
-    await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset
-    await sleep(25);
-    await this.setDTRWebUSB(false); // IO0=HIGH, done
-    await sleep(100);
+    await this.runSignalSequence([
+      { dtr: false, rts: true, delayMs: 50 },
+      { dtr: true, rts: false, delayMs: 25 },
+      { dtr: false, delayMs: 100 },
+    ]);
   }
 
   /**
@@ -1176,14 +1173,11 @@ export class ESPLoader extends EventTarget {
    * Inverted reset sequence for WebUSB (Android) - both signals inverted
    */
   async hardResetInvertedWebUSB() {
-    await this.setDTRWebUSB(true); // IO0=HIGH (inverted)
-    await this.setRTSWebUSB(false); // EN=LOW, chip in reset (inverted)
-    await sleep(100);
-    await this.setDTRWebUSB(false); // IO0=LOW (inverted)
-    await this.setRTSWebUSB(true); // EN=HIGH, chip out of reset (inverted)
-    await sleep(50);
-    await this.setDTRWebUSB(true); // IO0=HIGH, done (inverted)
-    await sleep(200);
+    await this.runSignalSequence([
+      { dtr: true, rts: false, delayMs: 100 },
+      { dtr: false, rts: true, delayMs: 50 },
+      { dtr: true, delayMs: 200 },
+    ]);
   }
 
   /**
@@ -1191,14 +1185,11 @@ export class ESPLoader extends EventTarget {
    * Only DTR inverted for WebUSB (Android)
    */
   async hardResetInvertedDTRWebUSB() {
-    await this.setDTRWebUSB(true); // IO0=HIGH (DTR inverted)
-    await this.setRTSWebUSB(true); // EN=LOW, chip in reset (RTS normal)
-    await sleep(100);
-    await this.setDTRWebUSB(false); // IO0=LOW (DTR inverted)
-    await this.setRTSWebUSB(false); // EN=HIGH, chip out of reset (RTS normal)
-    await sleep(50);
-    await this.setDTRWebUSB(true); // IO0=HIGH, done (DTR inverted)
-    await sleep(200);
+    await this.runSignalSequence([
+      { dtr: true, rts: true, delayMs: 100 },
+      { dtr: false, rts: false, delayMs: 50 },
+      { dtr: true, delayMs: 200 },
+    ]);
   }
 
   /**
@@ -1206,14 +1197,11 @@ export class ESPLoader extends EventTarget {
    * Only RTS inverted for WebUSB (Android)
    */
   async hardResetInvertedRTSWebUSB() {
-    await this.setDTRWebUSB(false); // IO0=HIGH (DTR normal)
-    await this.setRTSWebUSB(false); // EN=LOW, chip in reset (RTS inverted)
-    await sleep(100);
-    await this.setDTRWebUSB(true); // IO0=LOW (DTR normal)
-    await this.setRTSWebUSB(true); // EN=HIGH, chip out of reset (RTS inverted)
-    await sleep(50);
-    await this.setDTRWebUSB(false); // IO0=HIGH, done (DTR normal)
-    await sleep(200);
+    await this.runSignalSequence([
+      { dtr: false, rts: false, delayMs: 100 },
+      { dtr: true, rts: true, delayMs: 50 },
+      { dtr: false, delayMs: 200 },
+    ]);
   }
 
   /**
