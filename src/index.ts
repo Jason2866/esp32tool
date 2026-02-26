@@ -100,10 +100,7 @@ export const connectWithPort = async (port: SerialPort, logger: Logger) => {
   return new ESPLoader(port, logger);
 };
 
-export {
-  parsePartitionTable,
-  formatSize,
-} from "./partition";
+export { parsePartitionTable, formatSize } from "./partition";
 export type { Partition } from "./partition";
 
 // Export utility functions for use in UI code
