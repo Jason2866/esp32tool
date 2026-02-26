@@ -102,7 +102,6 @@ export const connectWithPort = async (port: SerialPort, logger: Logger) => {
 
 export {
   parsePartitionTable,
-  getPartitionTableOffset,
   formatSize,
 } from "./partition";
 export type { Partition } from "./partition";

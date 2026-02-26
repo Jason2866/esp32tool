@@ -1986,8 +1986,18 @@ async function clickNVSEditor() {
     nvsEditorInstance.initProgressUI();
     nvsEditorInstance.showProgress('Reading partition table...', 0);
 
-    const ptData = await espStub.readFlash(PARTITION_TABLE_OFFSET, PARTITION_TABLE_SIZE);
-    const partitions = parsePartitionTable(ptData);
+    const MAX_PT_ATTEMPTS = 10;
+    let partitions = [];
+    for (let attempt = 0; attempt < MAX_PT_ATTEMPTS; attempt++) {
+      const offset = PARTITION_TABLE_OFFSET + attempt * 0x1000;
+      logMsg(`Reading partition table from 0x${offset.toString(16)}...`);
+      const ptData = await espStub.readFlash(offset, PARTITION_TABLE_SIZE);
+      partitions = parsePartitionTable(ptData);
+      if (partitions.length > 0) break;
+    }
+    if (partitions.length === 0) {
+      throw new Error('No valid partition table found after ' + MAX_PT_ATTEMPTS + ' attempts');
+    }
 
     // Step 2: Find NVS partition (type=0x01 data, subtype=0x02 nvs)
     const nvsPartition = partitions.find(p => p.type === 0x01 && p.subtype === 0x02);
@@ -2107,17 +2117,28 @@ async function clickReadPartitions() {
   butReadFlash.disabled = true;
 
   try {
-    logMsg(`Reading partition table from 0x${PARTITION_TABLE_OFFSET.toString(16)}...`);
-    const data = await espStub.readFlash(PARTITION_TABLE_OFFSET, PARTITION_TABLE_SIZE);
-    
-    const partitions = parsePartitionTable(data);
-    
+    const MAX_ATTEMPTS = 10;
+    let partitions = [];
+    let foundOffset = null;
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const offset = PARTITION_TABLE_OFFSET + attempt * 0x1000;
+      logMsg(`Reading partition table from 0x${offset.toString(16)}...`);
+      const data = await espStub.readFlash(offset, PARTITION_TABLE_SIZE);
+      partitions = parsePartitionTable(data);
+
+      if (partitions.length > 0) {
+        foundOffset = offset;
+        break;
+      }
+    }
+
     if (partitions.length === 0) {
-      errorMsg("No valid partition table found");
+      errorMsg("No valid partition table found after " + MAX_ATTEMPTS + " attempts");
       return;
     }
 
-    logMsg(`Found ${partitions.length} partition(s)`);
+    logMsg(`Found ${partitions.length} partition(s) at 0x${foundOffset.toString(16)}`);
     
     // Display partitions
     displayPartitions(partitions);

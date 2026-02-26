@@ -58,7 +58,6 @@ const DATA_SUBTYPES: { [key: number]: string } = {
   0x83: "littlefs",
 };
 
-const PARTITION_TABLE_OFFSET = 0x8000; // Default partition table offset
 const PARTITION_ENTRY_SIZE = 32;
 const PARTITION_MAGIC = 0x50aa;
 
@@ -135,13 +134,6 @@ export function parsePartitionTable(data: Uint8Array): Partition[] {
   }
 
   return partitions;
-}
-
-/**
- * Get the default partition table offset
- */
-export function getPartitionTableOffset(): number {
-  return PARTITION_TABLE_OFFSET;
 }
 
 /**
