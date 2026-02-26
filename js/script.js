@@ -199,6 +199,7 @@ const butReadFlash = document.getElementById("butReadFlash");
 const readOffset = document.getElementById("readOffset");
 const readSize = document.getElementById("readSize");
 const readProgress = document.getElementById("readProgress");
+const eraseProgress = document.getElementById("eraseProgress");
 const butReadPartitions = document.getElementById("butReadPartitions");
 const butDetectFS = document.getElementById("butDetectFS");
 const butOpenFSManager = document.getElementById("butOpenFSManager");
@@ -1601,6 +1602,7 @@ async function clickErase() {
     baudRateSelect.disabled = true;
     butErase.disabled = true;
     butProgram.disabled = true;
+    eraseProgress.classList.remove("hidden");
     try {
       logMsg("Erasing flash memory. Please wait...");
       let stamp = Date.now();
@@ -1609,6 +1611,7 @@ async function clickErase() {
     } catch (e) {
       errorMsg(e);
     } finally {
+      eraseProgress.classList.add("hidden");
       butErase.disabled = false;
       baudRateSelect.disabled = false;
       butProgram.disabled = getValidFiles().length == 0;

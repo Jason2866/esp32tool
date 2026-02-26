@@ -472,6 +472,29 @@ div.clear {
   width: 0;
 }
 
+.progress-bar.indeterminate > div {
+  width: 100% !important;
+  background: repeating-linear-gradient(
+    -45deg,
+    #71ae1e,
+    #71ae1e 10px,
+    #5a8c18 10px,
+    #5a8c18 20px
+  );
+  background-size: 28px 28px;
+  animation: indeterminate-stripes 0.6s linear infinite;
+}
+
+@keyframes indeterminate-stripes {
+  0% { background-position: 0 0; }
+  100% { background-position: 28px 0; }
+}
+
+#eraseProgress {
+  width: 400px;
+  margin: 10px auto;
+}
+
 #commands .buttons {
   display: flex;
   justify-content: center;

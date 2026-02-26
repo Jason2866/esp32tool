@@ -399,8 +399,19 @@ async function cmdEraseFlash(esploader: ESPLoader) {
   // Use stub for erasing
   const stub = await esploader.runStub();
 
-  // Erase flash
-  await stub.eraseFlash();
+  // Show animated progress while erasing
+  const frames = ["|", "/", "-", "\\"];
+  let frameIdx = 0;
+  const spinner = setInterval(() => {
+    process.stdout.write(`\rErasing... ${frames[frameIdx++ % frames.length]}`);
+  }, 200);
+
+  try {
+    await stub.eraseFlash();
+  } finally {
+    clearInterval(spinner);
+    process.stdout.write("\r                    \r");
+  }
 
   cliLogger.log("Erase complete!");
 }
