@@ -52,102 +52,97 @@ function createWindow() {
 }
 
 function setupSerialPortHandlers(ses) {
-  let lastSelectedPort = null;
-  let esp32s2ReconnectPending = false;
-  let portSelectionQueue = [];
-  
+  const isLikelyEspPort = (port) => {
+    const name = `${port?.displayName || ''} ${port?.portName || ''}`.toLowerCase();
+    return (
+      name.includes('cp2102') ||
+      name.includes('cp2103') ||
+      name.includes('cp2104') ||
+      name.includes('cp2105') ||
+      name.includes('cp2108') ||
+      name.includes('ch9102') ||
+      name.includes('ch9104') ||
+      name.includes('ch340') ||
+      name.includes('ch341') ||
+      name.includes('ch343') ||
+      name.includes('ftdi') ||
+      name.includes('ft232') ||
+      name.includes('usb') ||
+      name.includes('uart') ||
+      name.includes('silicon labs') ||
+      name.includes('esp32') ||
+      name.includes('esp8266') ||
+      name.includes('esp')
+    );
+  };
+
+  const getPortLabel = (port) => port?.displayName || port?.portName || port?.portId || 'Unknown port';
+
+  const getPortButtonLabel = (port, isRecommended = false) => {
+    const shortId = port?.portName || port?.displayName || port?.portId || 'Unknown';
+    return isRecommended ? `${shortId} (Recommended)` : shortId;
+  };
+
+  const toHexId = (value) =>
+    typeof value === 'number' ? `0x${value.toString(16).toUpperCase().padStart(4, '0')}` : null;
+
+  // Guard against Electron re-firing select-serial-port while a dialog is open
+  let activeSelectionId = 0;
+
   // Handle serial port selection - shows when navigator.serial.requestPort() is called
   ses.on('select-serial-port', (event, portList, webContents, callback) => {
     event.preventDefault();
 
-    console.log('Available serial ports:', portList.map(p => ({
-      portId: p.portId,
-      portName: p.portName,
-      displayName: p.displayName
-    })));
+    // Filter to only show ESP-compatible ports
+    const espPorts = (portList || []).filter(isLikelyEspPort);
 
-    if (portList && portList.length > 0) {
-      // Try to find ESP-compatible port
-      const espPort = portList.find(port => {
-        const name = (port.displayName || port.portName || '').toLowerCase();
-        return name.includes('cp2102') ||
-               name.includes('cp2103') ||
-               name.includes('cp2104') ||
-               name.includes('cp2105') ||
-               name.includes('cp2108') ||
-               name.includes('ch9102') ||
-               name.includes('ch9104') ||
-               name.includes('ch340') ||
-               name.includes('ch341') ||
-               name.includes('ch343') ||
-               name.includes('ftdi') ||
-               name.includes('usb') ||
-               name.includes('uart') ||
-               name.includes('silicon labs') ||
-               name.includes('esp');
-      });
-
-      // Select ESP-compatible port or first available
-      const selectedPort = espPort || portList[0];
-      console.log('Selected port:', selectedPort.portId, selectedPort.displayName || selectedPort.portName);
-      lastSelectedPort = selectedPort;
-      
-      callback(selectedPort.portId);
-    } else {
-      console.log('No serial ports available - queuing selection');
-      // No ports available yet - queue this callback for when a port appears
-      portSelectionQueue.push(callback);
+    if (espPorts.length === 0) {
+      callback('');
+      return;
     }
+
+    // Single matching port - auto-select
+    if (espPorts.length === 1) {
+      callback(espPorts[0].portId);
+      return;
+    }
+
+    // Track this selection so stale dialog results are ignored
+    const mySelectionId = ++activeSelectionId;
+
+    const buttonLabels = espPorts.map((port) => getPortButtonLabel(port));
+    const cancelIndex = buttonLabels.length;
+
+    const ownerWindow = BrowserWindow.fromWebContents(webContents) || mainWindow;
+    dialog.showMessageBox(ownerWindow, {
+      type: 'question',
+      title: 'ESP32Tool',
+      message: 'Select the serial port for your ESP device.',
+      buttons: [...buttonLabels, 'Cancel'],
+      defaultId: 0,
+      cancelId: cancelIndex,
+      noLink: true,
+    }).then((result) => {
+      // Ignore if a newer select-serial-port event superseded this one
+      if (mySelectionId !== activeSelectionId) return;
+      const selectedPort = espPorts[result.response];
+      callback(selectedPort ? selectedPort.portId : '');
+    });
   });
 
-  // Track port additions - handle ESP32-S2 reconnect
   ses.on('serial-port-added', (event, port) => {
     console.log('Serial port added:', port);
-    
-    // If we have queued port selections, handle them now
-    if (portSelectionQueue.length > 0) {
-      console.log('Processing queued port selection');
-      const callback = portSelectionQueue.shift();
-      callback(port.portId);
-      lastSelectedPort = port;
-    }
-    
-    // Check if this looks like an ESP32-S2 CDC port appearing after ROM port disappeared
-    if (lastSelectedPort && port.portName !== lastSelectedPort.portName) {
-      const name = (port.displayName || port.portName || '').toLowerCase();
-      if (name.includes('esp') || name.includes('usb') || name.includes('uart')) {
-        console.log('ESP32-S2 reconnect detected - new CDC port available');
-        esp32s2ReconnectPending = true;
-      }
-    }
   });
 
-  // Track port removals - detect ESP32-S2 disconnect
   ses.on('serial-port-removed', (event, port) => {
     console.log('Serial port removed:', port);
-    
-    // If the last selected port was removed, prepare for reconnect
-    if (lastSelectedPort && port.portId === lastSelectedPort.portId) {
-      console.log('Last selected port removed - may be ESP32-S2 mode switch');
-      // Don't clear lastSelectedPort yet, we might need it for comparison
-    }
   });
 
-  // Grant permission for serial port access checks
-  ses.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-    if (permission === 'serial') {
-      return true;
-    }
-    return true;
-  });
+  ses.setPermissionCheckHandler(() => true);
 
-  // Handle device permission requests  
   ses.setDevicePermissionHandler((details) => {
-    if (details.deviceType === 'serial') {
-      if (details.device) {
-        grantedDevices.set(details.device.deviceId, details.device);
-      }
-      return true;
+    if (details.deviceType === 'serial' && details.device) {
+      grantedDevices.set(details.device.deviceId, details.device);
     }
     return true;
   });
