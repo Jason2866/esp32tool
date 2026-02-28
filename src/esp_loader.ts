@@ -4335,6 +4335,8 @@ export class ESPLoader extends EventTarget {
     // Flush serial buffers before flash read operation
     await this.flushSerialBuffers();
 
+    const readStartTime = Date.now();
+
     this.logger.log(
       `Reading ${size} bytes from flash at address 0x${addr.toString(16)}...`,
     );
@@ -4442,6 +4444,8 @@ export class ESPLoader extends EventTarget {
             maxInFlight,
           );
 
+          const chunkStartTime = Date.now();
+
           const [res] = await this.checkCommand(ESP_READ_FLASH, pkt);
 
           if (res != 0) {
@@ -4519,6 +4523,16 @@ export class ESPLoader extends EventTarget {
           allData = newAllData;
 
           chunkSuccess = true;
+
+          const chunkDuration = Date.now() - chunkStartTime;
+          const speedKBs = (
+            resp.length /
+            1024 /
+            (chunkDuration / 1000)
+          ).toFixed(1);
+          this.logger.debug(
+            `Chunk read took ${chunkDuration} ms (${resp.length} bytes, ${speedKBs} KB/s)`,
+          );
 
           // ADAPTIVE SPEED ADJUSTMENT: Only for CDC devices
           // Non-CDC devices (CH340, CP2102) stay at fixed blockSize=31, maxInFlight=31
@@ -4665,6 +4679,16 @@ export class ESPLoader extends EventTarget {
         `Total progress: 0x${allData.length.toString(16)} from 0x${size.toString(16)} bytes`,
       );
     }
+
+    const totalDuration = Date.now() - readStartTime;
+    const totalSpeedKBs = (
+      allData.length /
+      1024 /
+      (totalDuration / 1000)
+    ).toFixed(1);
+    this.logger.log(
+      `Read complete: ${allData.length} bytes in ${(totalDuration / 1000).toFixed(1)} s (${totalSpeedKBs} KB/s)`,
+    );
 
     return allData;
   }
