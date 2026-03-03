@@ -83,7 +83,7 @@ jobs:
       # macOS: Upload DMG and ZIP artifacts (GUI), ZIP only for CLI
       - name: Upload macOS artifacts
         if: matrix.platform == 'darwin'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
           path: |
@@ -96,7 +96,7 @@ jobs:
       # Windows: Upload Squirrel installer, ZIP, and CLI artifacts
       - name: Upload Windows artifacts
         if: matrix.platform == 'win32'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
           path: |
@@ -109,7 +109,7 @@ jobs:
       # Linux: Upload DEB, RPM, and CLI artifacts
       - name: Upload Linux artifacts
         if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
           path: |
