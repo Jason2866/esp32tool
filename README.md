@@ -137,6 +137,8 @@ January 2026 – Added Android mobile devices support, standalone CLI.
 
 February 2026 - Added IMPROV support, NEW Features: Flash Hex Editor and NVS Parser / Editor
 
+March 2026 – Auto-detect partition table, flash read speed/time logging, flash erase animation
+
 ---
 
 © Adafruit, Nabu Casa & Johann Obermeier
