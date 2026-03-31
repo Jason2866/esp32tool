@@ -90,7 +90,7 @@ jobs:
           registry: https://registry.npmjs.org/
           strategy: all
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Create deployment directory
         run: |
           mkdir -p _site
