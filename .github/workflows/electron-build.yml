@@ -34,11 +34,21 @@ jobs:
             platform: win32
             arch: x64
             artifact_name: windows
+          # Windows ARM
+          - os: windows-11-arm
+            platform: win32
+            arch: arm64
+            artifact_name: windows-arm64
           # Linux
           - os: ubuntu-latest
             platform: linux
             arch: x64
             artifact_name: linux
+          # Linux ARM
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+            artifact_name: linux-arm64
 
     runs-on: ${{ matrix.os }}
 
@@ -80,8 +90,8 @@ jobs:
       - name: Build Electron CLI app
         run: npm run build:cli-electron
 
-      # macOS: Upload DMG and ZIP artifacts (GUI), ZIP only for CLI
-      - name: Upload macOS artifacts
+      # macOS: DMG and ZIP artifacts (GUI), ZIP only for CLI
+      - name: Fetch macOS artifacts for upload
         if: matrix.platform == 'darwin'
         uses: actions/download-artifact@v8
         with:
@@ -93,8 +103,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 5
 
-      # Windows: Upload Squirrel installer, ZIP, and CLI artifacts
-      - name: Upload Windows artifacts
+      # Windows: Squirrel installer, ZIP, and CLI artifacts
+      - name: Fetch Windows artifacts for upload
         if: matrix.platform == 'win32'
         uses: actions/download-artifact@v8
         with:
@@ -106,8 +116,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 5
 
-      # Linux: Upload DEB, RPM, and CLI artifacts
-      - name: Upload Linux artifacts
+      # Linux: DEB, RPM, and CLI artifacts
+      - name: Fetch Linux artifacts for upload
         if: matrix.platform == 'linux'
         uses: actions/download-artifact@v8
         with:
@@ -156,15 +166,20 @@ jobs:
             | macOS | Apple Silicon | `ESP32Tool-*-arm64.dmg` |
             | macOS | Intel | `ESP32Tool-*-x64.dmg` |
             | Windows | x64 | `*.exe` / `ESP32Tool-*.zip` |
+            | Windows | ARM64 | `*.exe` / `ESP32Tool-*-arm64.zip` |
             | Linux | x64 | `*.deb` / `*.rpm` / `ESP32Tool-*.zip` |
+            | Linux | ARM64 | `*.deb` / `*.rpm` / `ESP32Tool-*-arm64.zip` |
             
             #### Electron CLI Tools (Standalone, No Node.js Required!)
             
-            | Platform | File | Size |
-            |----------|------|------|
-            | macOS | `ESP32Tool-CLI-darwin-*.zip` | ~106-110MB |
-            | Linux | `ESP32Tool-CLI-linux-*.zip` / `esp32tool-cli_*.deb` / `esp32tool-cli-*.rpm` | ~83-108MB |
-            | Windows | `ESP32Tool-CLI-win32-*.zip` | ~130MB |
+            | Platform | Architecture | File | Size |
+            |----------|--------------|------|------|
+            | macOS | Apple Silicon | `ESP32Tool-CLI-darwin-arm64-*.zip` | ~106-110MB |
+            | macOS | Intel | `ESP32Tool-CLI-darwin-x64-*.zip` | ~106-110MB |
+            | Linux | x64 | `ESP32Tool-CLI-linux-x64-*.zip` / `esp32tool-cli_*_amd64.deb` / `esp32tool-cli-*.x86_64.rpm` | ~83-108MB |
+            | Linux | ARM64 | `ESP32Tool-CLI-linux-arm64-*.zip` / `esp32tool-cli_*_arm64.deb` / `esp32tool-cli-*.aarch64.rpm` | ~83-108MB |
+            | Windows | x64 | `ESP32Tool-CLI-win32-x64-*.zip` | ~130MB |
+            | Windows | ARM64 | `ESP32Tool-CLI-win32-arm64-*.zip` | ~130MB |
             
             ### Installation
             
