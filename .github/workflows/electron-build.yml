@@ -79,6 +79,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Rename Windows ARM64 Setup.exe
+        if: matrix.platform == 'win32' && matrix.arch == 'arm64'
+        shell: bash
+        run: |
+          # Find and rename ARM64 Setup.exe files
+          find out/make/squirrel.windows -name "*Setup.exe" -type f | while read file; do
+            dir=$(dirname "$file")
+            base=$(basename "$file")
+            newname=$(echo "$base" | sed 's/\(ESP32Tool-\)\([0-9]\)/\1arm64-\2/')
+            if [ "$base" != "$newname" ]; then
+              mv "$file" "$dir/$newname"
+              echo "Renamed: $base -> $newname"
+            fi
+          done
+
       - name: Cleanup DMG volumes (macOS only)
         if: matrix.platform == 'darwin'
         run: |
