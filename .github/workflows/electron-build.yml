@@ -91,9 +91,9 @@ jobs:
         run: npm run build:cli-electron
 
       # macOS: DMG and ZIP artifacts (GUI), ZIP only for CLI
-      - name: Fetch macOS artifacts for upload
+      - name: Upload macOS artifacts
         if: matrix.platform == 'darwin'
-        uses: actions/download-artifact@v8
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
           path: |
@@ -104,9 +104,9 @@ jobs:
           retention-days: 5
 
       # Windows: Squirrel installer, ZIP, and CLI artifacts
-      - name: Fetch Windows artifacts for upload
+      - name: Upload Windows artifacts
         if: matrix.platform == 'win32'
-        uses: actions/download-artifact@v8
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
           path: |
@@ -117,9 +117,9 @@ jobs:
           retention-days: 5
 
       # Linux: DEB, RPM, and CLI artifacts
-      - name: Fetch Linux artifacts for upload
+      - name: Upload Linux artifacts
         if: matrix.platform == 'linux'
-        uses: actions/download-artifact@v8
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
           path: |
