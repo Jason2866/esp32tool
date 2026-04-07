@@ -9,6 +9,11 @@ export class ESP32ToolConsole {
   private containerElement: HTMLElement;
   private allowInput: boolean;
 
+  // Command history buffer
+  private commandHistory: string[] = [];
+  private historyIndex: number = -1;
+  private currentInput: string = "";
+
   constructor(
     port: SerialPort,
     containerElement: HTMLElement,
@@ -164,6 +169,17 @@ export class ESP32ToolConsole {
           ev.preventDefault();
           ev.stopPropagation();
           this._sendCommand();
+        } else if (ev.key === "ArrowUp") {
+          ev.preventDefault();
+          this._navigateHistory(1, input);
+        } else if (ev.key === "ArrowDown") {
+          ev.preventDefault();
+          this._navigateHistory(-1, input);
+        } else {
+          // User is editing — reset history navigation to live input
+          if (this.historyIndex !== -1) {
+            this.historyIndex = -1;
+          }
         }
       });
     }
@@ -242,11 +258,49 @@ export class ESP32ToolConsole {
     }
   }
 
+  private _navigateHistory(direction: 1 | -1, input: HTMLInputElement) {
+    if (this.commandHistory.length === 0) return;
+
+    // Save current unsent input before navigating away
+    if (this.historyIndex === -1) {
+      this.currentInput = input.value;
+    }
+
+    const nextIndex = this.historyIndex + direction;
+
+    if (nextIndex < 0) {
+      // Back to unsent draft
+      this.historyIndex = -1;
+      input.value = this.currentInput;
+    } else if (nextIndex < this.commandHistory.length) {
+      this.historyIndex = nextIndex;
+      input.value = this.commandHistory[this.historyIndex];
+    }
+
+    // Move cursor to end
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }
+
   private async _sendCommand() {
     const input = this.containerElement.querySelector<HTMLInputElement>(
       ".esp32tool-console-input",
     )!;
     const command = input.value;
+
+    if (command.trim() !== "") {
+      // Avoid consecutive duplicates, cap at 100
+      if (this.commandHistory[0] !== command) {
+        this.commandHistory.unshift(command);
+        if (this.commandHistory.length > 100) {
+          this.commandHistory.pop();
+        }
+      }
+    }
+    // Reset history navigation state
+    this.historyIndex = -1;
+    this.currentInput = "";
+
     if (!this.port.writable) {
       this.console!.addLine("Terminal disconnected: port not writable");
       return;
