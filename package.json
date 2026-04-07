@@ -20,7 +20,7 @@
     "node": ">=25.4.0"
   },
   "scripts": {
-    "prebuild": "node -e \"const fs=require('fs'); fs.rmSync('dist',{recursive:true,force:true}); fs.rmSync('js/modules',{recursive:true,force:true}); fs.mkdirSync('js/modules',{recursive:true});\"",
+    "prebuild": "node -e \"const fs=require('fs'); fs.rmSync('dist',{recursive:true,force:true}); fs.rmSync('js/modules',{recursive:true,force:true}); fs.rmSync('js/util',{recursive:true,force:true}); fs.mkdirSync('js/modules',{recursive:true}); fs.mkdirSync('js/util',{recursive:true});\"",
     "build": "npm run prebuild && node update-sw-version.cjs && tsc --skipLibCheck && tsc -p tsconfig.util.json && rollup -c && node -e \"const fs=require('fs'); fs.readdirSync('dist/web').filter(f=>f.endsWith('.js')).forEach(f=>fs.copyFileSync('dist/web/'+f,'js/modules/'+f)); fs.renameSync('js/modules/index.js','js/modules/esptool.js');\" && node fix-cli-imports.cjs",
     "build:binary": "node build-single-binary.cjs",
     "build:cli-electron": "node build-electron-cli.cjs",
