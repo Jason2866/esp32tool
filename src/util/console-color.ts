@@ -6,7 +6,10 @@ interface ConsoleState {
   foregroundColor: string | null;
   backgroundColor: string | null;
   carriageReturn: boolean;
+  lines: string[];
   secret: boolean;
+  blink: boolean;
+  rapidBlink: boolean;
 }
 
 export class ColoredConsole {
@@ -18,39 +21,29 @@ export class ColoredConsole {
     foregroundColor: null,
     backgroundColor: null,
     carriageReturn: false,
+    lines: [],
     secret: false,
+    blink: false,
+    rapidBlink: false,
   };
 
   constructor(public targetElement: HTMLElement) {}
 
   logs(): string {
+    if (this.state.lines.length > 0) {
+      this.processLines();
+    }
     return this.targetElement.innerText;
   }
 
-  addLine(line: string) {
+  processLine(line: string): Element {
     // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
     // eslint-disable-next-line no-control-regex
     const re = /(?:\x1B|\\x1B)(?:\[(.*?)[@-~]|\].*?(?:\x07|\x1B\\))/g;
     let i = 0;
 
-    if (this.state.carriageReturn) {
-      if (line !== "\n") {
-        // don't remove if \r\n
-        if (this.targetElement.lastChild) {
-          this.targetElement.removeChild(this.targetElement.lastChild);
-        }
-      }
-      this.state.carriageReturn = false;
-    }
-
-    const hasBareCR = line.endsWith("\r") && !line.endsWith("\r\n");
-    if (hasBareCR) {
-      this.state.carriageReturn = true;
-    }
-
     const lineSpan = document.createElement("span");
     lineSpan.classList.add("line");
-    this.targetElement.appendChild(lineSpan);
 
     const addSpan = (content: string) => {
       if (content === "") return;
@@ -61,6 +54,8 @@ export class ColoredConsole {
       if (this.state.underline) span.classList.add("log-underline");
       if (this.state.strikethrough) span.classList.add("log-strikethrough");
       if (this.state.secret) span.classList.add("log-secret");
+      if (this.state.blink) span.classList.add("log-blink");
+      if (this.state.rapidBlink) span.classList.add("log-rapid-blink");
       if (this.state.foregroundColor !== null)
         span.classList.add(`log-fg-${this.state.foregroundColor}`);
       if (this.state.backgroundColor !== null)
@@ -97,6 +92,8 @@ export class ColoredConsole {
             this.state.foregroundColor = null;
             this.state.backgroundColor = null;
             this.state.secret = false;
+            this.state.blink = false;
+            this.state.rapidBlink = false;
             break;
           case 1:
             this.state.bold = true;
@@ -108,10 +105,13 @@ export class ColoredConsole {
             this.state.underline = true;
             break;
           case 5:
-            this.state.secret = true;
+            this.state.blink = true;
             break;
           case 6:
-            this.state.secret = false;
+            this.state.rapidBlink = true;
+            break;
+          case 8:
+            this.state.secret = true;
             break;
           case 9:
             this.state.strikethrough = true;
@@ -124,6 +124,13 @@ export class ColoredConsole {
             break;
           case 24:
             this.state.underline = false;
+            break;
+          case 25:
+            this.state.blink = false;
+            this.state.rapidBlink = false;
+            break;
+          case 28:
+            this.state.secret = false;
             break;
           case 29:
             this.state.strikethrough = false;
@@ -177,24 +184,62 @@ export class ColoredConsole {
             this.state.backgroundColor = "white";
             break;
           case 40:
-            this.state.backgroundColor = "black";
-            break;
           case 49:
             this.state.backgroundColor = null;
             break;
         }
       }
     }
+    addSpan(line.substring(i));
+    return lineSpan;
+  }
+
+  processLines() {
     const atBottom =
       this.targetElement.scrollTop >
       this.targetElement.scrollHeight - this.targetElement.offsetHeight - 50;
+    const prevCarriageReturn = this.state.carriageReturn;
+    const fragment = document.createDocumentFragment();
 
-    addSpan(line.substring(i));
+    if (this.state.lines.length === 0) {
+      return;
+    }
+
+    for (const line of this.state.lines) {
+      if (this.state.carriageReturn && line !== "\n") {
+        if (fragment.childElementCount) {
+          fragment.removeChild(fragment.lastChild!);
+        }
+      }
+      const hadCarriageReturn = line.endsWith("\r");
+      fragment.appendChild(this.processLine(line.replace(/\r/g, "")));
+      this.state.carriageReturn = hadCarriageReturn;
+    }
+
+    if (
+      prevCarriageReturn &&
+      this.state.lines[0] !== "\n" &&
+      this.targetElement.lastChild
+    ) {
+      this.targetElement.replaceChild(fragment, this.targetElement.lastChild!);
+    } else {
+      this.targetElement.appendChild(fragment);
+    }
+
+    this.state.lines = [];
 
     // Keep scroll at bottom
     if (atBottom) {
       this.targetElement.scrollTop = this.targetElement.scrollHeight;
     }
+  }
+
+  addLine(line: string) {
+    // Processing of lines is deferred for performance reasons
+    if (this.state.lines.length === 0) {
+      setTimeout(() => this.processLines(), 0);
+    }
+    this.state.lines.push(line);
   }
 }
 
@@ -228,6 +273,17 @@ export const coloredConsoleStyles = `
   }
   .log-underline.log-strikethrough {
     text-decoration: underline line-through;
+  }
+  .log-blink {
+    animation: blink 1s step-end infinite;
+  }
+  .log-rapid-blink {
+    animation: blink 0.4s step-end infinite;
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
   }
   .log-secret {
     -webkit-user-select: none;

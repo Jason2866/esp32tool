@@ -1,5 +1,6 @@
 import { ColoredConsole, coloredConsoleStyles } from "./util/console-color.js";
 import { LineBreakTransformer } from "./util/line-break-transformer.js";
+import { TimestampTransformer } from "./util/timestamp-transformer.js";
 
 export class ESP32ToolConsole {
   private port: SerialPort;
@@ -218,11 +219,11 @@ export class ESP32ToolConsole {
           },
         )
         .pipeThrough(new TransformStream(new LineBreakTransformer()))
+        .pipeThrough(new TransformStream(new TimestampTransformer()))
         .pipeTo(
           new WritableStream({
             write: (chunk) => {
-              const cleaned = chunk.replace(/\r\n$/, "\n");
-              this.console!.addLine(cleaned);
+              this.console!.addLine(chunk);
             },
           }),
         );
