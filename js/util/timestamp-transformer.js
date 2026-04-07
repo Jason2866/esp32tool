@@ -19,7 +19,7 @@ export class TimestampTransformer {
   transform(chunk, controller) {
     // Pass through pure newline / empty sentinel unchanged so that
     // carriage-return overwrite logic in console-color.js still works.
-    if (chunk === "" || chunk === "\n") {
+    if (chunk === "" || chunk === "\n" || chunk === "\r") {
       controller.enqueue(chunk);
       return;
     }

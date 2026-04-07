@@ -135,6 +135,12 @@ export class ColoredConsole {
           fragment.removeChild(fragment.lastChild);
         }
       }
+      // A lone \r is a pure carriage-return signal — update state but don't
+      // create a DOM node for it (it has no renderable content).
+      if (line === "\r") {
+        this.state.carriageReturn = true;
+        continue;
+      }
       const hadCarriageReturn = line.endsWith("\r");
       fragment.appendChild(this.processLine(line.replace(/\r/g, "")));
       this.state.carriageReturn = hadCarriageReturn;
@@ -143,6 +149,7 @@ export class ColoredConsole {
     if (
       prevCarriageReturn &&
       this.state.lines[0] !== "\n" &&
+      this.state.lines[0] !== "\r" &&
       this.targetElement.lastChild
     ) {
       this.targetElement.replaceChild(fragment, this.targetElement.lastChild);

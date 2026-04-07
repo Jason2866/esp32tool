@@ -20,7 +20,7 @@ export class TimestampTransformer implements Transformer<string, string> {
   ) {
     // Pass through pure newline / empty sentinel unchanged so that
     // carriage-return overwrite logic in console-color.ts still works.
-    if (chunk === "" || chunk === "\n") {
+    if (chunk === "" || chunk === "\n" || chunk === "\r") {
       controller.enqueue(chunk);
       return;
     }
