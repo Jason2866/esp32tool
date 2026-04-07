@@ -1,6 +1,6 @@
 // Matches lines that already carry a wall-clock or tick timestamp so we don't
-// add a redundant one.  Intentionally does NOT match bare log-level prefixes
-// like ESPHome's [I][tag:line]: — those have no time information.
+// add a redundant one. Does NOT match bare log-level prefixes like ESPHome's
+// [I][tag:line]: — those have no time information.
 //
 // Covered formats:
 //   (123456)          FreeRTOS ms-tick  e.g. "(12345) "
@@ -11,15 +11,14 @@
 const DEVICE_TIMESTAMP_RE =
   /^\s*(?:\(\d+\)\s|\[\d{2}:\d{2}:\d{2}(?:\.\d+)?\]|[DIWEACV] \(\d+\) \w|(?:\d{2}:){2}\d{2}\.\d)/;
 
-export class TimestampTransformer implements Transformer<string, string> {
-  private deviceHasTimestamps = false;
+export class TimestampTransformer {
+  constructor() {
+    this.deviceHasTimestamps = false;
+  }
 
-  transform(
-    chunk: string,
-    controller: TransformStreamDefaultController<string>,
-  ) {
+  transform(chunk, controller) {
     // Pass through pure newline / empty sentinel unchanged so that
-    // carriage-return overwrite logic in console-color.ts still works.
+    // carriage-return overwrite logic in console-color.js still works.
     if (chunk === "" || chunk === "\n") {
       controller.enqueue(chunk);
       return;

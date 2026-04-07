@@ -9,6 +9,7 @@ export class ColoredConsole {
       foregroundColor: null,
       backgroundColor: null,
       carriageReturn: false,
+      lines: [],
       secret: false,
       blink: false,
       rapidBlink: false,
@@ -16,31 +17,19 @@ export class ColoredConsole {
   }
 
   logs() {
+    if (this.state.lines.length > 0) {
+      this.processLines();
+    }
     return this.targetElement.innerText;
   }
 
-  addLine(line) {
+  processLine(line) {
     // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
     const re = /(?:\x1B|\\x1B)(?:\[(.*?)[@-~]|\].*?(?:\x07|\x1B\\))/g;
     let i = 0;
 
-    if (this.state.carriageReturn) {
-      if (line !== "\n") {
-        // don't remove if \r\n
-        if (this.targetElement.lastChild) {
-          this.targetElement.removeChild(this.targetElement.lastChild);
-        }
-      }
-      this.state.carriageReturn = false;
-    }
-
-    if (line.includes("\r")) {
-      this.state.carriageReturn = true;
-    }
-
     const lineSpan = document.createElement("span");
     lineSpan.classList.add("line");
-    this.targetElement.appendChild(lineSpan);
 
     const addSpan = (content) => {
       if (content === "") return;
@@ -81,7 +70,6 @@ export class ColoredConsole {
       for (const colorCode of match[1].split(";")) {
         switch (parseInt(colorCode)) {
           case 0:
-            // reset
             this.state.bold = false;
             this.state.italic = false;
             this.state.underline = false;
@@ -92,116 +80,89 @@ export class ColoredConsole {
             this.state.blink = false;
             this.state.rapidBlink = false;
             break;
-          case 1:
-            this.state.bold = true;
-            break;
-          case 3:
-            this.state.italic = true;
-            break;
-          case 4:
-            this.state.underline = true;
-            break;
-          case 5:
-            this.state.blink = true;
-            break;
-          case 6:
-            this.state.rapidBlink = true;
-            break;
-          case 8:
-            this.state.secret = true;
-            break;
-          case 9:
-            this.state.strikethrough = true;
-            break;
-          case 22:
-            this.state.bold = false;
-            break;
-          case 23:
-            this.state.italic = false;
-            break;
-          case 24:
-            this.state.underline = false;
-            break;
-          case 25:
-            this.state.blink = false;
-            this.state.rapidBlink = false;
-            break;
-          case 28:
-            this.state.secret = false;
-            break;
-          case 29:
-            this.state.strikethrough = false;
-            break;
-          case 30:
-            this.state.foregroundColor = "black";
-            break;
-          case 31:
-            this.state.foregroundColor = "red";
-            break;
-          case 32:
-            this.state.foregroundColor = "green";
-            break;
-          case 33:
-            this.state.foregroundColor = "yellow";
-            break;
-          case 34:
-            this.state.foregroundColor = "blue";
-            break;
-          case 35:
-            this.state.foregroundColor = "magenta";
-            break;
-          case 36:
-            this.state.foregroundColor = "cyan";
-            break;
-          case 37:
-            this.state.foregroundColor = "white";
-            break;
-          case 39:
-            this.state.foregroundColor = null;
-            break;
-          case 41:
-            this.state.backgroundColor = "red";
-            break;
-          case 42:
-            this.state.backgroundColor = "green";
-            break;
-          case 43:
-            this.state.backgroundColor = "yellow";
-            break;
-          case 44:
-            this.state.backgroundColor = "blue";
-            break;
-          case 45:
-            this.state.backgroundColor = "magenta";
-            break;
-          case 46:
-            this.state.backgroundColor = "cyan";
-            break;
-          case 47:
-            this.state.backgroundColor = "white";
-            break;
-          case 40:
-            this.state.backgroundColor = "black";
-            break;
-          case 49:
-            this.state.backgroundColor = null;
-            break;
+          case 1: this.state.bold = true; break;
+          case 3: this.state.italic = true; break;
+          case 4: this.state.underline = true; break;
+          case 5: this.state.blink = true; break;
+          case 6: this.state.rapidBlink = true; break;
+          case 8: this.state.secret = true; break;
+          case 9: this.state.strikethrough = true; break;
+          case 22: this.state.bold = false; break;
+          case 23: this.state.italic = false; break;
+          case 24: this.state.underline = false; break;
+          case 25: this.state.blink = false; this.state.rapidBlink = false; break;
+          case 28: this.state.secret = false; break;
+          case 29: this.state.strikethrough = false; break;
+          case 30: this.state.foregroundColor = "black"; break;
+          case 31: this.state.foregroundColor = "red"; break;
+          case 32: this.state.foregroundColor = "green"; break;
+          case 33: this.state.foregroundColor = "yellow"; break;
+          case 34: this.state.foregroundColor = "blue"; break;
+          case 35: this.state.foregroundColor = "magenta"; break;
+          case 36: this.state.foregroundColor = "cyan"; break;
+          case 37: this.state.foregroundColor = "white"; break;
+          case 39: this.state.foregroundColor = null; break;
+          case 40: this.state.backgroundColor = "black"; break;
+          case 41: this.state.backgroundColor = "red"; break;
+          case 42: this.state.backgroundColor = "green"; break;
+          case 43: this.state.backgroundColor = "yellow"; break;
+          case 44: this.state.backgroundColor = "blue"; break;
+          case 45: this.state.backgroundColor = "magenta"; break;
+          case 46: this.state.backgroundColor = "cyan"; break;
+          case 47: this.state.backgroundColor = "white"; break;
+          case 49: this.state.backgroundColor = null; break;
         }
       }
     }
-    
-    // Use percentage-based threshold (5% of viewport height) for better UX across screen sizes
-    const scrollThreshold = this.targetElement.offsetHeight * 0.05;
+    addSpan(line.substring(i));
+    return lineSpan;
+  }
+
+  processLines() {
     const atBottom =
       this.targetElement.scrollTop >
-      this.targetElement.scrollHeight - this.targetElement.offsetHeight - scrollThreshold;
+      this.targetElement.scrollHeight - this.targetElement.offsetHeight - 50;
+    const prevCarriageReturn = this.state.carriageReturn;
+    const fragment = document.createDocumentFragment();
 
-    addSpan(line.substring(i));
+    if (this.state.lines.length === 0) {
+      return;
+    }
 
-    // Keep scroll at bottom
+    for (const line of this.state.lines) {
+      if (this.state.carriageReturn && line !== "\n") {
+        if (fragment.childElementCount) {
+          fragment.removeChild(fragment.lastChild);
+        }
+      }
+      const hadCarriageReturn = line.endsWith("\r");
+      fragment.appendChild(this.processLine(line.replace(/\r/g, "")));
+      this.state.carriageReturn = hadCarriageReturn;
+    }
+
+    if (
+      prevCarriageReturn &&
+      this.state.lines[0] !== "\n" &&
+      this.targetElement.lastChild
+    ) {
+      this.targetElement.replaceChild(fragment, this.targetElement.lastChild);
+    } else {
+      this.targetElement.appendChild(fragment);
+    }
+
+    this.state.lines = [];
+
     if (atBottom) {
       this.targetElement.scrollTop = this.targetElement.scrollHeight;
     }
+  }
+
+  addLine(line) {
+    // Processing of lines is deferred for performance reasons
+    if (this.state.lines.length === 0) {
+      setTimeout(() => this.processLines(), 0);
+    }
+    this.state.lines.push(line);
   }
 }
 
@@ -222,89 +183,35 @@ export const coloredConsoleStyles = `
     min-height: 0;
   }
 
-  .log-bold {
-    font-weight: bold;
-  }
-  .log-italic {
-    font-style: italic;
-  }
-  .log-underline {
-    text-decoration: underline;
-  }
-  .log-strikethrough {
-    text-decoration: line-through;
-  }
-  .log-underline.log-strikethrough {
-    text-decoration: underline line-through;
-  }
+  .log-bold { font-weight: bold; }
+  .log-italic { font-style: italic; }
+  .log-underline { text-decoration: underline; }
+  .log-strikethrough { text-decoration: line-through; }
+  .log-underline.log-strikethrough { text-decoration: underline line-through; }
+  .log-blink { animation: blink 1s step-end infinite; }
+  .log-rapid-blink { animation: blink 0.4s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
   .log-secret {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
   }
-  .log-secret-redacted {
-    opacity: 0;
-    width: 1px;
-    font-size: 1px;
-  }
-  .log-blink {
-    animation: blink 1s step-start infinite;
-  }
-  .log-rapid-blink {
-    animation: blink 0.3s step-start infinite;
-  }
-  @keyframes blink {
-    50% {
-      opacity: 0;
-    }
-  }
-  .log-fg-black {
-    color: rgb(128, 128, 128);
-  }
-  .log-fg-red {
-    color: rgb(255, 0, 0);
-  }
-  .log-fg-green {
-    color: rgb(0, 255, 0);
-  }
-  .log-fg-yellow {
-    color: rgb(255, 255, 0);
-  }
-  .log-fg-blue {
-    color: rgb(0, 0, 255);
-  }
-  .log-fg-magenta {
-    color: rgb(255, 0, 255);
-  }
-  .log-fg-cyan {
-    color: rgb(0, 255, 255);
-  }
-  .log-fg-white {
-    color: rgb(187, 187, 187);
-  }
-  .log-bg-black {
-    background-color: rgb(0, 0, 0);
-  }
-  .log-bg-red {
-    background-color: rgb(255, 0, 0);
-  }
-  .log-bg-green {
-    background-color: rgb(0, 255, 0);
-  }
-  .log-bg-yellow {
-    background-color: rgb(255, 255, 0);
-  }
-  .log-bg-blue {
-    background-color: rgb(0, 0, 255);
-  }
-  .log-bg-magenta {
-    background-color: rgb(255, 0, 255);
-  }
-  .log-bg-cyan {
-    background-color: rgb(0, 255, 255);
-  }
-  .log-bg-white {
-    background-color: rgb(255, 255, 255);
-  }
+  .log-secret-redacted { opacity: 0; width: 1px; font-size: 1px; }
+  .log-fg-black { color: rgb(128, 128, 128); }
+  .log-fg-red { color: rgb(255, 0, 0); }
+  .log-fg-green { color: rgb(0, 255, 0); }
+  .log-fg-yellow { color: rgb(255, 255, 0); }
+  .log-fg-blue { color: rgb(0, 0, 255); }
+  .log-fg-magenta { color: rgb(255, 0, 255); }
+  .log-fg-cyan { color: rgb(0, 255, 255); }
+  .log-fg-white { color: rgb(187, 187, 187); }
+  .log-bg-black { background-color: rgb(0, 0, 0); }
+  .log-bg-red { background-color: rgb(255, 0, 0); }
+  .log-bg-green { background-color: rgb(0, 255, 0); }
+  .log-bg-yellow { background-color: rgb(255, 255, 0); }
+  .log-bg-blue { background-color: rgb(0, 0, 255); }
+  .log-bg-magenta { background-color: rgb(255, 0, 255); }
+  .log-bg-cyan { background-color: rgb(0, 255, 255); }
+  .log-bg-white { background-color: rgb(255, 255, 255); }
 `;

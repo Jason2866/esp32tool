@@ -1,5 +1,6 @@
 import { ColoredConsole, coloredConsoleStyles } from "./util/console-color.js";
 import { LineBreakTransformer } from "./util/line-break-transformer.js";
+import { TimestampTransformer } from "./util/timestamp-transformer.js";
 import { ImprovDialog } from "./improv.js";
 
 export class ESP32ToolConsole {
@@ -220,16 +221,16 @@ export class ESP32ToolConsole {
           signal: abortSignal,
         })
         .pipeThrough(new TransformStream(new LineBreakTransformer()))
+        .pipeThrough(new TransformStream(new TimestampTransformer()))
         .pipeTo(
           new WritableStream({
             write: (chunk) => {
-              const cleaned = chunk.replace(/\r\n$/, "\n");
-              this.console.addLine(cleaned);
+              this.console.addLine(chunk);
 
               if (!bootloaderDetected && lineCount < 30) {
                 lineCount++;
                 for (const pat of BOOTLOADER_PATTERNS) {
-                  if (pat.test(cleaned)) {
+                  if (pat.test(chunk)) {
                     bootloaderDetected = true;
                     this.containerElement.dispatchEvent(
                       new CustomEvent("console-bootloader", { bubbles: true })
