@@ -17,6 +17,10 @@ export class ESP32ToolConsole {
     this.allowInput = allowInput;
     this.console = null;
     this.cancelConnection = null;
+    // Command history buffer
+    this.commandHistory = [];
+    this.historyIndex = -1;
+    this.currentInput = "";
   }
 
   logs() {
@@ -181,6 +185,16 @@ export class ESP32ToolConsole {
           ev.preventDefault();
           ev.stopPropagation();
           this._sendCommand();
+        } else if (ev.key === "ArrowUp") {
+          ev.preventDefault();
+          this._navigateHistory(1, input);
+        } else if (ev.key === "ArrowDown") {
+          ev.preventDefault();
+          this._navigateHistory(-1, input);
+        } else {
+          if (this.historyIndex !== -1) {
+            this.historyIndex = -1;
+          }
         }
       });
     }
@@ -260,9 +274,42 @@ export class ESP32ToolConsole {
     }
   }
 
+  _navigateHistory(direction, input) {
+    if (this.commandHistory.length === 0) return;
+
+    if (this.historyIndex === -1) {
+      this.currentInput = input.value;
+    }
+
+    const nextIndex = this.historyIndex + direction;
+
+    if (nextIndex < 0) {
+      this.historyIndex = -1;
+      input.value = this.currentInput;
+    } else if (nextIndex < this.commandHistory.length) {
+      this.historyIndex = nextIndex;
+      input.value = this.commandHistory[this.historyIndex];
+    }
+
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }
+
   async _sendCommand() {
     const input = this.containerElement.querySelector(".esp32tool-console-input");
     const command = input.value;
+
+    if (command.trim() !== "") {
+      if (this.commandHistory[0] !== command) {
+        this.commandHistory.unshift(command);
+        if (this.commandHistory.length > 100) {
+          this.commandHistory.pop();
+        }
+      }
+    }
+    this.historyIndex = -1;
+    this.currentInput = "";
+
     if (!this.port.writable) {
       this.console.addLine("Terminal disconnected: port not writable");
       return;
