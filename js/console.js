@@ -17,7 +17,8 @@ export class ESP32ToolConsole {
     this.allowInput = allowInput;
     this.console = null;
     this.cancelConnection = null;
-    // Command history buffer
+    // Command history buffer — keep in sync with src/console.ts
+    // (history logic is duplicated there; update both files together)
     this.commandHistory = [];
     this.historyIndex = -1;
     this.currentInput = "";

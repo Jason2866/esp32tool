@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "js/util",
+    "declaration": false,
+    "removeComments": false
+  },
+  "include": ["src/util/**/*.ts"]
+}

@@ -1,177 +1,235 @@
 export class ColoredConsole {
-  constructor(targetElement) {
-    this.targetElement = targetElement;
-    this.state = {
-      bold: false,
-      italic: false,
-      underline: false,
-      strikethrough: false,
-      foregroundColor: null,
-      backgroundColor: null,
-      carriageReturn: false,
-      lines: [],
-      secret: false,
-      blink: false,
-      rapidBlink: false,
-    };
-  }
-
-  logs() {
-    if (this.state.lines.length > 0) {
-      this.processLines();
+    constructor(targetElement) {
+        this.targetElement = targetElement;
+        this.state = {
+            bold: false,
+            italic: false,
+            underline: false,
+            strikethrough: false,
+            foregroundColor: null,
+            backgroundColor: null,
+            carriageReturn: false,
+            lines: [],
+            secret: false,
+            blink: false,
+            rapidBlink: false,
+        };
     }
-    return this.targetElement.innerText;
-  }
-
-  processLine(line) {
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
-    const re = /(?:\x1B|\\x1B)(?:\[(.*?)[@-~]|\].*?(?:\x07|\x1B\\))/g;
-    let i = 0;
-
-    const lineSpan = document.createElement("span");
-    lineSpan.classList.add("line");
-
-    const addSpan = (content) => {
-      if (content === "") return;
-
-      const span = document.createElement("span");
-      if (this.state.bold) span.classList.add("log-bold");
-      if (this.state.italic) span.classList.add("log-italic");
-      if (this.state.underline) span.classList.add("log-underline");
-      if (this.state.strikethrough) span.classList.add("log-strikethrough");
-      if (this.state.secret) span.classList.add("log-secret");
-      if (this.state.blink) span.classList.add("log-blink");
-      if (this.state.rapidBlink) span.classList.add("log-rapid-blink");
-      if (this.state.foregroundColor !== null)
-        span.classList.add(`log-fg-${this.state.foregroundColor}`);
-      if (this.state.backgroundColor !== null)
-        span.classList.add(`log-bg-${this.state.backgroundColor}`);
-      span.appendChild(document.createTextNode(content));
-      lineSpan.appendChild(span);
-
-      if (this.state.secret) {
-        const redacted = document.createElement("span");
-        redacted.classList.add("log-secret-redacted");
-        redacted.appendChild(document.createTextNode("[redacted]"));
-        lineSpan.appendChild(redacted);
-      }
-    };
-
-    while (true) {
-      const match = re.exec(line);
-      if (match === null) break;
-
-      const j = match.index;
-      addSpan(line.substring(i, j));
-      i = j + match[0].length;
-
-      if (match[1] === undefined) continue;
-
-      for (const colorCode of match[1].split(";")) {
-        switch (parseInt(colorCode)) {
-          case 0:
-            this.state.bold = false;
-            this.state.italic = false;
-            this.state.underline = false;
-            this.state.strikethrough = false;
-            this.state.foregroundColor = null;
-            this.state.backgroundColor = null;
-            this.state.secret = false;
-            this.state.blink = false;
-            this.state.rapidBlink = false;
-            break;
-          case 1: this.state.bold = true; break;
-          case 3: this.state.italic = true; break;
-          case 4: this.state.underline = true; break;
-          case 5: this.state.blink = true; this.state.rapidBlink = false; break;
-          case 6: this.state.rapidBlink = true; this.state.blink = false; break;
-          case 8: this.state.secret = true; break;
-          case 9: this.state.strikethrough = true; break;
-          case 22: this.state.bold = false; break;
-          case 23: this.state.italic = false; break;
-          case 24: this.state.underline = false; break;
-          case 25: this.state.blink = false; this.state.rapidBlink = false; break;
-          case 28: this.state.secret = false; break;
-          case 29: this.state.strikethrough = false; break;
-          case 30: this.state.foregroundColor = "black"; break;
-          case 31: this.state.foregroundColor = "red"; break;
-          case 32: this.state.foregroundColor = "green"; break;
-          case 33: this.state.foregroundColor = "yellow"; break;
-          case 34: this.state.foregroundColor = "blue"; break;
-          case 35: this.state.foregroundColor = "magenta"; break;
-          case 36: this.state.foregroundColor = "cyan"; break;
-          case 37: this.state.foregroundColor = "white"; break;
-          case 39: this.state.foregroundColor = null; break;
-          case 40: this.state.backgroundColor = "black"; break;
-          case 41: this.state.backgroundColor = "red"; break;
-          case 42: this.state.backgroundColor = "green"; break;
-          case 43: this.state.backgroundColor = "yellow"; break;
-          case 44: this.state.backgroundColor = "blue"; break;
-          case 45: this.state.backgroundColor = "magenta"; break;
-          case 46: this.state.backgroundColor = "cyan"; break;
-          case 47: this.state.backgroundColor = "white"; break;
-          case 49: this.state.backgroundColor = null; break;
+    logs() {
+        if (this.state.lines.length > 0) {
+            this.processLines();
         }
-      }
+        return this.targetElement.innerText;
     }
-    addSpan(line.substring(i));
-    return lineSpan;
-  }
-
-  processLines() {
-    const atBottom =
-      this.targetElement.scrollTop >
-      this.targetElement.scrollHeight - this.targetElement.offsetHeight - 50;
-    const prevCarriageReturn = this.state.carriageReturn;
-    const fragment = document.createDocumentFragment();
-
-    if (this.state.lines.length === 0) {
-      return;
-    }
-
-    for (const line of this.state.lines) {
-      // A lone \r is a pure carriage-return signal — update state but don't
-      // create a DOM node for it (it has no renderable content).
-      if (line === "\r") {
-        this.state.carriageReturn = true;
-        continue;
-      }
-      if (this.state.carriageReturn && line !== "\n") {
-        if (fragment.childElementCount) {
-          fragment.removeChild(fragment.lastChild);
+    processLine(line) {
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
+        // eslint-disable-next-line no-control-regex
+        const re = /(?:\x1B|\\x1B)(?:\[(.*?)[@-~]|\].*?(?:\x07|\x1B\\))/g;
+        let i = 0;
+        const lineSpan = document.createElement("span");
+        lineSpan.classList.add("line");
+        const addSpan = (content) => {
+            if (content === "")
+                return;
+            const span = document.createElement("span");
+            if (this.state.bold)
+                span.classList.add("log-bold");
+            if (this.state.italic)
+                span.classList.add("log-italic");
+            if (this.state.underline)
+                span.classList.add("log-underline");
+            if (this.state.strikethrough)
+                span.classList.add("log-strikethrough");
+            if (this.state.secret)
+                span.classList.add("log-secret");
+            if (this.state.blink)
+                span.classList.add("log-blink");
+            if (this.state.rapidBlink)
+                span.classList.add("log-rapid-blink");
+            if (this.state.foregroundColor !== null)
+                span.classList.add(`log-fg-${this.state.foregroundColor}`);
+            if (this.state.backgroundColor !== null)
+                span.classList.add(`log-bg-${this.state.backgroundColor}`);
+            span.appendChild(document.createTextNode(content));
+            lineSpan.appendChild(span);
+            if (this.state.secret) {
+                const redacted = document.createElement("span");
+                redacted.classList.add("log-secret-redacted");
+                redacted.appendChild(document.createTextNode("[redacted]"));
+                lineSpan.appendChild(redacted);
+            }
+        };
+        while (true) {
+            const match = re.exec(line);
+            if (match === null)
+                break;
+            const j = match.index;
+            addSpan(line.substring(i, j));
+            i = j + match[0].length;
+            if (match[1] === undefined)
+                continue;
+            for (const colorCode of match[1].split(";")) {
+                switch (parseInt(colorCode)) {
+                    case 0:
+                        // reset
+                        this.state.bold = false;
+                        this.state.italic = false;
+                        this.state.underline = false;
+                        this.state.strikethrough = false;
+                        this.state.foregroundColor = null;
+                        this.state.backgroundColor = null;
+                        this.state.secret = false;
+                        this.state.blink = false;
+                        this.state.rapidBlink = false;
+                        break;
+                    case 1:
+                        this.state.bold = true;
+                        break;
+                    case 3:
+                        this.state.italic = true;
+                        break;
+                    case 4:
+                        this.state.underline = true;
+                        break;
+                    case 5:
+                        this.state.blink = true;
+                        this.state.rapidBlink = false;
+                        break;
+                    case 6:
+                        this.state.rapidBlink = true;
+                        this.state.blink = false;
+                        break;
+                    case 8:
+                        this.state.secret = true;
+                        break;
+                    case 9:
+                        this.state.strikethrough = true;
+                        break;
+                    case 22:
+                        this.state.bold = false;
+                        break;
+                    case 23:
+                        this.state.italic = false;
+                        break;
+                    case 24:
+                        this.state.underline = false;
+                        break;
+                    case 25:
+                        this.state.blink = false;
+                        this.state.rapidBlink = false;
+                        break;
+                    case 28:
+                        this.state.secret = false;
+                        break;
+                    case 29:
+                        this.state.strikethrough = false;
+                        break;
+                    case 30:
+                        this.state.foregroundColor = "black";
+                        break;
+                    case 31:
+                        this.state.foregroundColor = "red";
+                        break;
+                    case 32:
+                        this.state.foregroundColor = "green";
+                        break;
+                    case 33:
+                        this.state.foregroundColor = "yellow";
+                        break;
+                    case 34:
+                        this.state.foregroundColor = "blue";
+                        break;
+                    case 35:
+                        this.state.foregroundColor = "magenta";
+                        break;
+                    case 36:
+                        this.state.foregroundColor = "cyan";
+                        break;
+                    case 37:
+                        this.state.foregroundColor = "white";
+                        break;
+                    case 39:
+                        this.state.foregroundColor = null;
+                        break;
+                    case 40:
+                        this.state.backgroundColor = "black";
+                        break;
+                    case 41:
+                        this.state.backgroundColor = "red";
+                        break;
+                    case 42:
+                        this.state.backgroundColor = "green";
+                        break;
+                    case 43:
+                        this.state.backgroundColor = "yellow";
+                        break;
+                    case 44:
+                        this.state.backgroundColor = "blue";
+                        break;
+                    case 45:
+                        this.state.backgroundColor = "magenta";
+                        break;
+                    case 46:
+                        this.state.backgroundColor = "cyan";
+                        break;
+                    case 47:
+                        this.state.backgroundColor = "white";
+                        break;
+                    case 49:
+                        this.state.backgroundColor = null;
+                        break;
+                }
+            }
         }
-      }
-      const hadCarriageReturn = line.endsWith("\r");
-      fragment.appendChild(this.processLine(line.replace(/\r/g, "")));
-      this.state.carriageReturn = hadCarriageReturn;
+        addSpan(line.substring(i));
+        return lineSpan;
     }
-
-    if (
-      prevCarriageReturn &&
-      fragment.childElementCount > 0 &&
-      this.targetElement.lastChild
-    ) {
-      this.targetElement.replaceChild(fragment, this.targetElement.lastChild);
-    } else {
-      this.targetElement.appendChild(fragment);
+    processLines() {
+        const atBottom = this.targetElement.scrollTop >
+            this.targetElement.scrollHeight - this.targetElement.offsetHeight - 50;
+        const prevCarriageReturn = this.state.carriageReturn;
+        const fragment = document.createDocumentFragment();
+        if (this.state.lines.length === 0) {
+            return;
+        }
+        for (const line of this.state.lines) {
+            // A lone \r is a pure carriage-return signal — update state but don't
+            // create a DOM node for it (it has no renderable content).
+            if (line === "\r") {
+                this.state.carriageReturn = true;
+                continue;
+            }
+            if (this.state.carriageReturn && line !== "\n") {
+                if (fragment.childElementCount) {
+                    fragment.removeChild(fragment.lastChild);
+                }
+            }
+            const hadCarriageReturn = line.endsWith("\r");
+            fragment.appendChild(this.processLine(line.replace(/\r/g, "")));
+            this.state.carriageReturn = hadCarriageReturn;
+        }
+        if (prevCarriageReturn &&
+            fragment.childElementCount > 0 &&
+            this.targetElement.lastChild) {
+            this.targetElement.replaceChild(fragment, this.targetElement.lastChild);
+        }
+        else {
+            this.targetElement.appendChild(fragment);
+        }
+        this.state.lines = [];
+        // Keep scroll at bottom
+        if (atBottom) {
+            this.targetElement.scrollTop = this.targetElement.scrollHeight;
+        }
     }
-
-    this.state.lines = [];
-
-    if (atBottom) {
-      this.targetElement.scrollTop = this.targetElement.scrollHeight;
+    addLine(line) {
+        // Processing of lines is deferred for performance reasons
+        if (this.state.lines.length === 0) {
+            setTimeout(() => this.processLines(), 0);
+        }
+        this.state.lines.push(line);
     }
-  }
-
-  addLine(line) {
-    // Processing of lines is deferred for performance reasons
-    if (this.state.lines.length === 0) {
-      setTimeout(() => this.processLines(), 0);
-    }
-    this.state.lines.push(line);
-  }
 }
-
 export const coloredConsoleStyles = `
   .log {
     flex: 1;
@@ -182,42 +240,95 @@ export const coloredConsoleStyles = `
     padding: 16px;
     overflow: auto;
     line-height: 1.45;
-    border-radius: 0;
+    border-radius: 3px;
     white-space: pre-wrap;
     overflow-wrap: break-word;
     color: #ddd;
-    min-height: 0;
   }
 
-  .log-bold { font-weight: bold; }
-  .log-italic { font-style: italic; }
-  .log-underline { text-decoration: underline; }
-  .log-strikethrough { text-decoration: line-through; }
-  .log-underline.log-strikethrough { text-decoration: underline line-through; }
-  .log-blink { animation: blink 1s step-end infinite; }
-  .log-rapid-blink { animation: blink 0.4s step-end infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
+  .log-bold {
+    font-weight: bold;
+  }
+  .log-italic {
+    font-style: italic;
+  }
+  .log-underline {
+    text-decoration: underline;
+  }
+  .log-strikethrough {
+    text-decoration: line-through;
+  }
+  .log-underline.log-strikethrough {
+    text-decoration: underline line-through;
+  }
+  .log-blink {
+    animation: blink 1s step-end infinite;
+  }
+  .log-rapid-blink {
+    animation: blink 0.4s step-end infinite;
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
   .log-secret {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
   }
-  .log-secret-redacted { opacity: 0; width: 1px; font-size: 1px; }
-  .log-fg-black { color: rgb(128, 128, 128); }
-  .log-fg-red { color: rgb(255, 0, 0); }
-  .log-fg-green { color: rgb(0, 255, 0); }
-  .log-fg-yellow { color: rgb(255, 255, 0); }
-  .log-fg-blue { color: rgb(0, 0, 255); }
-  .log-fg-magenta { color: rgb(255, 0, 255); }
-  .log-fg-cyan { color: rgb(0, 255, 255); }
-  .log-fg-white { color: rgb(187, 187, 187); }
-  .log-bg-black { background-color: rgb(0, 0, 0); }
-  .log-bg-red { background-color: rgb(255, 0, 0); }
-  .log-bg-green { background-color: rgb(0, 255, 0); }
-  .log-bg-yellow { background-color: rgb(255, 255, 0); }
-  .log-bg-blue { background-color: rgb(0, 0, 255); }
-  .log-bg-magenta { background-color: rgb(255, 0, 255); }
-  .log-bg-cyan { background-color: rgb(0, 255, 255); }
-  .log-bg-white { background-color: rgb(255, 255, 255); }
+  .log-secret-redacted {
+    opacity: 0;
+    width: 1px;
+    font-size: 1px;
+  }
+  .log-fg-black {
+    color: rgb(128, 128, 128);
+  }
+  .log-fg-red {
+    color: rgb(255, 0, 0);
+  }
+  .log-fg-green {
+    color: rgb(0, 255, 0);
+  }
+  .log-fg-yellow {
+    color: rgb(255, 255, 0);
+  }
+  .log-fg-blue {
+    color: rgb(0, 0, 255);
+  }
+  .log-fg-magenta {
+    color: rgb(255, 0, 255);
+  }
+  .log-fg-cyan {
+    color: rgb(0, 255, 255);
+  }
+  .log-fg-white {
+    color: rgb(187, 187, 187);
+  }
+  .log-bg-black {
+    background-color: rgb(0, 0, 0);
+  }
+  .log-bg-red {
+    background-color: rgb(255, 0, 0);
+  }
+  .log-bg-green {
+    background-color: rgb(0, 255, 0);
+  }
+  .log-bg-yellow {
+    background-color: rgb(255, 255, 0);
+  }
+  .log-bg-blue {
+    background-color: rgb(0, 0, 255);
+  }
+  .log-bg-magenta {
+    background-color: rgb(255, 0, 255);
+  }
+  .log-bg-cyan {
+    background-color: rgb(0, 255, 255);
+  }
+  .log-bg-white {
+    background-color: rgb(255, 255, 255);
+  }
 `;
