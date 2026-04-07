@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "lib": ["es2019", "dom"],
+    "target": "es2019",
+    "module": "es2020",
+    "moduleResolution": "node",
+    "outDir": "js/util",
+    "declaration": false,
+    "strict": true,
+    "skipLibCheck": true,
+    "removeComments": false
+  },
+  "include": ["src/util/*.ts"]
+}
