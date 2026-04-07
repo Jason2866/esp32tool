@@ -1,6 +1,6 @@
 {
   "name": "esp32tool",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "private": true,
   "type": "module",
   "description": "ESP32Tool - Standalone command-line tool (build-time config only)",
