@@ -112,7 +112,7 @@ jobs:
           echo "Deployment directory contents:"
           ls -la _site/
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: "_site"
 
