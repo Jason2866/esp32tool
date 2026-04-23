@@ -40,6 +40,19 @@ const ANSI_256: string[] = (() => {
   return t;
 })();
 
+// Maps 256-color indices 0–7 to the named CSS class tokens so that
+// \x1b[38;5;1m renders the same red as \x1b[31m.
+const ANSI_NAMED: (string | null)[] = [
+  "black",
+  "red",
+  "green",
+  "yellow",
+  "blue",
+  "magenta",
+  "cyan",
+  "white",
+];
+
 interface ConsoleState {
   bold: boolean;
   italic: boolean;
@@ -288,7 +301,10 @@ export class ColoredConsole {
               if (codes[ci + 1] === 5) {
                 if (ci + 2 < codes.length) {
                   const idx = codes[ci + 2];
-                  if (idx >= 0 && idx <= 255 && ANSI_256[idx]) {
+                  if (idx >= 0 && idx <= 7 && ANSI_NAMED[idx]) {
+                    this.state.foregroundColor = ANSI_NAMED[idx];
+                    this.state.fgRgb = null;
+                  } else if (idx >= 0 && idx <= 255 && ANSI_256[idx]) {
                     this.state.foregroundColor = null;
                     this.state.fgRgb = ANSI_256[idx];
                   }
@@ -352,7 +368,10 @@ export class ColoredConsole {
               if (codes[ci + 1] === 5) {
                 if (ci + 2 < codes.length) {
                   const idx = codes[ci + 2];
-                  if (idx >= 0 && idx <= 255 && ANSI_256[idx]) {
+                  if (idx >= 0 && idx <= 7 && ANSI_NAMED[idx]) {
+                    this.state.backgroundColor = ANSI_NAMED[idx];
+                    this.state.bgRgb = null;
+                  } else if (idx >= 0 && idx <= 255 && ANSI_256[idx]) {
                     this.state.backgroundColor = null;
                     this.state.bgRgb = ANSI_256[idx];
                   }
