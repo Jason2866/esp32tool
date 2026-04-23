@@ -69,7 +69,7 @@ export class ColoredConsole {
     processLine(line) {
         // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
         // eslint-disable-next-line no-control-regex
-        const re = /(?:\x1B|\\x1B)(?:\[(.*?)[@-~]|\].*?(?:\x07|\x1B\\))/g;
+        const re = /(?:\x1B|\\x1B)(?:\[(.*?)([@-~])|\].*?(?:\x07|\x1B\\))/g;
         let i = 0;
         const lineSpan = document.createElement("span");
         lineSpan.classList.add("line");
@@ -105,6 +105,9 @@ export class ColoredConsole {
                 bg = this.state.foregroundColor;
                 if (!fgRgb && !fg && !bgRgb && !bg) {
                     span.classList.add("log-reverse");
+                } else {
+                    if (!fgRgb && !fg) fgRgb = "rgb(28,28,28)";
+                    if (!bgRgb && !bg) bgRgb = "rgb(221,221,221)";
                 }
             }
             // Inline rgb() style takes priority over CSS class
@@ -136,7 +139,8 @@ export class ColoredConsole {
             const j = match.index;
             addSpan(line.substring(i, j));
             i = j + match[0].length;
-            if (match[1] === undefined)
+            // Only process SGR sequences (final byte 'm'); skip cursor, erase, etc.
+            if (match[1] === undefined || match[2] !== "m")
                 continue;
             const codes = match[1] === ""
                 ? [0]

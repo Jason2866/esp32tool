@@ -89,7 +89,8 @@ export class ColoredConsole {
   processLine(line: string): Element {
     // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
     // eslint-disable-next-line no-control-regex
-    const re = /(?:\x1B|\\x1B)(?:\[(.*?)[@-~]|\].*?(?:\x07|\x1B\\))/g;
+    const re =
+      /(?:\x1B|\\x1B)(?:\[(.*?)([@-~])|\].*?(?:\x07|\x1B\\))/g;
     let i = 0;
 
     const lineSpan = document.createElement("span");
@@ -119,8 +120,13 @@ export class ColoredConsole {
         bgRgb = this.state.fgRgb;
         fg = this.state.backgroundColor;
         bg = this.state.foregroundColor;
+        // When one side is unset, fill in the terminal defaults so the
+        // swap is always visible (fg default=#ddd, bg default=#1c1c1c).
         if (!fgRgb && !fg && !bgRgb && !bg) {
           span.classList.add("log-reverse");
+        } else {
+          if (!fgRgb && !fg) fgRgb = "rgb(28,28,28)";
+          if (!bgRgb && !bg) bgRgb = "rgb(221,221,221)";
         }
       }
 
@@ -156,7 +162,8 @@ export class ColoredConsole {
       addSpan(line.substring(i, j));
       i = j + match[0].length;
 
-      if (match[1] === undefined) continue;
+      // Only process SGR sequences (final byte 'm'); skip cursor, erase, etc.
+      if (match[1] === undefined || match[2] !== "m") continue;
 
       const codes =
         match[1] === ""
