@@ -164,10 +164,21 @@ export class ColoredConsole {
       // Only process SGR sequences (final byte 'm'); skip cursor, erase, etc.
       if (match[1] === undefined || match[2] !== "m") continue;
 
-      const codes =
-        match[1] === ""
-          ? [0]
-          : match[1].split(";").map((c) => parseInt(c, 10) || 0);
+      const rawCodes = match[1] === "" ? [""] : match[1].split(";");
+      const codes = [];
+      let invalidSgr = false;
+      for (const rawCode of rawCodes) {
+        if (rawCode === "") {
+          codes.push(0);
+          continue;
+        }
+        if (!/^\d+$/.test(rawCode)) {
+          invalidSgr = true;
+          break;
+        }
+        codes.push(Number(rawCode));
+      }
+      if (invalidSgr) continue;
 
       for (let ci = 0; ci < codes.length; ci++) {
         const code = codes[ci];

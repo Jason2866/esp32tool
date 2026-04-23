@@ -1,15 +1,13 @@
-// Matches lines that already carry a wall-clock or tick timestamp so we don't
-// add a redundant one.  Intentionally does NOT match bare log-level prefixes
-// like ESPHome's [I][tag:line]: — those have no time information.
-//
+// Matches lines that already carry a wall-clock timestamp so we don't add a
+// redundant one.  Only real wall-clock formats are matched — tick-based
+// formats like FreeRTOS "(12345)" or ESP-IDF "I (15) boot:" are NOT matched
+// because they don't carry time-of-day information
 // Covered formats:
-//   (123456)          FreeRTOS ms-tick  e.g. "(12345) "
 //   [HH:MM:SS]        wall-clock bracket
 //   [HH:MM:SS.mmm]    wall-clock bracket with millis
-//   I (1234) tag:     ESP-IDF log level + tick  e.g. "I (1234) wifi: ..."
 //   HH:MM:SS.mmm      plain wall-clock
 const DEVICE_TIMESTAMP_RE =
-  /^\s*(?:\(\d+\)\s|\[\d{2}:\d{2}:\d{2}(?:\.\d+)?\]|[DIWEACV] \(\d+\) \w|(?:\d{2}:){2}\d{2}\.\d)/;
+  /^\s*(?:\[\d{2}:\d{2}:\d{2}(?:\.\d+)?\]|(?:\d{2}:){2}\d{2}\.\d)/;
 
 export class TimestampTransformer implements Transformer<string, string> {
   private deviceHasTimestamps = false;
