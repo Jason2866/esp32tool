@@ -42,7 +42,14 @@ const ANSI_256 = (() => {
 // Maps 256-color indices 0–7 to the named CSS class tokens so that
 // \x1b[38;5;1m renders the same red as \x1b[31m.
 const ANSI_NAMED = [
-    "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
+    "black",
+    "red",
+    "green",
+    "yellow",
+    "blue",
+    "magenta",
+    "cyan",
+    "white",
 ];
 export class ColoredConsole {
     constructor(targetElement) {
