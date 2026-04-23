@@ -89,8 +89,7 @@ export class ColoredConsole {
   processLine(line: string): Element {
     // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences
     // eslint-disable-next-line no-control-regex
-    const re =
-      /(?:\x1B|\\x1B)(?:\[(.*?)([@-~])|\].*?(?:\x07|\x1B\\))/g;
+    const re = /(?:\x1B|\\x1B)(?:\[(.*?)([@-~])|\].*?(?:\x07|\x1B\\))/g;
     let i = 0;
 
     const lineSpan = document.createElement("span");

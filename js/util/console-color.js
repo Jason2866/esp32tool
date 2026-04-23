@@ -103,11 +103,16 @@ export class ColoredConsole {
                 bgRgb = this.state.fgRgb;
                 fg = this.state.backgroundColor;
                 bg = this.state.foregroundColor;
+                // When one side is unset, fill in the terminal defaults so the
+                // swap is always visible (fg default=#ddd, bg default=#1c1c1c).
                 if (!fgRgb && !fg && !bgRgb && !bg) {
                     span.classList.add("log-reverse");
-                } else {
-                    if (!fgRgb && !fg) fgRgb = "rgb(28,28,28)";
-                    if (!bgRgb && !bg) bgRgb = "rgb(221,221,221)";
+                }
+                else {
+                    if (!fgRgb && !fg)
+                        fgRgb = "rgb(28,28,28)";
+                    if (!bgRgb && !bg)
+                        bgRgb = "rgb(221,221,221)";
                 }
             }
             // Inline rgb() style takes priority over CSS class
