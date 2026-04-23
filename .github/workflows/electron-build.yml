@@ -166,7 +166,7 @@ jobs:
         run: find artifacts -type f | head -50
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ESP32Tool ${{ github.ref_name }}
           body: |
