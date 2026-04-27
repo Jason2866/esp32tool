@@ -23,7 +23,7 @@
     "usb": "^2.17.0"
   },
   "devDependencies": {
-    "electron": "^39.2.5"
+    "electron": "^41.3.0"
   },
   "_comment": "This file is ONLY used during CLI builds. It is temporarily swapped with package.json by build-electron-cli.cjs, then restored. Never publish this file to npm. Keep version in sync with main package.json when releasing."
 }

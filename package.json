@@ -57,7 +57,6 @@
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/node": "^25.5.2",
     "@types/pako": "^2.0.4",
-    "@types/serialport": "^10.2.0",
     "@types/w3c-web-serial": "^1.0.8",
     "archiver": "^7.0.1",
     "electron": "^41.3.0",
@@ -78,11 +77,11 @@
     "usb": "^2.17.0"
   },
   "overrides": {
-    "tmp": "^0.2.4",
-    "tar": "^7.5.6",
-    "minimatch": "^10.2.1",
+    "tmp": "^0.2.5",
+    "tar": "^7.5.13",
+    "minimatch": "^10.2.5",
     "serve": {
-      "ajv": "^8.18.0"
+      "ajv": "^8.20.0"
     },
     "@electron/asar": "^4.0.1",
     "serialize-javascript": "^7.0.3",
