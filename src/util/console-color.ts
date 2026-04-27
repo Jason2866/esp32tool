@@ -191,7 +191,8 @@ export class ColoredConsole {
       }
       if (invalidSgr) continue;
 
-      for (let ci = 0; ci < codes.length; ci++) {
+      let ci = 0;
+      while (ci < codes.length) {
         const code = codes[ci];
         switch (code) {
           case 0:
@@ -462,6 +463,7 @@ export class ColoredConsole {
             this.state.bgRgb = ANSI_256[15];
             break;
         }
+        ci++;
       }
     }
     addSpan(line.substring(i));
