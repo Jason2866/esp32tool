@@ -109,8 +109,6 @@ export class ColoredConsole {
     lineSpan.classList.add("line");
 
     const addSpan = (content: string) => {
-      if (content === "") return;
-
       const span = document.createElement("span");
       if (this.state.bold) span.classList.add("log-bold");
       if (this.state.dim) span.classList.add("log-dim");
