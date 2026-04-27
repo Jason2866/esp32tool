@@ -54,26 +54,11 @@ export class TimestampTransformer implements Transformer<string, string> {
     // Split on newlines, but keep the newline characters
     const lines = contentWithoutAnsi.split(/(\r?\n)/);
     let result = "";
-    let isFirstLine = true;
-
-    for (let i = 0; i < lines.length; i++) {
-      const part = lines[i];
+    for (const part of lines) {
       if (part === "\n" || part === "\r\n") {
-        // Newline separator - just append it
         result += part;
-        isFirstLine = false;
-      } else if (part === "") {
-        // Empty string from split, skip
-        continue;
-      } else {
-        // Actual content line
-        if (isFirstLine) {
-          // First line: ANSI codes + timestamp + content
-          result += leadingAnsi + timestamp + " " + part;
-        } else {
-          // Subsequent lines: ANSI codes + timestamp + content
-          result += leadingAnsi + timestamp + " " + part;
-        }
+      } else if (part !== "") {
+        result += leadingAnsi + timestamp + " " + part;
       }
     }
 
