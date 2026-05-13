@@ -63,7 +63,7 @@ export class NVSEditor {
     return crc >>> 0;
   }
 
-  static crc32(data, offset = 0, length = null) {
+static crc32(data, offset = 0, length = null) {
     let crc = 0;
     const len = length ?? data.length - offset;
     for (let i = 0; i < len; i++) {
@@ -78,6 +78,12 @@ export class NVSEditor {
     buf.set(data.subarray(offset, offset + 4), 0);
     buf.set(data.subarray(offset + 8, offset + 8 + 0x18), 4);
     return NVSEditor.crc32(buf, 0, 0x1C);
+  }
+
+  /** Page header CRC: covers bytes [+4..+27] (seqNum..reserved), stored at [+28..+31].
+   * State field [+0..+3] excluded — matches nvs_page.cpp Header::calculateCrc32(). */
+  static crc32PageHeader(data, offset = 0) {
+    return NVSEditor.crc32(data, offset + 4, 24);
   }
 
   static bytesToHex(bytes, separator = '') {
@@ -181,7 +187,7 @@ export class NVSEditor {
       else if (page.state === 'CORRUPT') stats.pages_corrupted++;
 
       // Check page header CRC
-      const pageCrcCalc = NVSEditor.crc32Header(this.data, page.offset);
+      const pageCrcCalc = NVSEditor.crc32PageHeader(this.data, page.offset);
       if (pageCrcCalc !== page.crc32) {
         stats.pages_bad_header_crc++;
       }
