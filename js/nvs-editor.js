@@ -80,11 +80,6 @@ export class NVSEditor {
     return NVSEditor.crc32(buf, 0, 0x1C);
   }
 
-  /** Page header CRC: covers 24 bytes [+4..+27], stored at [+28..+31]. */
-  static crc32Header(data, offset = 0) {
-    return NVSEditor.crc32(data, offset + 4, 24);
-  }
-
   static bytesToHex(bytes, separator = '') {
     return Array.from(bytes)
       .map(b => b.toString(16).padStart(2, '0').toUpperCase())
