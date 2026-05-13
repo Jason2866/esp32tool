@@ -272,18 +272,6 @@ export class NVSEditor {
       // UNINIT pages have no meaningful CRC/entries
       if (stateName === 'UNINIT') continue;
 
-      // Page header CRC (bytes [+4..+27], stored at +28)
-      const storedPageCrc = this._u32(secOff + 28) >>> 0;
-      const pageCrcCalc = NVSEditor.crc32Header(this.data, secOff) >>> 0;
-      if (pageCrcCalc !== storedPageCrc) {
-        issues.pagesBadHeaderCrc.push({
-          pageIndex,
-          offset: secOff,
-          stored: storedPageCrc,
-          calculated: pageCrcCalc
-        });
-      }
-
       // Walk every slot in the bitmap — find malformed WRITTEN entries
       // (these are silently dropped by _parse and would otherwise be invisible).
       const stateBitmap = this.data.slice(secOff + 32, secOff + 64);
