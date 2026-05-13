@@ -95,7 +95,6 @@ static crc32(data, offset = 0, length = null) {
   // ─────── Blob helpers (from Berry nvs.be) ───────
 
   static isBlob(item) {
-    const t = item.typeName;
     return item.datatype === 0x42 || item.datatype === 0x48;
   }
 
@@ -215,6 +214,10 @@ static crc32(data, offset = 0, length = null) {
       }
     }
 
+    const blobIntegrity = this.checkBlobIntegrity(this.getBlobs());
+    stats.blobs_complete = blobIntegrity.complete;
+    stats.blobs_incomplete = blobIntegrity.incomplete;
+
     return stats;
   }
 
@@ -277,6 +280,18 @@ static crc32(data, offset = 0, length = null) {
 
       // UNINIT pages have no meaningful CRC/entries
       if (stateName === 'UNINIT') continue;
+
+      // Check page header CRC
+      const pageCrcCalc = NVSEditor.crc32PageHeader(this.data, secOff);
+      const pageCrcStored = this._u32(secOff + 28);
+      if (pageCrcCalc !== pageCrcStored) {
+        issues.pagesBadHeaderCrc.push({
+          pageIndex,
+          offset: secOff,
+          stored: pageCrcStored,
+          calculated: pageCrcCalc
+        });
+      }
 
       // Walk every slot in the bitmap — find malformed WRITTEN entries
       // (these are silently dropped by _parse and would otherwise be invisible).
@@ -1460,8 +1475,13 @@ static crc32(data, offset = 0, length = null) {
         const dialogBody = dialogContainer.querySelector('.nvs-dialog-body');
         if (!dialogBody) return;
 
-        // Reuse a single hex-dump pane per qualified blob id inside this dialog
-        const paneId = `nvs-hex-dump-${id.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+        // Reuse a single hex-dump pane per qualified blob id inside this dialog.
+        // Append a djb2 hash of the original id to avoid collisions when two
+        // different ids sanitize to the same string.
+        let _h = 5381;
+        for (let _i = 0; _i < id.length; _i++) _h = ((_h << 5) + _h) ^ id.charCodeAt(_i);
+        const idHash = (_h >>> 0).toString(16).padStart(8, '0');
+        const paneId = `nvs-hex-dump-${id.replace(/[^A-Za-z0-9_-]/g, '_')}-${idHash}`;
         let pre = dialogBody.querySelector(`#${CSS.escape(paneId)}`);
         if (!pre) {
           pre = document.createElement('pre');
