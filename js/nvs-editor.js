@@ -717,19 +717,34 @@ export class NVSEditor {
     });
 
     // Stats button
-    this.container.querySelector('#nvsStats').addEventListener('click', () => {
-      this._showStats();
-    });
+    const statsBtn = this.container.querySelector('#nvsStats');
+    if (statsBtn) {
+      statsBtn.addEventListener('click', () => {
+        this._showStats();
+      });
+    } else {
+      console.error('Stats button not found');
+    }
 
     // Blobs button
-    this.container.querySelector('#nvsBlobs').addEventListener('click', () => {
-      this._showBlobs();
-    });
+    const blobsBtn = this.container.querySelector('#nvsBlobs');
+    if (blobsBtn) {
+      blobsBtn.addEventListener('click', () => {
+        this._showBlobs();
+      });
+    } else {
+      console.error('Blobs button not found');
+    }
 
     // Namespaces button
-    this.container.querySelector('#nvsNamespaces').addEventListener('click', () => {
-      this._showNamespaces();
-    });
+    const nsBtn = this.container.querySelector('#nvsNamespaces');
+    if (nsBtn) {
+      nsBtn.addEventListener('click', () => {
+        this._showNamespaces();
+      });
+    } else {
+      console.error('Namespaces button not found');
+    }
 
     this._renderContent();
   }
