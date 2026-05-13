@@ -1134,6 +1134,250 @@ div.clear {
   gap: 10px;
 }
 
+/* NVS Editor Dialog Styles */
+.nvs-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.nvs-dialog {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  max-height: 80vh;
+  width: 90%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.nvs-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 2px solid #e0e0e0;
+  background-color: #f8f8f8;
+}
+
+.nvs-dialog-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.nvs-dialog-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.nvs-dialog-close:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.nvs-dialog-close:focus,
+.nvs-dialog-close:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.nvs-dialog-body {
+  padding: 25px;
+  overflow-y: auto;
+  flex: 1;
+  color: #333;
+}
+
+.nvs-dialog-body h4 {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  color: #333;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.nvs-dialog-body pre {
+  background-color: #f5f5f5;
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin: 0 0 18px 0;
+  font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  border: 1px solid #e0e0e0;
+}
+
+.nvs-ok {
+  color: #71ae1e;
+  font-weight: 600;
+}
+
+.nvs-warn {
+  color: #ff6b00;
+  font-weight: 600;
+}
+
+.nvs-error {
+  color: #c64141;
+  font-weight: 600;
+}
+
+.nvs-blob-item {
+  background-color: #f8f8f8;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+
+.nvs-blob-item div {
+  margin: 5px 0;
+  font-size: 13px;
+}
+
+.nvs-blob-item button {
+  margin-right: 10px;
+  margin-top: 10px;
+  padding: 5px 12px;
+  font-size: 12px;
+  border-style: solid;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.nvs-blob-item button:focus,
+.nvs-blob-item button:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
+}
+
+.nvs-issue-group {
+  margin: 6px 0 14px 0;
+  padding: 8px 10px;
+  background-color: #fff8f3;
+  border: 1px solid #ffd9b8;
+  border-radius: 6px;
+}
+
+.nvs-issue-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+pre.nvs-issue {
+  background-color: #fff;
+  border: 1px solid #f0d3b8;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: 4px 0;
+  font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: #333;
+  flex: 1;
+}
+
+.nvs-issue-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 4px 0;
+}
+
+.nvs-issue-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.nvs-issue-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid #c0c0c0;
+  border-radius: 4px;
+  background: #fafafa;
+  color: #333;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nvs-issue-btn:hover {
+  background: #f0f0f0;
+  border-color: #888;
+}
+
+.nvs-issue-btn:focus,
+.nvs-issue-btn:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
+  background: #f0f0f0;
+  border-color: #888;
+}
+
+.nvs-issue-delete:hover {
+  background: #ffe0e0;
+  border-color: #c64141;
+  color: #c64141;
+}
+
+.nvs-issue-delete:focus,
+.nvs-issue-delete:focus-visible {
+  outline: 2px solid #c64141;
+  outline-offset: 2px;
+  background: #ffe0e0;
+  border-color: #c64141;
+  color: #c64141;
+}
+
+/* Highlight effect when jumping to entry/page */
+.nvs-row-highlight {
+  animation: nvs-flash-row 2.2s ease-out;
+}
+
+.nvs-page-highlight {
+  animation: nvs-flash-page 2.2s ease-out;
+}
+
+@keyframes nvs-flash-row {
+  0%   { background-color: #fff3a8; }
+  100% { background-color: transparent; }
+}
+
+@keyframes nvs-flash-page {
+  0%   { box-shadow: 0 0 0 3px #ffb74d; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
 /* Mobile Optimizations */
 @media (max-width: 768px) {
   /* Larger touch targets and better readability */
