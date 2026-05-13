@@ -72,11 +72,17 @@ export class NVSEditor {
     return (~crc) >>> 0;
   }
 
+  /** Entry header CRC: covers bytes [+0..+3] and [+8..+31], stored at [+4..+7]. */
   static crc32Header(data, offset = 0) {
     const buf = new Uint8Array(0x20 - 4);
     buf.set(data.subarray(offset, offset + 4), 0);
     buf.set(data.subarray(offset + 8, offset + 8 + 0x18), 4);
     return NVSEditor.crc32(buf, 0, 0x1C);
+  }
+
+  /** Page header CRC: covers 24 bytes [+4..+27], stored at [+28..+31]. */
+  static crc32PageHeader(data, offset = 0) {
+    return NVSEditor.crc32(data, offset + 4, 24);
   }
 
   static bytesToHex(bytes, separator = '') {
@@ -98,6 +104,12 @@ export class NVSEditor {
 
   static blobKey(item) {
     return item.key;
+  }
+
+  /** Namespace-qualified blob ID to avoid cross-namespace collisions. */
+  static getQualifiedBlobId(item) {
+    const ns = item.namespace || `ns_${item.nsIndex}`;
+    return `${ns}::${item.key}`;
   }
 
   static blobTotalSize(item) {
@@ -174,18 +186,21 @@ export class NVSEditor {
       else if (page.state === 'CORRUPT') stats.pages_corrupted++;
 
       // Check page header CRC
-      const pageCrcCalc = NVSEditor.crc32Header(this.data, page.offset);
+      const pageCrcCalc = NVSEditor.crc32PageHeader(this.data, page.offset);
       if (pageCrcCalc !== page.crc32) {
         stats.pages_bad_header_crc++;
       }
 
-      // Iterate ALL slots in the page bitmap to count erased/empty/written
+      // Iterate ALL slots in the page bitmap to count erased/empty/written.
+      // NVS bitmap encoding (per Berry reference):
+      //   0b00 (0) = Erased, 0b10 (2) = Written, 0b11 (3) = Empty/Uninit, 0b01 (1) = Invalid
       const stateBitmap = this.data.slice(page.offset + 32, page.offset + 64);
       for (let slotIndex = 0; slotIndex < MAX_ENTRY_COUNT; slotIndex++) {
         const slotState = this._getNVSItemState(stateBitmap, slotIndex);
         if (slotState === 0) stats.entries_erased++;
-        else if (slotState === 1) stats.entries_empty++;
         else if (slotState === 2) stats.entries_written++;
+        else if (slotState === 3) stats.entries_empty++;
+        // slotState === 1 is an invalid/illegal bitmap state; surfaced via getIntegrityIssues()
       }
 
       // Check entry header / data CRC for parsed (WRITTEN) items
@@ -215,68 +230,184 @@ export class NVSEditor {
    */
   getIntegrityIssues() {
     const NVS_SECTOR_SIZE = 4096;
+    const MAX_ENTRY_COUNT = 126;
+    const NVS_PAGE_STATE = {
+      UNINIT: 0xFFFFFFFF, ACTIVE: 0xFFFFFFFE,
+      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0x00000000
+    };
+
     const issues = {
       corruptedPages: [],
       pagesBadHeaderCrc: [],
+      malformedEntries: [],   // WRITTEN slots that the parser drops or that overflow
       entriesBadHeaderCrc: [],
       entriesBadDataCrc: [],
       incompleteBlobs: []
     };
 
-    for (const page of this.pages) {
-      const pageIndex = Math.floor(page.offset / NVS_SECTOR_SIZE);
+    // Helper: index parsed pages by sector offset for quick lookup.
+    const parsedPagesByOffset = new Map();
+    for (const p of this.pages) parsedPagesByOffset.set(p.offset, p);
 
-      if (page.state === 'CORRUPT') {
+    // ── Scan ALL sectors of the partition (independent of this.pages) ──
+    for (let secOff = 0; secOff < this.data.length; secOff += NVS_SECTOR_SIZE) {
+      if (secOff + 64 > this.data.length) break;
+      const pageIndex = Math.floor(secOff / NVS_SECTOR_SIZE);
+      const stateValue = this._u32(secOff);
+
+      let stateName;
+      if (stateValue === NVS_PAGE_STATE.UNINIT)        stateName = 'UNINIT';
+      else if (stateValue === NVS_PAGE_STATE.ACTIVE)   stateName = 'ACTIVE';
+      else if (stateValue === NVS_PAGE_STATE.FULL)     stateName = 'FULL';
+      else if (stateValue === NVS_PAGE_STATE.FREEING)  stateName = 'FREEING';
+      else if (stateValue === NVS_PAGE_STATE.CORRUPT)  stateName = 'CORRUPT';
+      else stateName = 'UNKNOWN';
+
+      // Corrupted or unknown state pages
+      if (stateName === 'CORRUPT' || stateName === 'UNKNOWN') {
         issues.corruptedPages.push({
           pageIndex,
-          offset: page.offset,
-          state: page.state
+          offset: secOff,
+          state: stateName,
+          stateValue: stateValue >>> 0
         });
+        continue; // don't iterate entries on a corrupt/unknown page
       }
 
-      const pageCrcCalc = NVSEditor.crc32Header(this.data, page.offset) >>> 0;
-      if (pageCrcCalc !== (page.crc32 >>> 0)) {
+      // UNINIT pages have no meaningful CRC/entries
+      if (stateName === 'UNINIT') continue;
+
+      // Page header CRC (bytes [+4..+27], stored at +28)
+      const storedPageCrc = this._u32(secOff + 28) >>> 0;
+      const pageCrcCalc = NVSEditor.crc32PageHeader(this.data, secOff) >>> 0;
+      if (pageCrcCalc !== storedPageCrc) {
         issues.pagesBadHeaderCrc.push({
           pageIndex,
-          offset: page.offset,
-          stored: page.crc32 >>> 0,
+          offset: secOff,
+          stored: storedPageCrc,
           calculated: pageCrcCalc
         });
       }
 
-      for (const item of page.items) {
-        const slot = (item.offset - page.offset - 64) / 32;
-        const baseInfo = {
-          pageIndex,
-          pageOffset: page.offset,
-          slot,
-          entryOffset: item.offset,
-          key: item.key || '<no key>',
-          namespace: item.namespace || `ns_${item.nsIndex}`,
-          type: item.typeName
-        };
+      // Walk every slot in the bitmap — find malformed WRITTEN entries
+      // (these are silently dropped by _parse and would otherwise be invisible).
+      const stateBitmap = this.data.slice(secOff + 32, secOff + 64);
+      const parsedPage = parsedPagesByOffset.get(secOff);
+      const parsedItemsBySlot = new Map();
+      if (parsedPage) {
+        for (const item of parsedPage.items) {
+          const slot = (item.offset - secOff - 64) / 32;
+          parsedItemsBySlot.set(slot, item);
+        }
+      }
 
-        if (!item.headerCrcValid) {
-          issues.entriesBadHeaderCrc.push({
-            ...baseInfo,
-            stored: item.crc32 >>> 0,
-            calculated: item.headerCrcCalc >>> 0
+      for (let slot = 0; slot < MAX_ENTRY_COUNT; slot++) {
+        const slotState = this._getNVSItemState(stateBitmap, slot);
+
+        // Invalid bitmap state value (0b01)
+        if (slotState === 1) {
+          issues.malformedEntries.push({
+            pageIndex,
+            pageOffset: secOff,
+            slot,
+            entryOffset: secOff + 64 + slot * 32,
+            reason: 'Invalid bitmap state (0b01)',
+            key: '<unknown>',
+            namespace: '<unknown>',
+            type: '<unknown>'
+          });
+          continue;
+        }
+        if (slotState !== 2) continue; // only WRITTEN slots can be malformed entries
+
+        const eOff = secOff + 64 + slot * 32;
+        if (eOff + 32 > this.data.length) {
+          issues.malformedEntries.push({
+            pageIndex, pageOffset: secOff, slot, entryOffset: eOff,
+            reason: 'Entry header truncated by partition end',
+            key: '<unknown>', namespace: '<unknown>', type: '<unknown>'
+          });
+          continue;
+        }
+
+        const nsIndex   = this._u8(eOff);
+        const datatype  = this._u8(eOff + 1);
+        const span      = this._u8(eOff + 2);
+        const typeName  = this._getNVSTypeName(datatype);
+
+        const reasons = [];
+        if (span === 0 || span > 126)                reasons.push(`Invalid span (${span})`);
+        if (datatype === 0xFF || datatype === 0x00)  reasons.push(`Invalid datatype (0x${datatype.toString(16)})`);
+        if (nsIndex === 0xFF)                        reasons.push('Invalid namespace index (0xFF)');
+        const key = this._readString(eOff + 8, 16);
+        if (nsIndex !== 0 && (!key || key.length === 0)) reasons.push('Missing/empty key');
+        if (span > 0 && span <= 126) {
+          const lastEntryEnd = eOff + span * 32;
+          if (lastEntryEnd > secOff + NVS_SECTOR_SIZE) {
+            reasons.push(`Span overflows page (${span} entries from slot ${slot})`);
+          }
+        }
+
+        const parsed = parsedItemsBySlot.get(slot);
+        if (parsed) {
+          // String/blob whose declared size doesn't fit the partition data
+          if (parsed.value === '<invalid string>' || parsed.value === '<invalid blob>') {
+            reasons.push(`Variable-length payload truncated/invalid (${typeName})`);
+          }
+        }
+
+        if (reasons.length) {
+          issues.malformedEntries.push({
+            pageIndex,
+            pageOffset: secOff,
+            slot,
+            entryOffset: eOff,
+            reason: reasons.join('; '),
+            key: key || '<unknown>',
+            namespace: nsIndex === 0 ? '<ns def>' : `ns_${nsIndex}`,
+            type: typeName
           });
         }
-        if (item.dataCrcValid === false) {
-          issues.entriesBadDataCrc.push({
-            ...baseInfo,
-            size: item.size,
-            stored: item.dataCrcStored >>> 0,
-            calculated: item.dataCrcCalc >>> 0
-          });
+
+        if (span > 1) slot += span - 1;
+      }
+
+      // Per-item CRC checks for entries the parser DID accept
+      if (parsedPage) {
+        for (const item of parsedPage.items) {
+          const slot = (item.offset - secOff - 64) / 32;
+          const baseInfo = {
+            pageIndex,
+            pageOffset: secOff,
+            slot,
+            entryOffset: item.offset,
+            key: item.key || '<no key>',
+            namespace: item.namespace || `ns_${item.nsIndex}`,
+            type: item.typeName
+          };
+
+          if (!item.headerCrcValid) {
+            issues.entriesBadHeaderCrc.push({
+              ...baseInfo,
+              stored: item.crc32 >>> 0,
+              calculated: item.headerCrcCalc >>> 0
+            });
+          }
+          if (item.dataCrcValid === false) {
+            issues.entriesBadDataCrc.push({
+              ...baseInfo,
+              size: item.size,
+              stored: item.dataCrcStored >>> 0,
+              calculated: item.dataCrcCalc >>> 0
+            });
+          }
         }
       }
     }
 
     // Blob completeness diagnostics
     const blobs = this.getBlobs();
-    for (const [key, blob] of blobs) {
+    for (const [id, blob] of blobs) {
       const present = blob.chunks.length;
       const expected = blob.expectedChunks;
       const presentIndices = blob.chunks.map(c => c.index).sort((a, b) => a - b);
@@ -301,7 +432,7 @@ export class NVSEditor {
 
       if (isIncomplete) {
         issues.incompleteBlobs.push({
-          key,
+          key: `${blob.namespace}::${blob.key}`,
           present,
           expected,
           presentIndices,
@@ -323,18 +454,20 @@ export class NVSEditor {
     for (const page of this.pages) {
       for (const item of page.items) {
         if (NVSEditor.isBlob(item) && item.key) {
-          const key = item.key;
-          if (!blobs.has(key)) {
-            blobs.set(key, {
-              key: key,
+          const id = NVSEditor.getQualifiedBlobId(item);
+          if (!blobs.has(id)) {
+            blobs.set(id, {
+              id,
+              key: item.key,
+              namespace: item.namespace || `ns_${item.nsIndex}`,
               totalSize: NVSEditor.blobTotalSize(item),
               expectedChunks: NVSEditor.blobExpectedChunks(item),
               chunks: [],
               indexEntry: item
             });
           }
-          
-          const blob = blobs.get(key);
+
+          const blob = blobs.get(id);
           
           // Update totals if this entry has better information
           const totalSize = NVSEditor.blobTotalSize(item);
@@ -539,7 +672,7 @@ export class NVSEditor {
     const MAX_ENTRY_COUNT = 126;
     const NVS_PAGE_STATE = {
       UNINIT: 0xFFFFFFFF, ACTIVE: 0xFFFFFFFE,
-      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0xFFFFFFF0
+      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0x00000000
     };
 
     const pages = [];
@@ -605,7 +738,7 @@ export class NVSEditor {
 
         if (nsIndex !== 0 && (!key || key.length === 0)) continue;
 
-        const headerCrcCalc = NVSEditor.crc32Header(this.data, eOff);
+        const headerCrcCalc = NVSEditor.crc32PageHeader(this.data, eOff);
 
         const item = {
           nsIndex, datatype, span, chunkIndex,
@@ -1067,7 +1200,7 @@ export class NVSEditor {
       }
 
       // Recalculate header CRC
-      const hcrc = NVSEditor.crc32Header(this.data, off);
+      const hcrc = NVSEditor.crc32PageHeader(this.data, off);
       const hdv = new DataView(this.data.buffer, off + 4, 4);
       hdv.setUint32(0, hcrc, true);
 
@@ -1115,7 +1248,9 @@ export class NVSEditor {
                (stats.entries_bad_data_crc === 0) &&
                (stats.pages_bad_header_crc === 0) &&
                (stats.pages_corrupted === 0) &&
-               (blobIntegrity.incomplete === 0);
+               (blobIntegrity.incomplete === 0) &&
+               (issues.corruptedPages.length === 0) &&
+               (issues.malformedEntries.length === 0);
 
     const hex = (n) => '0x' + (n >>> 0).toString(16).toUpperCase().padStart(8, '0');
     const esc = (s) => this._esc(String(s));
@@ -1136,9 +1271,17 @@ export class NVSEditor {
       detailsHtml += '<h4>🔍 Issue Details</h4>';
 
       if (issues.corruptedPages.length) {
-        detailsHtml += '<div class="nvs-issue-group"><div class="nvs-issue-title nvs-error">Corrupted pages</div>';
+        detailsHtml += '<div class="nvs-issue-group"><div class="nvs-issue-title nvs-error">Corrupted / unknown-state pages</div>';
         for (const p of issues.corruptedPages) {
-          detailsHtml += `<div class="nvs-issue-row"><pre class="nvs-issue">Page #${p.pageIndex}  offset=${hex(p.offset)}  state=${esc(p.state)}</pre>${pageActions(p.offset)}</div>`;
+          detailsHtml += `<div class="nvs-issue-row"><pre class="nvs-issue">Page #${p.pageIndex}  offset=${hex(p.offset)}  state=${esc(p.state)}  stateValue=${hex(p.stateValue)}</pre>${pageActions(p.offset)}</div>`;
+        }
+        detailsHtml += '</div>';
+      }
+
+      if (issues.malformedEntries.length) {
+        detailsHtml += '<div class="nvs-issue-group"><div class="nvs-issue-title nvs-warn">Malformed WRITTEN entries (parser-rejected)</div>';
+        for (const e of issues.malformedEntries) {
+          detailsHtml += `<div class="nvs-issue-row"><pre class="nvs-issue">Page #${e.pageIndex} slot ${e.slot}  ${esc(e.namespace)}::${esc(e.key)}  type=${esc(e.type)}  offset=${hex(e.entryOffset)}  reason: ${esc(e.reason)}</pre>${pageActions(e.pageOffset)}</div>`;
         }
         detailsHtml += '</div>';
       }
@@ -1264,7 +1407,7 @@ export class NVSEditor {
 
     let html = '';
     if (blobs.size > 0) {
-      for (const [key, blob] of blobs) {
+      for (const [id, blob] of blobs) {
         const present = blob.chunks.length;
         const expected = blob.expectedChunks;
         let status;
@@ -1276,12 +1419,13 @@ export class NVSEditor {
 
         html += `
           <div class="nvs-blob-item">
-            <div><strong>Key:</strong> ${this._esc(key)}</div>
+            <div><strong>Namespace:</strong> ${this._esc(blob.namespace)}</div>
+            <div><strong>Key:</strong> ${this._esc(blob.key)}</div>
             <div><strong>Total Size:</strong> ${blob.totalSize} bytes</div>
             <div><strong>Chunks:</strong> ${present}/${expected}</div>
             <div><strong>Status:</strong> <span class="${status === 'OK' ? 'nvs-ok' : 'nvs-warn'}">${status}</span></div>
-            <button class="nvs-blob-dump" data-key="${this._esc(key)}" title="Show hex dump">📄 Hex Dump</button>
-            <button class="nvs-blob-download" data-key="${this._esc(key)}" title="Download blob">⬇️ Download</button>
+            <button class="nvs-blob-dump" data-key="${this._esc(id)}" title="Show hex dump">📄 Hex Dump</button>
+            <button class="nvs-blob-download" data-key="${this._esc(id)}" title="Download blob">⬇️ Download</button>
           </div>`;
       }
     } else {
@@ -1318,16 +1462,17 @@ export class NVSEditor {
     // Blob dump buttons
     dialogContainer.querySelectorAll('.nvs-blob-dump').forEach(btn => {
       btn.addEventListener('click', () => {
-        const key = btn.dataset.key;
-        const blob = blobs.get(key);
+        const id = btn.dataset.key;
+        const blob = blobs.get(id);
+        if (!blob) return;
         const blobData = this.getBlobData(blob);
         const hexDump = NVSEditor.hexDump(blobData);
 
         const dialogBody = dialogContainer.querySelector('.nvs-dialog-body');
         if (!dialogBody) return;
 
-        // Reuse a single hex-dump pane per key inside this dialog
-        const paneId = `nvs-hex-dump-${key}`;
+        // Reuse a single hex-dump pane per qualified blob id inside this dialog
+        const paneId = `nvs-hex-dump-${id.replace(/[^A-Za-z0-9_-]/g, '_')}`;
         let pre = dialogBody.querySelector(`#${CSS.escape(paneId)}`);
         if (!pre) {
           pre = document.createElement('pre');
@@ -1346,7 +1491,7 @@ export class NVSEditor {
           dialogBody.appendChild(pre);
         }
         // textContent escapes HTML by default
-        pre.textContent = `Hex dump for ${key}:\n\n${hexDump}`;
+        pre.textContent = `Hex dump for ${id}:\n\n${hexDump}`;
         pre.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
     });
@@ -1354,14 +1499,17 @@ export class NVSEditor {
     // Blob download buttons
     dialogContainer.querySelectorAll('.nvs-blob-download').forEach(btn => {
       btn.addEventListener('click', () => {
-        const key = btn.dataset.key;
-        const blob = blobs.get(key);
+        const id = btn.dataset.key;
+        const blob = blobs.get(id);
+        if (!blob) return;
         const blobData = this.getBlobData(blob);
         const fileBlob = new Blob([blobData], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(fileBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${key}.bin`;
+        // Filename uses namespace + key to avoid collisions when downloading multiple blobs
+        const safeName = `${blob.namespace}_${blob.key}`.replace(/[^A-Za-z0-9._-]/g, '_');
+        a.download = `${safeName}.bin`;
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
