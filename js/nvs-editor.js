@@ -81,7 +81,7 @@ export class NVSEditor {
   }
 
   /** Page header CRC: covers 24 bytes [+4..+27], stored at [+28..+31]. */
-  static crc32PageHeader(data, offset = 0) {
+  static crc32Header(data, offset = 0) {
     return NVSEditor.crc32(data, offset + 4, 24);
   }
 
@@ -186,7 +186,7 @@ export class NVSEditor {
       else if (page.state === 'CORRUPT') stats.pages_corrupted++;
 
       // Check page header CRC
-      const pageCrcCalc = NVSEditor.crc32PageHeader(this.data, page.offset);
+      const pageCrcCalc = NVSEditor.crc32Header(this.data, page.offset);
       if (pageCrcCalc !== page.crc32) {
         stats.pages_bad_header_crc++;
       }
@@ -233,7 +233,7 @@ export class NVSEditor {
     const MAX_ENTRY_COUNT = 126;
     const NVS_PAGE_STATE = {
       UNINIT: 0xFFFFFFFF, ACTIVE: 0xFFFFFFFE,
-      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0x00000000
+      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0xFFFFFFF0
     };
 
     const issues = {
@@ -279,7 +279,7 @@ export class NVSEditor {
 
       // Page header CRC (bytes [+4..+27], stored at +28)
       const storedPageCrc = this._u32(secOff + 28) >>> 0;
-      const pageCrcCalc = NVSEditor.crc32PageHeader(this.data, secOff) >>> 0;
+      const pageCrcCalc = NVSEditor.crc32Header(this.data, secOff) >>> 0;
       if (pageCrcCalc !== storedPageCrc) {
         issues.pagesBadHeaderCrc.push({
           pageIndex,
@@ -672,7 +672,7 @@ export class NVSEditor {
     const MAX_ENTRY_COUNT = 126;
     const NVS_PAGE_STATE = {
       UNINIT: 0xFFFFFFFF, ACTIVE: 0xFFFFFFFE,
-      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0x00000000
+      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0xFFFFFFF0
     };
 
     const pages = [];
@@ -738,7 +738,7 @@ export class NVSEditor {
 
         if (nsIndex !== 0 && (!key || key.length === 0)) continue;
 
-        const headerCrcCalc = NVSEditor.crc32PageHeader(this.data, eOff);
+        const headerCrcCalc = NVSEditor.crc32Header(this.data, eOff);
 
         const item = {
           nsIndex, datatype, span, chunkIndex,
@@ -1200,7 +1200,7 @@ export class NVSEditor {
       }
 
       // Recalculate header CRC
-      const hcrc = NVSEditor.crc32PageHeader(this.data, off);
+      const hcrc = NVSEditor.crc32Header(this.data, off);
       const hdv = new DataView(this.data.buffer, off + 4, 4);
       hdv.setUint32(0, hcrc, true);
 
