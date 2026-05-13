@@ -85,6 +85,243 @@ export class NVSEditor {
       .join(separator);
   }
 
+  // ─────── Blob helpers (from Berry nvs.be) ───────
+
+  static isBlob(item) {
+    const t = item.typeName;
+    return item.datatype === 0x42 || item.datatype === 0x48;
+  }
+
+  static isBlobData(item) {
+    return item.datatype === 0x42;
+  }
+
+  static blobKey(item) {
+    return item.key;
+  }
+
+  static blobTotalSize(item) {
+    if (item.datatype === 0x48 && item.totalSize !== undefined) {
+      return item.totalSize;
+    }
+    if (item.datatype === 0x42 && item.size !== undefined) {
+      return item.size;
+    }
+    return 0;
+  }
+
+  static blobExpectedChunks(item) {
+    if (item.datatype === 0x48 && item.chunkCount !== undefined) {
+      return item.chunkCount;
+    }
+    return 0;
+  }
+
+  // ─────── Hex dump function (from Berry nvs.be) ───────
+
+  static hexDump(data, offset = 0) {
+    const width = 16;
+    let result = '';
+    
+    for (let i = 0; i < data.length; i += width) {
+      const lineOffset = offset + i;
+      const hexLine = [];
+      const asciiLine = [];
+      
+      for (let j = 0; j < width; j++) {
+        if (i + j < data.length) {
+          const byte = data[i + j];
+          hexLine.push(byte.toString(16).padStart(2, '0').toUpperCase());
+          asciiLine.push((byte >= 32 && byte <= 126) ? String.fromCharCode(byte) : '.');
+        } else {
+          hexLine.push('  ');
+          asciiLine.push(' ');
+        }
+      }
+      
+      result += `${lineOffset.toString(16).padStart(6, '0').toUpperCase()}  ${hexLine.join(' ')}\t ${asciiLine.join('')}\n`;
+    }
+    
+    return result;
+  }
+
+  // ─────── Integrity checking and statistics (from Berry nvs.be) ───────
+
+  getStatistics() {
+    const stats = {
+      pages_total: this.pages.length,
+      pages_active: 0,
+      pages_full: 0,
+      pages_empty: 0,
+      pages_freeing: 0,
+      pages_corrupted: 0,
+      pages_bad_header_crc: 0,
+      entries_written: 0,
+      entries_erased: 0,
+      entries_empty: 0,
+      entries_bad_header_crc: 0,
+      entries_bad_data_crc: 0,
+      blobs_complete: 0,
+      blobs_incomplete: 0
+    };
+
+    for (const page of this.pages) {
+      stats.pages_total++;
+      
+      if (page.state === 'ACTIVE') stats.pages_active++;
+      else if (page.state === 'FULL') stats.pages_full++;
+      else if (page.state === 'UNINIT') stats.pages_empty++;
+      else if (page.state === 'FREEING') stats.pages_freeing++;
+      else if (page.state === 'CORRUPT') stats.pages_corrupted++;
+
+      // Check page header CRC
+      const pageCrcCalc = NVSEditor.crc32Header(this.data, page.offset);
+      if (pageCrcCalc !== page.crc32) {
+        stats.pages_bad_header_crc++;
+      }
+
+      for (const item of page.items) {
+        const itemState = this._getNVSItemState(this.data.slice(page.offset + 32, page.offset + 64), 
+                                                 (item.offset - page.offset - 64) / 32);
+        
+        if (itemState === 2) stats.entries_written++;
+        else if (itemState === 0) stats.entries_erased++;
+        else stats.entries_empty++;
+
+        // Check entry header CRC
+        if (!item.headerCrcValid) {
+          stats.entries_bad_header_crc++;
+        }
+
+        // Check data CRC for string/blob types
+        if (item.dataCrcValid !== undefined && !item.dataCrcValid) {
+          stats.entries_bad_data_crc++;
+        }
+      }
+    }
+
+    return stats;
+  }
+
+  getNamespaces() {
+    const namespaces = new Map();
+    for (const page of this.pages) {
+      for (const item of page.items) {
+        if (item.nsIndex === 0 && item.namespace) {
+          namespaces.set(item.value, item.namespace);
+        }
+      }
+    }
+    return namespaces;
+  }
+
+  // ─────── Blob integrity checking (from Berry nvs.be) ───────
+
+  getBlobs() {
+    const blobs = new Map();
+    
+    for (const page of this.pages) {
+      for (const item of page.items) {
+        if (NVSEditor.isBlob(item) && item.key) {
+          const key = item.key;
+          if (!blobs.has(key)) {
+            blobs.set(key, {
+              key: key,
+              totalSize: NVSEditor.blobTotalSize(item),
+              expectedChunks: NVSEditor.blobExpectedChunks(item),
+              chunks: [],
+              indexEntry: item
+            });
+          }
+          
+          const blob = blobs.get(key);
+          
+          // Update totals if this entry has better information
+          const totalSize = NVSEditor.blobTotalSize(item);
+          const expectedChunks = NVSEditor.blobExpectedChunks(item);
+          if (totalSize > 0) blob.totalSize = totalSize;
+          if (expectedChunks > 0) blob.expectedChunks = expectedChunks;
+          
+          // For blob_index entries
+          if (item.datatype === 0x48) {
+            blob.indexEntry = item;
+          }
+          
+          // For blob_data entries, add chunk reference
+          if (item.datatype === 0x42 && item.size > 0) {
+            const payloadOffset = item.offset + 32;
+            const payloadLength = (item.span - 1) * 32;
+            const chunkIndex = item.chunkIndex & 127;
+            if (payloadLength > 0) {
+              blob.chunks.push({
+                offset: payloadOffset,
+                length: Math.min(payloadLength, item.size),
+                index: chunkIndex
+              });
+            }
+          }
+          
+          // For inline blob (small blobs stored in header)
+          if (item.datatype === 0x42 && item.size > 0 && item.span === 1) {
+            const inlineOff = item.offset + 24;
+            blob.chunks.push({
+              offset: inlineOff,
+              length: item.size,
+              index: 0
+            });
+          }
+        }
+      }
+    }
+    
+    return blobs;
+  }
+
+  checkBlobIntegrity(blobs) {
+    let complete = 0;
+    let incomplete = 0;
+    
+    for (const [key, blob] of blobs) {
+      const present = blob.chunks.length;
+      const expected = blob.expectedChunks;
+      
+      if (expected > 0) {
+        if (present >= expected) {
+          complete++;
+        } else {
+          incomplete++;
+        }
+      } else {
+        // Legacy/inline blob - no expected chunk count
+        if (present > 0) {
+          complete++;
+        } else {
+          incomplete++;
+        }
+      }
+    }
+    
+    return { complete, incomplete };
+  }
+
+  getBlobData(blob) {
+    // Sort chunks by index
+    const sortedChunks = [...blob.chunks].sort((a, b) => a.index - b.index);
+    
+    // Assemble blob data
+    const totalSize = sortedChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const result = new Uint8Array(totalSize);
+    let offset = 0;
+    
+    for (const chunk of sortedChunks) {
+      const chunkData = this.data.slice(chunk.offset, chunk.offset + chunk.length);
+      result.set(chunkData, offset);
+      offset += chunk.length;
+    }
+    
+    return result;
+  }
+
   // ─────── Public API ───────
 
   /** Show a progress overlay (before open()) */
@@ -411,6 +648,9 @@ export class NVSEditor {
         <div class="nvseditor-filter">
           <input id="nvsFilter" type="text" placeholder="Filter by namespace or key..." />
         </div>
+        <button id="nvsStats" title="Show statistics and integrity report">📊 Stats</button>
+        <button id="nvsBlobs" title="Show blob information">📦 Blobs</button>
+        <button id="nvsNamespaces" title="Show namespaces">📁 Namespaces</button>
         <button id="nvsRefresh" title="Re-parse data">Refresh</button>
         <button id="nvsWrite" class="primary" disabled>Write to Flash</button>
         <button id="nvsClose">Close</button>
@@ -474,6 +714,21 @@ export class NVSEditor {
     this.container.querySelector('#nvsFilter').addEventListener('input', (e) => {
       this._filterText = e.target.value.toLowerCase();
       this._renderContent();
+    });
+
+    // Stats button
+    this.container.querySelector('#nvsStats').addEventListener('click', () => {
+      this._showStats();
+    });
+
+    // Blobs button
+    this.container.querySelector('#nvsBlobs').addEventListener('click', () => {
+      this._showBlobs();
+    });
+
+    // Namespaces button
+    this.container.querySelector('#nvsNamespaces').addEventListener('click', () => {
+      this._showNamespaces();
     });
 
     this._renderContent();
@@ -728,5 +983,184 @@ export class NVSEditor {
   _updateWriteButton() {
     const btn = this.container.querySelector('#nvsWrite');
     if (btn) btn.disabled = !this.modified;
+  }
+
+  // ─────── UI dialogs for new features ───────
+
+  _showStats() {
+    const stats = this.getStatistics();
+    const blobs = this.getBlobs();
+    const blobIntegrity = this.checkBlobIntegrity(blobs);
+
+    const ok = (stats.entries_bad_header_crc === 0) && 
+               (stats.entries_bad_data_crc === 0) && 
+               (stats.pages_bad_header_crc === 0) && 
+               (stats.pages_corrupted === 0) && 
+               (blobIntegrity.incomplete === 0);
+
+    const html = `
+      <div class="nvs-dialog-overlay" id="nvsStatsDialog">
+        <div class="nvs-dialog">
+          <div class="nvs-dialog-header">
+            <h3>📊 NVS Statistics & Integrity Report</h3>
+            <button class="nvs-dialog-close">×</button>
+          </div>
+          <div class="nvs-dialog-body">
+            <h4>Pages</h4>
+            <pre>Total: ${stats.pages_total} | Active: ${stats.pages_active} | Full: ${stats.pages_full} | Empty: ${stats.pages_empty} | Erasing: ${stats.pages_freeing} | Corrupted: ${stats.pages_corrupted}</pre>
+            ${stats.pages_bad_header_crc > 0 ? `<pre class="nvs-warn">Pages with BAD header CRC: ${stats.pages_bad_header_crc}</pre>` : ''}
+            
+            <h4>Entries</h4>
+            <pre>Written: ${stats.entries_written} | Erased: ${stats.entries_erased} | Empty: ${stats.entries_empty}</pre>
+            ${stats.entries_bad_header_crc > 0 ? `<pre class="nvs-warn">Entries with BAD header CRC: ${stats.entries_bad_header_crc}</pre>` : ''}
+            ${stats.entries_bad_data_crc > 0 ? `<pre class="nvs-warn">Entries with BAD data CRC: ${stats.entries_bad_data_crc}</pre>` : ''}
+            
+            <h4>Blobs</h4>
+            <pre>Complete: ${blobIntegrity.complete} | Incomplete: ${blobIntegrity.incomplete}</pre>
+            
+            <h4>Overall Integrity</h4>
+            <pre class="${ok ? 'nvs-ok' : 'nvs-error'}">${ok ? '✓ NVS integrity: OK' : '✗ NVS integrity: ISSUES DETECTED'}</pre>
+          </div>
+        </div>
+      </div>`;
+
+    const dialogContainer = document.createElement('div');
+    dialogContainer.innerHTML = html;
+    document.body.appendChild(dialogContainer);
+
+    dialogContainer.querySelector('.nvs-dialog-close').addEventListener('click', () => {
+      dialogContainer.remove();
+    });
+
+    dialogContainer.querySelector('.nvs-dialog-overlay').addEventListener('click', (e) => {
+      if (e.target === dialogContainer.querySelector('.nvs-dialog-overlay')) {
+        dialogContainer.remove();
+      }
+    });
+  }
+
+  _showBlobs() {
+    const blobs = this.getBlobs();
+    const blobIntegrity = this.checkBlobIntegrity(blobs);
+
+    let html = '';
+    if (blobs.size > 0) {
+      for (const [key, blob] of blobs) {
+        const present = blob.chunks.length;
+        const expected = blob.expectedChunks;
+        let status;
+        if (expected > 0) {
+          status = present >= expected ? 'OK' : `INCOMPLETE(${present}/${expected})`;
+        } else {
+          status = present > 0 ? 'OK' : 'EMPTY';
+        }
+
+        html += `
+          <div class="nvs-blob-item">
+            <div><strong>Key:</strong> ${this._esc(key)}</div>
+            <div><strong>Total Size:</strong> ${blob.totalSize} bytes</div>
+            <div><strong>Chunks:</strong> ${present}/${expected}</div>
+            <div><strong>Status:</strong> <span class="${status === 'OK' ? 'nvs-ok' : 'nvs-warn'}">${status}</span></div>
+            <button class="nvs-blob-dump" data-key="${this._esc(key)}" title="Show hex dump">📄 Hex Dump</button>
+            <button class="nvs-blob-download" data-key="${this._esc(key)}" title="Download blob">⬇️ Download</button>
+          </div>`;
+      }
+    } else {
+      html = '<div class="nvs-empty">No blob entries found.</div>';
+    }
+
+    const dialogHtml = `
+      <div class="nvs-dialog-overlay" id="nvsBlobsDialog">
+        <div class="nvs-dialog">
+          <div class="nvs-dialog-header">
+            <h3>📦 Blobs Found (${blobs.size})</h3>
+            <button class="nvs-dialog-close">×</button>
+          </div>
+          <div class="nvs-dialog-body">
+            ${html}
+          </div>
+        </div>
+      </div>`;
+
+    const dialogContainer = document.createElement('div');
+    dialogContainer.innerHTML = dialogHtml;
+    document.body.appendChild(dialogContainer);
+
+    dialogContainer.querySelector('.nvs-dialog-close').addEventListener('click', () => {
+      dialogContainer.remove();
+    });
+
+    dialogContainer.querySelector('.nvs-dialog-overlay').addEventListener('click', (e) => {
+      if (e.target === dialogContainer.querySelector('.nvs-dialog-overlay')) {
+        dialogContainer.remove();
+      }
+    });
+
+    // Blob dump buttons
+    dialogContainer.querySelectorAll('.nvs-blob-dump').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.key;
+        const blob = blobs.get(key);
+        const blobData = this.getBlobData(blob);
+        const hexDump = NVSEditor.hexDump(blobData);
+        alert(`Hex dump for ${key}:\n\n${hexDump}`);
+      });
+    });
+
+    // Blob download buttons
+    dialogContainer.querySelectorAll('.nvs-blob-download').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.key;
+        const blob = blobs.get(key);
+        const blobData = this.getBlobData(blob);
+        const fileBlob = new Blob([blobData], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(fileBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${key}.bin`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    });
+  }
+
+  _showNamespaces() {
+    const namespaces = this.getNamespaces();
+
+    let html = '';
+    if (namespaces.size > 0) {
+      for (const [index, name] of namespaces) {
+        html += `<div class="nvs-namespace-item"><strong>Index ${index}:</strong> ${this._esc(name)}</div>`;
+      }
+    } else {
+      html = '<div class="nvs-empty">No namespace entries found.</div>';
+    }
+
+    const dialogHtml = `
+      <div class="nvs-dialog-overlay" id="nvsNamespacesDialog">
+        <div class="nvs-dialog">
+          <div class="nvs-dialog-header">
+            <h3>📁 Namespaces Found (${namespaces.size})</h3>
+            <button class="nvs-dialog-close">×</button>
+          </div>
+          <div class="nvs-dialog-body">
+            ${html}
+          </div>
+        </div>
+      </div>`;
+
+    const dialogContainer = document.createElement('div');
+    dialogContainer.innerHTML = dialogHtml;
+    document.body.appendChild(dialogContainer);
+
+    dialogContainer.querySelector('.nvs-dialog-close').addEventListener('click', () => {
+      dialogContainer.remove();
+    });
+
+    dialogContainer.querySelector('.nvs-dialog-overlay').addEventListener('click', (e) => {
+      if (e.target === dialogContainer.querySelector('.nvs-dialog-overlay')) {
+        dialogContainer.remove();
+      }
+    });
   }
 }
