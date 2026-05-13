@@ -1196,6 +1196,14 @@ div.clear {
   color: #333;
 }
 
+.nvs-dialog-close:focus,
+.nvs-dialog-close:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
+  background-color: #f0f0f0;
+  color: #333;
+}
+
 .nvs-dialog-body {
   padding: 25px;
   overflow-y: auto;
@@ -1263,6 +1271,12 @@ div.clear {
   border-radius: 12px;
 }
 
+.nvs-blob-item button:focus,
+.nvs-blob-item button:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
+}
+
 .nvs-issue-group {
   margin: 6px 0 14px 0;
   padding: 8px 10px;
@@ -1322,7 +1336,24 @@ pre.nvs-issue {
   border-color: #888;
 }
 
+.nvs-issue-btn:focus,
+.nvs-issue-btn:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
+  background: #f0f0f0;
+  border-color: #888;
+}
+
 .nvs-issue-delete:hover {
+  background: #ffe0e0;
+  border-color: #c64141;
+  color: #c64141;
+}
+
+.nvs-issue-delete:focus,
+.nvs-issue-delete:focus-visible {
+  outline: 2px solid #c64141;
+  outline-offset: 2px;
   background: #ffe0e0;
   border-color: #c64141;
   color: #c64141;

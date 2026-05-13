@@ -160,9 +160,14 @@ static crc32(data, offset = 0, length = null) {
   // ─────── Integrity checking and statistics (from Berry nvs.be) ───────
 
   getStatistics() {
+    const NVS_SECTOR_SIZE = 4096;
     const MAX_ENTRY_COUNT = 126;
+    const NVS_PAGE_STATE = {
+      UNINIT: 0xFFFFFFFF, ACTIVE: 0xFFFFFFFE,
+      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0xFFFFFFF0
+    };
     const stats = {
-      pages_total: this.pages.length,
+      pages_total: 0,
       pages_active: 0,
       pages_full: 0,
       pages_empty: 0,
@@ -178,38 +183,55 @@ static crc32(data, offset = 0, length = null) {
       blobs_incomplete: 0
     };
 
-    for (const page of this.pages) {
-      if (page.state === 'ACTIVE') stats.pages_active++;
-      else if (page.state === 'FULL') stats.pages_full++;
-      else if (page.state === 'UNINIT') stats.pages_empty++;
-      else if (page.state === 'FREEING') stats.pages_freeing++;
-      else if (page.state === 'CORRUPT') stats.pages_corrupted++;
+    // Build lookup from sector offset → parsed page for entry-level CRC checks.
+    const parsedPagesByOffset = new Map();
+    for (const p of this.pages) parsedPagesByOffset.set(p.offset, p);
 
-      // Check page header CRC
-      const pageCrcCalc = NVSEditor.crc32PageHeader(this.data, page.offset);
-      if (pageCrcCalc !== page.crc32) {
-        stats.pages_bad_header_crc++;
-      }
+    for (let secOff = 0; secOff < this.data.length; secOff += NVS_SECTOR_SIZE) {
+      if (secOff + 64 > this.data.length) break;
+      stats.pages_total++;
+      const stateValue = this._u32(secOff);
+      let stateName;
+      if (stateValue === NVS_PAGE_STATE.UNINIT)        stateName = 'UNINIT';
+      else if (stateValue === NVS_PAGE_STATE.ACTIVE)   stateName = 'ACTIVE';
+      else if (stateValue === NVS_PAGE_STATE.FULL)     stateName = 'FULL';
+      else if (stateValue === NVS_PAGE_STATE.FREEING)  stateName = 'FREEING';
+      else if (stateValue === NVS_PAGE_STATE.CORRUPT)  stateName = 'CORRUPT';
+      else                                              stateName = 'UNKNOWN';
+
+      if (stateName === 'ACTIVE')                           stats.pages_active++;
+      else if (stateName === 'FULL')                        stats.pages_full++;
+      else if (stateName === 'UNINIT')                      stats.pages_empty++;
+      else if (stateName === 'FREEING')                     stats.pages_freeing++;
+      else if (stateName === 'CORRUPT' || stateName === 'UNKNOWN') stats.pages_corrupted++;
+
+      // UNINIT sectors have no header CRC or entries.
+      if (stateName === 'UNINIT') continue;
+
+      // Page header CRC (covers bytes +4..+27, stored at +28).
+      const pageCrcCalc = NVSEditor.crc32PageHeader(this.data, secOff);
+      const pageCrcStored = this._u32(secOff + 28);
+      if (pageCrcCalc !== pageCrcStored) stats.pages_bad_header_crc++;
+
+      // Corrupt/unknown pages have no parseable bitmap or entries.
+      if (stateName === 'CORRUPT' || stateName === 'UNKNOWN') continue;
 
       // Iterate ALL slots in the page bitmap to count erased/empty/written.
-      // NVS bitmap encoding (per Berry reference):
-      //   0b00 (0) = Erased, 0b10 (2) = Written, 0b11 (3) = Empty/Uninit, 0b01 (1) = Invalid
-      const stateBitmap = this.data.slice(page.offset + 32, page.offset + 64);
+      // NVS bitmap encoding: 0b00=Erased, 0b10=Written, 0b11=Empty, 0b01=Invalid
+      const stateBitmap = this.data.slice(secOff + 32, secOff + 64);
       for (let slotIndex = 0; slotIndex < MAX_ENTRY_COUNT; slotIndex++) {
         const slotState = this._getNVSItemState(stateBitmap, slotIndex);
         if (slotState === 0) stats.entries_erased++;
         else if (slotState === 2) stats.entries_written++;
         else if (slotState === 3) stats.entries_empty++;
-        // slotState === 1 is an invalid/illegal bitmap state; surfaced via getIntegrityIssues()
       }
 
-      // Check entry header / data CRC for parsed (WRITTEN) items
-      for (const item of page.items) {
-        if (!item.headerCrcValid) {
-          stats.entries_bad_header_crc++;
-        }
-        if (item.dataCrcValid !== undefined && !item.dataCrcValid) {
-          stats.entries_bad_data_crc++;
+      // Check entry header / data CRC for parsed (WRITTEN) items.
+      const parsedPage = parsedPagesByOffset.get(secOff);
+      if (parsedPage) {
+        for (const item of parsedPage.items) {
+          if (!item.headerCrcValid) stats.entries_bad_header_crc++;
+          if (item.dataCrcValid !== undefined && !item.dataCrcValid) stats.entries_bad_data_crc++;
         }
       }
     }
@@ -412,9 +434,10 @@ static crc32(data, offset = 0, length = null) {
     // Blob completeness diagnostics
     const blobs = this.getBlobs();
     for (const [id, blob] of blobs) {
-      const present = blob.chunks.length;
+      const presentSet = new Set(blob.chunks.map(c => c.index));
+      const present = presentSet.size;
       const expected = blob.expectedChunks;
-      const presentIndices = blob.chunks.map(c => c.index).sort((a, b) => a - b);
+      const presentIndices = Array.from(presentSet).sort((a, b) => a - b);
 
       let isIncomplete = false;
       let missing = [];
@@ -424,10 +447,9 @@ static crc32(data, offset = 0, length = null) {
           // Determine starting chunk index from blob_index (chunkStart) when available
           const start = (blob.indexEntry && typeof blob.indexEntry.chunkStart === 'number')
             ? blob.indexEntry.chunkStart : 0;
-          const have = new Set(presentIndices);
           for (let i = 0; i < expected; i++) {
             const idx = start + i;
-            if (!have.has(idx)) missing.push(idx);
+            if (!presentSet.has(idx)) missing.push(idx);
           }
         }
       } else if (present === 0) {
@@ -453,64 +475,86 @@ static crc32(data, offset = 0, length = null) {
   // ─────── Blob integrity checking (from Berry nvs.be) ───────
 
   getBlobs() {
-    const blobs = new Map();
-    
+    // First pass: collect blob_index and blob_data entries separately per qualified id.
+    const indexEntriesById = new Map();  // qualifiedId → blob_index items[]
+    const dataEntriesById  = new Map();  // qualifiedId → blob_data items[]
+
     for (const page of this.pages) {
       for (const item of page.items) {
-        if (NVSEditor.isBlob(item) && item.key) {
-          const id = NVSEditor.getQualifiedBlobId(item);
-          if (!blobs.has(id)) {
-            blobs.set(id, {
-              id,
-              key: item.key,
-              namespace: item.namespace || `ns_${item.nsIndex}`,
-              totalSize: NVSEditor.blobTotalSize(item),
-              expectedChunks: NVSEditor.blobExpectedChunks(item),
-              chunks: [],
-              indexEntry: item
-            });
-          }
-
-          const blob = blobs.get(id);
-          
-          // Update totals if this entry has better information
-          const totalSize = NVSEditor.blobTotalSize(item);
-          const expectedChunks = NVSEditor.blobExpectedChunks(item);
-          if (totalSize > 0) blob.totalSize = totalSize;
-          if (expectedChunks > 0) blob.expectedChunks = expectedChunks;
-          
-          // For blob_index entries
-          if (item.datatype === 0x48) {
-            blob.indexEntry = item;
-          }
-          
-          // For blob_data entries, add chunk reference
-          if (item.datatype === 0x42 && item.size > 0) {
-            const payloadOffset = item.offset + 32;
-            const payloadLength = (item.span - 1) * 32;
-            const chunkIndex = item.chunkIndex & 127;
-            if (payloadLength > 0) {
-              blob.chunks.push({
-                offset: payloadOffset,
-                length: Math.min(payloadLength, item.size),
-                index: chunkIndex
-              });
-            }
-          }
-          
-          // For inline blob (small blobs stored in header)
-          if (item.datatype === 0x42 && item.size > 0 && item.span === 1) {
-            const inlineOff = item.offset + 32;
-            blob.chunks.push({
-              offset: inlineOff,
-              length: item.size,
-              index: 0
-            });
-          }
+        if (!NVSEditor.isBlob(item) || !item.key) continue;
+        const id = NVSEditor.getQualifiedBlobId(item);
+        if (item.datatype === 0x48) {
+          if (!indexEntriesById.has(id)) indexEntriesById.set(id, []);
+          indexEntriesById.get(id).push(item);
+        } else if (item.datatype === 0x42) {
+          if (!dataEntriesById.has(id)) dataEntriesById.set(id, []);
+          dataEntriesById.get(id).push(item);
         }
       }
     }
-    
+
+    // Build a chunk array for data items, filtering by the index entry's expected range
+    // [chunkStart, chunkStart + expectedChunks) when expectedChunks > 0.
+    const buildChunks = (items, expectedChunks, chunkStart) => {
+      const chunks = [];
+      for (const item of items) {
+        if (item.size <= 0) continue;
+        const chunkIndex = item.chunkIndex;  // raw; must match blob_index chunkStart space
+        if (expectedChunks > 0) {
+          const rel = chunkIndex - chunkStart;
+          if (rel < 0 || rel >= expectedChunks) continue;
+        }
+        if (item.span > 1) {
+          const payloadLength = (item.span - 1) * 32;
+          chunks.push({ offset: item.offset + 32, length: Math.min(payloadLength, item.size), index: chunkIndex });
+        } else {
+          // span === 1: inline data stored immediately after the 32-byte header.
+          chunks.push({ offset: item.offset + 32, length: item.size, index: chunkIndex });
+        }
+      }
+      return chunks;
+    };
+
+    const blobs = new Map();
+
+    // Blobs with a blob_index entry: pick the best index entry, attach only its chunks.
+    for (const [id, indices] of indexEntriesById) {
+      // Prefer the first index entry that carries non-zero metadata.
+      let best = indices[0];
+      for (const idx of indices) {
+        if (NVSEditor.blobTotalSize(idx) > 0 || NVSEditor.blobExpectedChunks(idx) > 0) {
+          best = idx;
+          break;
+        }
+      }
+      const expectedChunks = NVSEditor.blobExpectedChunks(best);
+      const chunkStart = typeof best.chunkStart === 'number' ? best.chunkStart : 0;
+      blobs.set(id, {
+        id,
+        key: best.key,
+        namespace: best.namespace || `ns_${best.nsIndex}`,
+        totalSize: NVSEditor.blobTotalSize(best),
+        expectedChunks,
+        chunks: buildChunks(dataEntriesById.get(id) || [], expectedChunks, chunkStart),
+        indexEntry: best
+      });
+    }
+
+    // Legacy blobs: blob_data entries with no corresponding blob_index entry.
+    for (const [id, items] of dataEntriesById) {
+      if (blobs.has(id)) continue;
+      const first = items[0];
+      blobs.set(id, {
+        id,
+        key: first.key,
+        namespace: first.namespace || `ns_${first.nsIndex}`,
+        totalSize: NVSEditor.blobTotalSize(first),
+        expectedChunks: 0,
+        chunks: buildChunks(items, 0, 0),
+        indexEntry: first
+      });
+    }
+
     return blobs;
   }
 
@@ -519,7 +563,7 @@ static crc32(data, offset = 0, length = null) {
     let incomplete = 0;
     
     for (const [key, blob] of blobs) {
-      const present = blob.chunks.length;
+      const present = new Set(blob.chunks.map(c => c.index)).size;
       const expected = blob.expectedChunks;
       
       if (expected > 0) {
