@@ -1263,6 +1263,90 @@ div.clear {
   border-radius: 12px;
 }
 
+.nvs-issue-group {
+  margin: 6px 0 14px 0;
+  padding: 8px 10px;
+  background-color: #fff8f3;
+  border: 1px solid #ffd9b8;
+  border-radius: 6px;
+}
+
+.nvs-issue-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+pre.nvs-issue {
+  background-color: #fff;
+  border: 1px solid #f0d3b8;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: 4px 0;
+  font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: #333;
+  flex: 1;
+}
+
+.nvs-issue-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 4px 0;
+}
+
+.nvs-issue-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.nvs-issue-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid #c0c0c0;
+  border-radius: 4px;
+  background: #fafafa;
+  color: #333;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nvs-issue-btn:hover {
+  background: #f0f0f0;
+  border-color: #888;
+}
+
+.nvs-issue-delete:hover {
+  background: #ffe0e0;
+  border-color: #c64141;
+  color: #c64141;
+}
+
+/* Highlight effect when jumping to entry/page */
+.nvs-row-highlight {
+  animation: nvs-flash-row 2.2s ease-out;
+}
+
+.nvs-page-highlight {
+  animation: nvs-flash-page 2.2s ease-out;
+}
+
+@keyframes nvs-flash-row {
+  0%   { background-color: #fff3a8; }
+  100% { background-color: transparent; }
+}
+
+@keyframes nvs-flash-page {
+  0%   { box-shadow: 0 0 0 3px #ffb74d; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
 /* Mobile Optimizations */
 @media (max-width: 768px) {
   /* Larger touch targets and better readability */
