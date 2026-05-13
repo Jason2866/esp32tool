@@ -63,7 +63,7 @@ export class NVSEditor {
     return crc >>> 0;
   }
 
-static crc32(data, offset = 0, length = null) {
+  static crc32(data, offset = 0, length = null) {
     let crc = 0;
     const len = length ?? data.length - offset;
     for (let i = 0; i < len; i++) {
