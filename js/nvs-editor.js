@@ -148,6 +148,7 @@ export class NVSEditor {
   // ─────── Integrity checking and statistics (from Berry nvs.be) ───────
 
   getStatistics() {
+    const MAX_ENTRY_COUNT = 126;
     const stats = {
       pages_total: this.pages.length,
       pages_active: 0,
@@ -166,8 +167,6 @@ export class NVSEditor {
     };
 
     for (const page of this.pages) {
-      stats.pages_total++;
-      
       if (page.state === 'ACTIVE') stats.pages_active++;
       else if (page.state === 'FULL') stats.pages_full++;
       else if (page.state === 'UNINIT') stats.pages_empty++;
@@ -180,20 +179,20 @@ export class NVSEditor {
         stats.pages_bad_header_crc++;
       }
 
-      for (const item of page.items) {
-        const itemState = this._getNVSItemState(this.data.slice(page.offset + 32, page.offset + 64), 
-                                                 (item.offset - page.offset - 64) / 32);
-        
-        if (itemState === 2) stats.entries_written++;
-        else if (itemState === 0) stats.entries_erased++;
-        else stats.entries_empty++;
+      // Iterate ALL slots in the page bitmap to count erased/empty/written
+      const stateBitmap = this.data.slice(page.offset + 32, page.offset + 64);
+      for (let slotIndex = 0; slotIndex < MAX_ENTRY_COUNT; slotIndex++) {
+        const slotState = this._getNVSItemState(stateBitmap, slotIndex);
+        if (slotState === 0) stats.entries_erased++;
+        else if (slotState === 1) stats.entries_empty++;
+        else if (slotState === 2) stats.entries_written++;
+      }
 
-        // Check entry header CRC
+      // Check entry header / data CRC for parsed (WRITTEN) items
+      for (const item of page.items) {
         if (!item.headerCrcValid) {
           stats.entries_bad_header_crc++;
         }
-
-        // Check data CRC for string/blob types
         if (item.dataCrcValid !== undefined && !item.dataCrcValid) {
           stats.entries_bad_data_crc++;
         }
@@ -201,18 +200,6 @@ export class NVSEditor {
     }
 
     return stats;
-  }
-
-  getNamespaces() {
-    const namespaces = new Map();
-    for (const page of this.pages) {
-      for (const item of page.items) {
-        if (item.nsIndex === 0 && item.namespace) {
-          namespaces.set(item.value, item.namespace);
-        }
-      }
-    }
-    return namespaces;
   }
 
   // ─────── Blob integrity checking (from Berry nvs.be) ───────
@@ -263,7 +250,7 @@ export class NVSEditor {
           
           // For inline blob (small blobs stored in header)
           if (item.datatype === 0x42 && item.size > 0 && item.span === 1) {
-            const inlineOff = item.offset + 24;
+            const inlineOff = item.offset + 32;
             blob.chunks.push({
               offset: inlineOff,
               length: item.size,
@@ -650,7 +637,6 @@ export class NVSEditor {
         </div>
         <button id="nvsStats" title="Show statistics and integrity report">📊 Stats</button>
         <button id="nvsBlobs" title="Show blob information">📦 Blobs</button>
-        <button id="nvsNamespaces" title="Show namespaces">📁 Namespaces</button>
         <button id="nvsRefresh" title="Re-parse data">Refresh</button>
         <button id="nvsWrite" class="primary" disabled>Write to Flash</button>
         <button id="nvsClose">Close</button>
@@ -717,34 +703,14 @@ export class NVSEditor {
     });
 
     // Stats button
-    const statsBtn = this.container.querySelector('#nvsStats');
-    if (statsBtn) {
-      statsBtn.addEventListener('click', () => {
-        this._showStats();
-      });
-    } else {
-      console.error('Stats button not found');
-    }
+    this.container.querySelector('#nvsStats').addEventListener('click', () => {
+      this._showStats();
+    });
 
     // Blobs button
-    const blobsBtn = this.container.querySelector('#nvsBlobs');
-    if (blobsBtn) {
-      blobsBtn.addEventListener('click', () => {
-        this._showBlobs();
-      });
-    } else {
-      console.error('Blobs button not found');
-    }
-
-    // Namespaces button
-    const nsBtn = this.container.querySelector('#nvsNamespaces');
-    if (nsBtn) {
-      nsBtn.addEventListener('click', () => {
-        this._showNamespaces();
-      });
-    } else {
-      console.error('Namespaces button not found');
-    }
+    this.container.querySelector('#nvsBlobs').addEventListener('click', () => {
+      this._showBlobs();
+    });
 
     this._renderContent();
   }
@@ -1118,7 +1084,32 @@ export class NVSEditor {
         const blob = blobs.get(key);
         const blobData = this.getBlobData(blob);
         const hexDump = NVSEditor.hexDump(blobData);
-        alert(`Hex dump for ${key}:\n\n${hexDump}`);
+
+        const dialogBody = dialogContainer.querySelector('.nvs-dialog-body');
+        if (!dialogBody) return;
+
+        // Reuse a single hex-dump pane per key inside this dialog
+        const paneId = `nvs-hex-dump-${key}`;
+        let pre = dialogBody.querySelector(`#${CSS.escape(paneId)}`);
+        if (!pre) {
+          pre = document.createElement('pre');
+          pre.id = paneId;
+          pre.className = 'nvs-hex-dump';
+          pre.style.fontFamily = '"SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+          pre.style.fontSize = '12px';
+          pre.style.background = '#f5f5f5';
+          pre.style.border = '1px solid #e0e0e0';
+          pre.style.borderRadius = '6px';
+          pre.style.padding = '10px';
+          pre.style.maxHeight = '400px';
+          pre.style.overflow = 'auto';
+          pre.style.whiteSpace = 'pre';
+          pre.style.margin = '8px 0 18px 0';
+          dialogBody.appendChild(pre);
+        }
+        // textContent escapes HTML by default
+        pre.textContent = `Hex dump for ${key}:\n\n${hexDump}`;
+        pre.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
     });
 
@@ -1133,49 +1124,16 @@ export class NVSEditor {
         const a = document.createElement('a');
         a.href = url;
         a.download = `${key}.bin`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        // Defer cleanup so the download has time to start before the URL is revoked
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          a.remove();
+        }, 0);
       });
     });
   }
 
-  _showNamespaces() {
-    const namespaces = this.getNamespaces();
-
-    let html = '';
-    if (namespaces.size > 0) {
-      for (const [index, name] of namespaces) {
-        html += `<div class="nvs-namespace-item"><strong>Index ${index}:</strong> ${this._esc(name)}</div>`;
-      }
-    } else {
-      html = '<div class="nvs-empty">No namespace entries found.</div>';
-    }
-
-    const dialogHtml = `
-      <div class="nvs-dialog-overlay" id="nvsNamespacesDialog">
-        <div class="nvs-dialog">
-          <div class="nvs-dialog-header">
-            <h3>📁 Namespaces Found (${namespaces.size})</h3>
-            <button class="nvs-dialog-close">×</button>
-          </div>
-          <div class="nvs-dialog-body">
-            ${html}
-          </div>
-        </div>
-      </div>`;
-
-    const dialogContainer = document.createElement('div');
-    dialogContainer.innerHTML = dialogHtml;
-    document.body.appendChild(dialogContainer);
-
-    dialogContainer.querySelector('.nvs-dialog-close').addEventListener('click', () => {
-      dialogContainer.remove();
-    });
-
-    dialogContainer.querySelector('.nvs-dialog-overlay').addEventListener('click', (e) => {
-      if (e.target === dialogContainer.querySelector('.nvs-dialog-overlay')) {
-        dialogContainer.remove();
-      }
-    });
-  }
 }
