@@ -133,7 +133,7 @@ export class ESP32ToolConsole {
     `;
 
     this.console = new ColoredConsole(
-      this.containerElement.querySelector(".log")
+      this.containerElement.querySelector(".log"),
     );
 
     // Setup event listeners
@@ -152,18 +152,22 @@ export class ESP32ToolConsole {
       closeBtn.addEventListener("click", () => {
         // Dispatch close event to parent
         this.containerElement.dispatchEvent(
-          new CustomEvent("console-close", { bubbles: true })
+          new CustomEvent("console-close", { bubbles: true }),
         );
       });
     }
 
-    const improvBtn = this.containerElement.querySelector("#console-improv-btn");
+    const improvBtn = this.containerElement.querySelector(
+      "#console-improv-btn",
+    );
     if (improvBtn) {
       improvBtn.addEventListener("click", () => this._openImprov());
     }
 
     if (this.allowInput) {
-      const input = this.containerElement.querySelector(".esp32tool-console-input");
+      const input = this.containerElement.querySelector(
+        ".esp32tool-console-input",
+      );
 
       this.containerElement.addEventListener("click", () => {
         // Only focus input if user didn't select some text
@@ -217,10 +221,10 @@ export class ESP32ToolConsole {
       this.console.addLine("");
       this.console.addLine("");
       this.console.addLine(
-        `Terminal disconnected: Port readable stream not available`
+        `Terminal disconnected: Port readable stream not available`,
       );
       console.error(
-        "Port readable stream not available - port may need to be reopened at correct baudrate"
+        "Port readable stream not available - port may need to be reopened at correct baudrate",
       );
       return;
     }
@@ -248,14 +252,14 @@ export class ESP32ToolConsole {
                   if (pat.test(chunk)) {
                     bootloaderDetected = true;
                     this.containerElement.dispatchEvent(
-                      new CustomEvent("console-bootloader", { bubbles: true })
+                      new CustomEvent("console-bootloader", { bubbles: true }),
                     );
                     break;
                   }
                 }
               }
             },
-          })
+          }),
         );
       if (!abortSignal.aborted) {
         this.console.addLine("");
@@ -264,7 +268,10 @@ export class ESP32ToolConsole {
       }
     } catch (e) {
       // Only log disconnect errors if the abort was NOT intentional
-      if (!abortSignal.aborted && !(e instanceof DOMException && e.name === 'AbortError')) {
+      if (
+        !abortSignal.aborted &&
+        !(e instanceof DOMException && e.name === "AbortError")
+      ) {
         this.console.addLine("");
         this.console.addLine("");
         this.console.addLine(`Terminal disconnected: ${e}`);
@@ -297,7 +304,9 @@ export class ESP32ToolConsole {
   }
 
   async _sendCommand() {
-    const input = this.containerElement.querySelector(".esp32tool-console-input");
+    const input = this.containerElement.querySelector(
+      ".esp32tool-console-input",
+    );
     const command = input.value;
 
     if (command.trim() !== "") {
@@ -347,8 +356,8 @@ export class ESP32ToolConsole {
 
     // Only check the first 30 lines (same as _connect) to avoid false positives
     // from bootloader patterns appearing later in normal firmware output
-    const lines = text.split('\n');
-    const firstLines = lines.slice(0, 30).join('\n');
+    const lines = text.split("\n");
+    const firstLines = lines.slice(0, 30).join("\n");
 
     for (const pat of BOOTLOADER_PATTERNS) {
       if (pat.test(firstLines)) {

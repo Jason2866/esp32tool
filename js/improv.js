@@ -6,7 +6,12 @@
 
 // Protocol constants
 const SERIAL_PACKET_HEADER = [
-  0x49, 0x4d, 0x50, 0x52, 0x4f, 0x56, // "IMPROV"
+  0x49,
+  0x4d,
+  0x50,
+  0x52,
+  0x4f,
+  0x56, // "IMPROV"
   1, // protocol version
 ];
 
@@ -88,7 +93,10 @@ class ImprovSerial extends EventTarget {
       let timer;
       const statePromise = this.requestCurrentState();
       const timeoutPromise = new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error("Improv Wi-Fi Serial not detected")), timeout);
+        timer = setTimeout(
+          () => reject(new Error("Improv Wi-Fi Serial not detected")),
+          timeout,
+        );
       });
       try {
         await Promise.race([statePromise, timeoutPromise]);
@@ -225,7 +233,9 @@ class ImprovSerial extends EventTarget {
 
   async _sendRPCWithResponse(command, data, timeout) {
     if (this._rpcFeedback) {
-      throw new Error("Only 1 RPC command that requires feedback can be active");
+      throw new Error(
+        "Only 1 RPC command that requires feedback can be active",
+      );
     }
     return await this._awaitRPCResultWithTimeout(
       new Promise((resolve, reject) => {
@@ -238,7 +248,9 @@ class ImprovSerial extends EventTarget {
 
   async _sendRPCWithMultipleResponses(command, data, timeout) {
     if (this._rpcFeedback) {
-      throw new Error("Only 1 RPC command that requires feedback can be active");
+      throw new Error(
+        "Only 1 RPC command that requires feedback can be active",
+      );
     }
     return await this._awaitRPCResultWithTimeout(
       new Promise((resolve, reject) => {
@@ -329,7 +341,12 @@ class ImprovSerial extends EventTarget {
     const packetLength = payload[2];
     const data = payload.slice(3, 3 + packetLength);
 
-    this.logger.debug("IMPROV PACKET", { version, packetType, packetLength, data });
+    this.logger.debug("IMPROV PACKET", {
+      version,
+      packetType,
+      packetLength,
+      data,
+    });
 
     if (version !== 1) {
       this.logger.error("Received unsupported Improv version", version);
@@ -436,7 +453,9 @@ class ImprovSerial extends EventTarget {
   _setError(error) {
     this.error = error;
     if (error > 0 && this._rpcFeedback) {
-      this._rpcFeedback.reject(new Error(ERROR_MSGS[error] || `UNKNOWN_ERROR (${error})`));
+      this._rpcFeedback.reject(
+        new Error(ERROR_MSGS[error] || `UNKNOWN_ERROR (${error})`),
+      );
       this._rpcFeedback = null;
     }
     this.dispatchEvent(
@@ -759,7 +778,8 @@ export class ImprovDialog {
     } catch (err) {
       console.error("[Improv] Init failed:", err);
       this._view = "error";
-      this._errorMsg = "Improv not detected. Make sure the device firmware supports Improv Wi-Fi.";
+      this._errorMsg =
+        "Improv not detected. Make sure the device firmware supports Improv Wi-Fi.";
       this._render();
     }
 
@@ -844,7 +864,8 @@ export class ImprovDialog {
     `;
 
     // Bind close button
-    this.overlay.querySelector(".improv-dialog-close")
+    this.overlay
+      .querySelector(".improv-dialog-close")
       .addEventListener("click", () => this.close());
 
     // Bind view-specific events
@@ -853,10 +874,14 @@ export class ImprovDialog {
 
   _getTitle() {
     switch (this._view) {
-      case "loading": return "Improv Wi-Fi";
-      case "dashboard": return this._esc(this.client?.info?.name || "Device");
-      case "wifi": return "Wi-Fi Configuration";
-      case "error": return "Improv Wi-Fi";
+      case "loading":
+        return "Improv Wi-Fi";
+      case "dashboard":
+        return this._esc(this.client?.info?.name || "Device");
+      case "wifi":
+        return "Wi-Fi Configuration";
+      case "error":
+        return "Improv Wi-Fi";
     }
   }
 
@@ -887,10 +912,14 @@ export class ImprovDialog {
       stateClass = "improv-state-provisioned";
     }
 
-    const wifiLabel = state === ImprovSerialCurrentState.PROVISIONED
-      ? "Change Wi-Fi" : "Connect to Wi-Fi";
-    const wifiDesc = state === ImprovSerialCurrentState.PROVISIONED
-      ? "Change the Wi-Fi network" : "Configure Wi-Fi credentials";
+    const wifiLabel =
+      state === ImprovSerialCurrentState.PROVISIONED
+        ? "Change Wi-Fi"
+        : "Connect to Wi-Fi";
+    const wifiDesc =
+      state === ImprovSerialCurrentState.PROVISIONED
+        ? "Change the Wi-Fi network"
+        : "Configure Wi-Fi credentials";
 
     let html = `
       <div class="improv-section-title">Device Info</div>
@@ -941,9 +970,10 @@ export class ImprovDialog {
 
   _renderWifi() {
     if (this._busy) {
-      const busyMsg = this._ssids === undefined
-        ? "Scanning for networks..."
-        : "Connecting...";
+      const busyMsg =
+        this._ssids === undefined
+          ? "Scanning for networks..."
+          : "Connecting...";
       return `
         <div class="improv-status">
           <div class="improv-spinner"></div>
@@ -955,7 +985,14 @@ export class ImprovDialog {
     let ssidInput = "";
     if (this._ssids && this._ssids.length > 0) {
       const options = this._ssids.map((s) => {
-        const signal = s.rssi > -50 ? "▂▄▆█" : s.rssi > -70 ? "▂▄▆" : s.rssi > -80 ? "▂▄" : "▂";
+        const signal =
+          s.rssi > -50
+            ? "▂▄▆█"
+            : s.rssi > -70
+              ? "▂▄▆"
+              : s.rssi > -80
+                ? "▂▄"
+                : "▂";
         const lock = s.secured ? "🔒" : "";
         const sel = s.name === this._selectedSsid ? " selected" : "";
         return `<option value="${this._esc(s.name)}"${sel}>${this._esc(s.name)} ${signal} ${lock}</option>`;
@@ -1112,7 +1149,8 @@ export class ImprovDialog {
       ssid = ssidInput.value.trim();
     }
 
-    const password = this.overlay?.querySelector("#improv-password-input")?.value || "";
+    const password =
+      this.overlay?.querySelector("#improv-password-input")?.value || "";
 
     if (!ssid) {
       this._errorMsg = "Please enter or select a network name.";
