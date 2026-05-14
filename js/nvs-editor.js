@@ -14,6 +14,28 @@
 
 import { HexEditor } from './hex-editor.js';
 
+// ─────── NVS partition layout constants ───────
+const NVS_SECTOR_SIZE = 4096;
+const MAX_ENTRY_COUNT = 126;
+const NVS_PAGE_STATE = {
+  UNINIT:  0xFFFFFFFF,
+  ACTIVE:  0xFFFFFFFE,
+  FULL:    0xFFFFFFFC,
+  FREEING: 0xFFFFFFF8,
+  CORRUPT: 0xFFFFFFF0
+};
+const NVS_PAGE_STATE_NAME = {
+  [NVS_PAGE_STATE.UNINIT]:  'UNINIT',
+  [NVS_PAGE_STATE.ACTIVE]:  'ACTIVE',
+  [NVS_PAGE_STATE.FULL]:    'FULL',
+  [NVS_PAGE_STATE.FREEING]: 'FREEING',
+  [NVS_PAGE_STATE.CORRUPT]: 'CORRUPT'
+};
+
+function pageStateName(stateValue) {
+  return NVS_PAGE_STATE_NAME[stateValue >>> 0] || 'UNKNOWN';
+}
+
 export class NVSEditor {
   /**
    * @param {HTMLElement} container - The container element (#nvseditor-container)
@@ -160,12 +182,6 @@ export class NVSEditor {
   // ─────── Integrity checking and statistics (from Berry nvs.be) ───────
 
   getStatistics() {
-    const NVS_SECTOR_SIZE = 4096;
-    const MAX_ENTRY_COUNT = 126;
-    const NVS_PAGE_STATE = {
-      UNINIT: 0xFFFFFFFF, ACTIVE: 0xFFFFFFFE,
-      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0xFFFFFFF0
-    };
     const stats = {
       pages_total: 0,
       pages_active: 0,
@@ -191,13 +207,7 @@ export class NVSEditor {
       if (secOff + 64 > this.data.length) break;
       stats.pages_total++;
       const stateValue = this._u32(secOff);
-      let stateName;
-      if (stateValue === NVS_PAGE_STATE.UNINIT)        stateName = 'UNINIT';
-      else if (stateValue === NVS_PAGE_STATE.ACTIVE)   stateName = 'ACTIVE';
-      else if (stateValue === NVS_PAGE_STATE.FULL)     stateName = 'FULL';
-      else if (stateValue === NVS_PAGE_STATE.FREEING)  stateName = 'FREEING';
-      else if (stateValue === NVS_PAGE_STATE.CORRUPT)  stateName = 'CORRUPT';
-      else                                              stateName = 'UNKNOWN';
+      const stateName = pageStateName(stateValue);
 
       if (stateName === 'ACTIVE')                           stats.pages_active++;
       else if (stateName === 'FULL')                        stats.pages_full++;
@@ -255,13 +265,6 @@ export class NVSEditor {
    * }}
    */
   getIntegrityIssues() {
-    const NVS_SECTOR_SIZE = 4096;
-    const MAX_ENTRY_COUNT = 126;
-    const NVS_PAGE_STATE = {
-      UNINIT: 0xFFFFFFFF, ACTIVE: 0xFFFFFFFE,
-      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0xFFFFFFF0
-    };
-
     const issues = {
       corruptedPages: [],
       pagesBadHeaderCrc: [],
@@ -280,14 +283,7 @@ export class NVSEditor {
       if (secOff + 64 > this.data.length) break;
       const pageIndex = Math.floor(secOff / NVS_SECTOR_SIZE);
       const stateValue = this._u32(secOff);
-
-      let stateName;
-      if (stateValue === NVS_PAGE_STATE.UNINIT)        stateName = 'UNINIT';
-      else if (stateValue === NVS_PAGE_STATE.ACTIVE)   stateName = 'ACTIVE';
-      else if (stateValue === NVS_PAGE_STATE.FULL)     stateName = 'FULL';
-      else if (stateValue === NVS_PAGE_STATE.FREEING)  stateName = 'FREEING';
-      else if (stateValue === NVS_PAGE_STATE.CORRUPT)  stateName = 'CORRUPT';
-      else stateName = 'UNKNOWN';
+      const stateName = pageStateName(stateValue);
 
       // Corrupted or unknown state pages
       if (stateName === 'CORRUPT' || stateName === 'UNKNOWN') {
@@ -605,20 +601,31 @@ export class NVSEditor {
 
   // ─────── Public API ───────
 
+  /** HTML for a progress overlay; reused in initProgressUI() and _buildUI(). */
+  static _progressOverlayHtml(extraClass = '', initialText = 'Loading...') {
+    return `
+      <div class="nvseditor-progress-overlay${extraClass ? ' ' + extraClass : ''}" id="nvsProgress">
+        <div class="progress-text" id="nvsProgressText">${initialText}</div>
+        <div class="progress-bar-outer">
+          <div class="progress-bar-inner" id="nvsProgressBar"></div>
+        </div>
+      </div>`;
+  }
+
+  /** Cache references to the progress overlay DOM elements. */
+  _cacheProgressEls() {
+    this._progressOverlay = this.container.querySelector('#nvsProgress');
+    this._progressText = this.container.querySelector('#nvsProgressText');
+    this._progressBarInner = this.container.querySelector('#nvsProgressBar');
+  }
+
   /** Show a progress overlay (before open()) */
   initProgressUI() {
     this.container.innerHTML = `
       <div class="nvseditor-body" style="flex:1;display:flex;align-items:center;justify-content:center;">
-        <div class="nvseditor-progress-overlay" id="nvsProgress">
-          <div class="progress-text" id="nvsProgressText">Initiating...</div>
-          <div class="progress-bar-outer">
-            <div class="progress-bar-inner" id="nvsProgressBar"></div>
-          </div>
-        </div>
+        ${NVSEditor._progressOverlayHtml('', 'Initiating...')}
       </div>`;
-    this._progressOverlay = this.container.querySelector('#nvsProgress');
-    this._progressText = this.container.querySelector('#nvsProgressText');
-    this._progressBarInner = this.container.querySelector('#nvsProgressBar');
+    this._cacheProgressEls();
   }
 
   showProgress(text, percent) {
@@ -716,13 +723,6 @@ export class NVSEditor {
   }
 
   _parse() {
-    const NVS_SECTOR_SIZE = 4096;
-    const MAX_ENTRY_COUNT = 126;
-    const NVS_PAGE_STATE = {
-      UNINIT: 0xFFFFFFFF, ACTIVE: 0xFFFFFFFE,
-      FULL: 0xFFFFFFFC, FREEING: 0xFFFFFFF8, CORRUPT: 0xFFFFFFF0
-    };
-
     const pages = [];
     const namespaces = new Map();
     namespaces.set(0, '');
@@ -748,13 +748,7 @@ export class NVSEditor {
     for (let secOff = 0; secOff < this.data.length; secOff += NVS_SECTOR_SIZE) {
       if (secOff + 64 > this.data.length) break;
       const state = this._u32(secOff);
-
-      let stateName = 'UNKNOWN';
-      if (state === NVS_PAGE_STATE.UNINIT) { stateName = 'UNINIT'; }
-      else if (state === NVS_PAGE_STATE.ACTIVE) { stateName = 'ACTIVE'; }
-      else if (state === NVS_PAGE_STATE.FULL) { stateName = 'FULL'; }
-      else if (state === NVS_PAGE_STATE.FREEING) { stateName = 'FREEING'; }
-      else if (state === NVS_PAGE_STATE.CORRUPT) { stateName = 'CORRUPT'; }
+      const stateName = pageStateName(state);
 
       if (stateName === 'UNINIT' || stateName === 'CORRUPT') continue;
 
@@ -936,12 +930,7 @@ export class NVSEditor {
         <button id="nvsClose">Close</button>
       </div>
       <div class="nvseditor-body">
-        <div class="nvseditor-progress-overlay hidden" id="nvsProgress">
-          <div class="progress-text" id="nvsProgressText">Loading...</div>
-          <div class="progress-bar-outer">
-            <div class="progress-bar-inner" id="nvsProgressBar"></div>
-          </div>
-        </div>
+        ${NVSEditor._progressOverlayHtml('hidden', 'Loading...')}
         <div class="nvseditor-content" id="nvsContent"></div>
       </div>
       <div class="nvseditor-statusbar">
@@ -951,9 +940,7 @@ export class NVSEditor {
 
     this._hexEditorContainer = this.container.querySelector('#nvsHexEditorContainer');
 
-    this._progressOverlay = this.container.querySelector('#nvsProgress');
-    this._progressText = this.container.querySelector('#nvsProgressText');
-    this._progressBarInner = this.container.querySelector('#nvsProgressBar');
+    this._cacheProgressEls();
 
     // Close
     this.container.querySelector('#nvsClose').addEventListener('click', () => {
@@ -1015,6 +1002,13 @@ export class NVSEditor {
     return d.innerHTML;
   }
 
+  _matchesFilter(ns, item, filter) {
+    if (!filter) return true;
+    return ns.toLowerCase().includes(filter) ||
+           item.key.toLowerCase().includes(filter) ||
+           String(item.value).toLowerCase().includes(filter);
+  }
+
   _renderContent() {
     const content = this.container.querySelector('#nvsContent');
     if (!content) return;
@@ -1042,16 +1036,16 @@ export class NVSEditor {
       let hasVisibleItems = false;
       if (filter) {
         for (const [ns, items] of nsGroups) {
-          const filtered = items.filter(it =>
-            ns.toLowerCase().includes(filter) ||
-            it.key.toLowerCase().includes(filter) ||
-            String(it.value).toLowerCase().includes(filter)
-          );
-          if (filtered.length > 0) hasVisibleItems = true;
+          if (items.some(it => this._matchesFilter(ns, it, filter))) {
+            hasVisibleItems = true;
+            break;
+          }
         }
         // Also check namespace defs
-        for (const nd of nsDefs) {
-          if (nd.key.toLowerCase().includes(filter)) hasVisibleItems = true;
+        if (!hasVisibleItems) {
+          for (const nd of nsDefs) {
+            if (nd.key.toLowerCase().includes(filter)) { hasVisibleItems = true; break; }
+          }
         }
         if (!hasVisibleItems) continue;
       } else {
@@ -1074,10 +1068,7 @@ export class NVSEditor {
       // Render namespace groups
       for (const [ns, items] of nsGroups) {
         const filteredItems = filter
-          ? items.filter(it =>
-              ns.toLowerCase().includes(filter) ||
-              it.key.toLowerCase().includes(filter) ||
-              String(it.value).toLowerCase().includes(filter))
+          ? items.filter(it => this._matchesFilter(ns, it, filter))
           : items;
         if (filteredItems.length === 0) continue;
 
@@ -1286,6 +1277,22 @@ export class NVSEditor {
 
   // ─────── UI dialogs for new features ───────
 
+  /** Create a modal dialog from `html`, append to <body>, wire up close handlers. */
+  _createDialog(html) {
+    const dialogContainer = document.createElement('div');
+    dialogContainer.innerHTML = html;
+    document.body.appendChild(dialogContainer);
+
+    const overlay = dialogContainer.querySelector('.nvs-dialog-overlay');
+    dialogContainer.querySelector('.nvs-dialog-close').addEventListener('click', () => {
+      dialogContainer.remove();
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) dialogContainer.remove();
+    });
+    return dialogContainer;
+  }
+
   _showStats() {
     const stats = this.getStatistics();
     const blobs = this.getBlobs();
@@ -1402,19 +1409,7 @@ export class NVSEditor {
         </div>
       </div>`;
 
-    const dialogContainer = document.createElement('div');
-    dialogContainer.innerHTML = html;
-    document.body.appendChild(dialogContainer);
-
-    dialogContainer.querySelector('.nvs-dialog-close').addEventListener('click', () => {
-      dialogContainer.remove();
-    });
-
-    dialogContainer.querySelector('.nvs-dialog-overlay').addEventListener('click', (e) => {
-      if (e.target === dialogContainer.querySelector('.nvs-dialog-overlay')) {
-        dialogContainer.remove();
-      }
-    });
+    const dialogContainer = this._createDialog(html);
 
     // Issue action buttons: jump / edit / delete
     dialogContainer.querySelectorAll('.nvs-issue-goto-page').forEach(btn => {
@@ -1493,19 +1488,7 @@ export class NVSEditor {
         </div>
       </div>`;
 
-    const dialogContainer = document.createElement('div');
-    dialogContainer.innerHTML = dialogHtml;
-    document.body.appendChild(dialogContainer);
-
-    dialogContainer.querySelector('.nvs-dialog-close').addEventListener('click', () => {
-      dialogContainer.remove();
-    });
-
-    dialogContainer.querySelector('.nvs-dialog-overlay').addEventListener('click', (e) => {
-      if (e.target === dialogContainer.querySelector('.nvs-dialog-overlay')) {
-        dialogContainer.remove();
-      }
-    });
+    const dialogContainer = this._createDialog(dialogHtml);
 
     // Blob dump buttons
     dialogContainer.querySelectorAll('.nvs-blob-dump').forEach(btn => {
