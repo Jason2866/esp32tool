@@ -1821,22 +1821,33 @@ export class NVSEditor {
       );
     }
 
-    // Distribute payload across chunks sequentially.
+    // Distribute payload across chunks sequentially. Track how many slots
+    // we actually populate so we can erase trailing unused chunks and keep
+    // blob_index.chunkCount in sync with reality.
     let writeOffset = 0;
+    let populatedChunks = 0;
     for (const { item, maxSize } of dataEntries) {
       const off = item.offset;
       const dataOff = off + 32;
       const remaining = fileBytes.length - writeOffset;
       const writeLen = Math.min(remaining, maxSize);
 
+      // Trailing unused chunk: fully erase the slot (payload + header) and
+      // clear its bitmap flag, exactly like _deleteEntry does for a manual
+      // delete. This avoids leaving zero-sized orphan chunks behind.
+      if (writeLen === 0) {
+        this._deleteEntry(item);
+        continue;
+      }
+
+      populatedChunks++;
+
       // Wipe the old payload area, then write the new segment.
       this.data.fill(0xff, dataOff, dataOff + maxSize);
-      if (writeLen > 0) {
-        this.data.set(
-          fileBytes.subarray(writeOffset, writeOffset + writeLen),
-          dataOff,
-        );
-      }
+      this.data.set(
+        fileBytes.subarray(writeOffset, writeOffset + writeLen),
+        dataOff,
+      );
 
       // Update size field at +24 (u16) — the high two bytes are unused (0xFF).
       this.data[off + 24] = writeLen & 0xff;
@@ -1866,8 +1877,10 @@ export class NVSEditor {
       writeOffset += writeLen;
     }
 
-    // If a blob_index (0x48) entry exists, sync its totalSize at +24 (u32) and
-    // recalc its header CRC. chunkCount stays the same — we did not add slots.
+    // If a blob_index (0x48) entry exists, sync its totalSize at +24 (u32)
+    // AND chunkCount at +28 (u8) with the number of slots actually populated,
+    // then recalc its header CRC so the index entry and bitmap stay
+    // consistent with the surviving data chunks.
     if (blob.indexEntry && blob.indexEntry.datatype === 0x48) {
       const idxOff = blob.indexEntry.offset;
       const dv = new DataView(
@@ -1876,6 +1889,8 @@ export class NVSEditor {
         4,
       );
       dv.setUint32(0, fileBytes.length >>> 0, true);
+      // chunkCount is a single byte; chunkStart at +29 and the rest stay intact.
+      this.data[idxOff + 28] = populatedChunks & 0xff;
       const hcrc = NVSEditor.crc32Header(this.data, idxOff);
       const hdv = new DataView(
         this.data.buffer,
