@@ -69,7 +69,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.7);
   }
@@ -90,7 +91,9 @@ button,
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu,
+    "Helvetica Neue", Arial, sans-serif;
   font-style: normal;
   font-weight: 400;
   margin: 0;
@@ -261,7 +264,9 @@ div.clear {
 
 #log {
   max-width: 100%;
-  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+  font-family:
+    "SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New",
+    monospace;
   font-style: normal;
   font-weight: 400;
   font-size: 16px;
@@ -343,7 +348,9 @@ div.clear {
   line-height: 25px;
   font-size: 14px;
   color: white;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu,
+    "Helvetica Neue", Arial, sans-serif;
   font-style: normal;
   font-weight: 600;
   box-sizing: border-box;
@@ -391,8 +398,6 @@ div.clear {
   border-color: #67ac38;
 }
 
-
-
 #commands {
   min-width: 600px;
   justify-content: center;
@@ -410,7 +415,7 @@ div.clear {
 }
 
 /* Hide upload rows 2-8 by default, show dynamically via JavaScript */
-#commands .upload:nth-child(n+2):nth-child(-n+8) {
+#commands .upload:nth-child(n + 2):nth-child(-n + 8) {
   display: none;
 }
 
@@ -486,8 +491,12 @@ div.clear {
 }
 
 @keyframes indeterminate-stripes {
-  0% { background-position: 0 0; }
-  100% { background-position: 28px 0; }
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 28px 0;
+  }
 }
 
 #eraseProgress {
@@ -625,7 +634,9 @@ div.clear {
   border-style: solid;
   cursor: pointer;
   background-color: transparent;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .partition-download-btn:hover {
@@ -976,7 +987,10 @@ div.clear {
   border-radius: 25px;
   cursor: pointer;
   margin-top: 20px;
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1089,7 +1103,9 @@ div.clear {
 
 .file-viewer-body pre {
   margin: 0;
-  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+  font-family:
+    "SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New",
+    monospace;
   font-size: 13px;
   line-height: 1.5;
   white-space: pre;
@@ -1100,7 +1116,9 @@ div.clear {
 }
 
 .file-viewer-body .hex-view {
-  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+  font-family:
+    "SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New",
+    monospace;
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1225,7 +1243,9 @@ div.clear {
   padding: 12px 15px;
   border-radius: 6px;
   margin: 0 0 18px 0;
-  font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family:
+    "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
   font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -1297,7 +1317,9 @@ pre.nvs-issue {
   border-radius: 4px;
   padding: 6px 8px;
   margin: 4px 0;
-  font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family:
+    "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
   font-size: 12px;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -1369,13 +1391,21 @@ pre.nvs-issue {
 }
 
 @keyframes nvs-flash-row {
-  0%   { background-color: #fff3a8; }
-  100% { background-color: transparent; }
+  0% {
+    background-color: #fff3a8;
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 
 @keyframes nvs-flash-page {
-  0%   { box-shadow: 0 0 0 3px #ffb74d; }
-  100% { box-shadow: 0 0 0 0 transparent; }
+  0% {
+    box-shadow: 0 0 0 3px #ffb74d;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
 }
 
 /* Mobile Optimizations */
@@ -2557,7 +2587,8 @@ body.console-active .main {
   background-color: #1c1c1c;
   display: flex;
   flex-direction: column;
-  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-family:
+    SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
   color: #ddd;
 }
 
@@ -2882,8 +2913,11 @@ body.hexeditor-active .main {
 /* Progress overlay for loading */
 .hexeditor-progress-overlay {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0,0,0,0.85);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3020,7 +3054,9 @@ body.hexeditor-active .main {
   background-color: #1c1c1c;
   display: flex;
   flex-direction: column;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
   color: #ddd;
 }
 
@@ -3196,10 +3232,18 @@ body.nvseditor-active .main {
   border-bottom: 1px solid #3a3a3a;
 }
 
-.nvs-page-header.state-active { border-left: 4px solid #43a047; }
-.nvs-page-header.state-full { border-left: 4px solid #ffa726; }
-.nvs-page-header.state-freeing { border-left: 4px solid #ef5350; }
-.nvs-page-header.state-other { border-left: 4px solid #666; }
+.nvs-page-header.state-active {
+  border-left: 4px solid #43a047;
+}
+.nvs-page-header.state-full {
+  border-left: 4px solid #ffa726;
+}
+.nvs-page-header.state-freeing {
+  border-left: 4px solid #ef5350;
+}
+.nvs-page-header.state-other {
+  border-left: 4px solid #666;
+}
 
 .nvs-page-state {
   font-weight: bold;
@@ -3209,10 +3253,22 @@ body.nvseditor-active .main {
   text-transform: uppercase;
 }
 
-.state-active .nvs-page-state { background: #1b5e20; color: #a5d6a7; }
-.state-full .nvs-page-state { background: #e65100; color: #ffcc80; }
-.state-freeing .nvs-page-state { background: #b71c1c; color: #ef9a9a; }
-.state-other .nvs-page-state { background: #424242; color: #999; }
+.state-active .nvs-page-state {
+  background: #1b5e20;
+  color: #a5d6a7;
+}
+.state-full .nvs-page-state {
+  background: #e65100;
+  color: #ffcc80;
+}
+.state-freeing .nvs-page-state {
+  background: #b71c1c;
+  color: #ef9a9a;
+}
+.state-other .nvs-page-state {
+  background: #424242;
+  color: #999;
+}
 
 /* NVS Namespace */
 .nvs-namespace {
