@@ -36,28 +36,6 @@ function pageStateName(stateValue) {
   return NVS_PAGE_STATE_NAME[stateValue >>> 0] || "UNKNOWN";
 }
 
-// ─────── NVS partition layout constants ───────
-const NVS_SECTOR_SIZE = 4096;
-const MAX_ENTRY_COUNT = 126;
-const NVS_PAGE_STATE = {
-  UNINIT:  0xFFFFFFFF,
-  ACTIVE:  0xFFFFFFFE,
-  FULL:    0xFFFFFFFC,
-  FREEING: 0xFFFFFFF8,
-  CORRUPT: 0xFFFFFFF0
-};
-const NVS_PAGE_STATE_NAME = {
-  [NVS_PAGE_STATE.UNINIT]:  'UNINIT',
-  [NVS_PAGE_STATE.ACTIVE]:  'ACTIVE',
-  [NVS_PAGE_STATE.FULL]:    'FULL',
-  [NVS_PAGE_STATE.FREEING]: 'FREEING',
-  [NVS_PAGE_STATE.CORRUPT]: 'CORRUPT'
-};
-
-function pageStateName(stateValue) {
-  return NVS_PAGE_STATE_NAME[stateValue >>> 0] || 'UNKNOWN';
-}
-
 export class NVSEditor {
   /**
    * @param {HTMLElement} container - The container element (#nvseditor-container)
@@ -688,15 +666,6 @@ export class NVSEditor {
     this.container.innerHTML = `
       <div class="nvseditor-body" style="flex:1;display:flex;align-items:center;justify-content:center;">
         ${NVSEditor._progressOverlayHtml("", "Initiating...")}
-      </div>`;
-    this._cacheProgressEls();
-  }
-
-  /** Show a progress overlay (before open()) */
-  initProgressUI() {
-    this.container.innerHTML = `
-      <div class="nvseditor-body" style="flex:1;display:flex;align-items:center;justify-content:center;">
-        ${NVSEditor._progressOverlayHtml('', 'Initiating...')}
       </div>`;
     this._cacheProgressEls();
   }
