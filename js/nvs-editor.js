@@ -1641,6 +1641,7 @@ export class NVSEditor {
             <div><strong>Status:</strong> <span class="${status === "OK" ? "nvs-ok" : "nvs-warn"}">${status}</span></div>
             <button class="nvs-blob-dump" data-key="${this._esc(id)}" title="Show hex dump">📄 Hex Dump</button>
             <button class="nvs-blob-download" data-key="${this._esc(id)}" title="Download blob">⬇️ Download</button>
+            <button class="nvs-blob-upload" data-key="${this._esc(id)}" title="Upload / replace blob from file">⬆️ Upload</button>
           </div>`;
       }
     } else {
@@ -1735,5 +1736,158 @@ export class NVSEditor {
         }, 0);
       });
     });
+
+    // Blob upload buttons — replace blob payload from a local file
+    dialogContainer.querySelectorAll(".nvs-blob-upload").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.key;
+        const blob = blobs.get(id);
+        if (!blob) return;
+
+        const input = document.createElement("input");
+        input.type = "file";
+        input.style.display = "none";
+        document.body.appendChild(input);
+
+        input.addEventListener("change", async () => {
+          const file = input.files && input.files[0];
+          input.remove();
+          if (!file) return;
+
+          try {
+            const buf = await file.arrayBuffer();
+            const bytes = new Uint8Array(buf);
+
+            if (
+              !confirm(
+                `Replace blob "${blob.namespace}::${blob.key}" ` +
+                  `(current ${blob.totalSize} bytes) with ${bytes.length} bytes ` +
+                  `from "${file.name}"?`,
+              )
+            )
+              return;
+
+            this._uploadBlobToNVS(blob, bytes);
+
+            // Re-render the dialog to reflect the new blob state
+            dialogContainer.remove();
+            this._showBlobs();
+          } catch (e) {
+            alert("Upload failed: " + (e && e.message ? e.message : e));
+          }
+        });
+
+        input.click();
+      });
+    });
+  }
+
+  /**
+   * Replace the data of an existing blob in the NVS partition with `fileBytes`.
+   * Distributes bytes across the existing data-chunk slots (0x42 entries),
+   * updates each entry's size + data-CRC + header-CRC, and refreshes the
+   * blob_index totalSize (0x48) when present. Will not allocate new chunks
+   * or extend the partition; the new payload must fit in the existing slots.
+   */
+  _uploadBlobToNVS(blob, fileBytes) {
+    // Resolve the parsed data-chunk items (in chunk-index order) so we know
+    // each slot's offset/span and can size-check before mutating anything.
+    const sortedChunks = [...blob.chunks].sort((a, b) => a.index - b.index);
+    if (sortedChunks.length === 0) {
+      throw new Error("No data chunks found for this blob.");
+    }
+
+    const dataEntries = [];
+    for (const chunk of sortedChunks) {
+      // chunk.offset points to the payload; the entry header is the 32 bytes before.
+      const entryOff = chunk.offset - 32;
+      const item = this._findItem(entryOff);
+      if (!item || item.datatype !== 0x42) {
+        throw new Error(
+          `Could not locate data entry at 0x${entryOff.toString(16)}.`,
+        );
+      }
+      // span 1 = inline (no payload extension); capacity is (span-1)*32 bytes.
+      const maxSize = (item.span - 1) * 32;
+      dataEntries.push({ item, maxSize });
+    }
+
+    const totalCapacity = dataEntries.reduce((s, e) => s + e.maxSize, 0);
+    if (fileBytes.length > totalCapacity) {
+      throw new Error(
+        `File too large: ${fileBytes.length} bytes, but only ${totalCapacity} bytes ` +
+          `available across ${dataEntries.length} chunk slot(s). ` +
+          `Adding new chunks is not supported.`,
+      );
+    }
+
+    // Distribute payload across chunks sequentially.
+    let writeOffset = 0;
+    for (const { item, maxSize } of dataEntries) {
+      const off = item.offset;
+      const dataOff = off + 32;
+      const remaining = fileBytes.length - writeOffset;
+      const writeLen = Math.min(remaining, maxSize);
+
+      // Wipe the old payload area, then write the new segment.
+      this.data.fill(0xff, dataOff, dataOff + maxSize);
+      if (writeLen > 0) {
+        this.data.set(
+          fileBytes.subarray(writeOffset, writeOffset + writeLen),
+          dataOff,
+        );
+      }
+
+      // Update size field at +24 (u16) — the high two bytes are unused (0xFF).
+      this.data[off + 24] = writeLen & 0xff;
+      this.data[off + 25] = (writeLen >> 8) & 0xff;
+      this.data[off + 26] = 0xff;
+      this.data[off + 27] = 0xff;
+
+      // Update data CRC at +28 (u32 little-endian).
+      const segData = this.data.subarray(dataOff, dataOff + writeLen);
+      const dataCrc = NVSEditor.crc32(segData, 0, writeLen);
+      const dv = new DataView(
+        this.data.buffer,
+        this.data.byteOffset + off + 28,
+        4,
+      );
+      dv.setUint32(0, dataCrc >>> 0, true);
+
+      // Recalculate header CRC at +4.
+      const hcrc = NVSEditor.crc32Header(this.data, off);
+      const hdv = new DataView(
+        this.data.buffer,
+        this.data.byteOffset + off + 4,
+        4,
+      );
+      hdv.setUint32(0, hcrc >>> 0, true);
+
+      writeOffset += writeLen;
+    }
+
+    // If a blob_index (0x48) entry exists, sync its totalSize at +24 (u32) and
+    // recalc its header CRC. chunkCount stays the same — we did not add slots.
+    if (blob.indexEntry && blob.indexEntry.datatype === 0x48) {
+      const idxOff = blob.indexEntry.offset;
+      const dv = new DataView(
+        this.data.buffer,
+        this.data.byteOffset + idxOff + 24,
+        4,
+      );
+      dv.setUint32(0, fileBytes.length >>> 0, true);
+      const hcrc = NVSEditor.crc32Header(this.data, idxOff);
+      const hdv = new DataView(
+        this.data.buffer,
+        this.data.byteOffset + idxOff + 4,
+        4,
+      );
+      hdv.setUint32(0, hcrc >>> 0, true);
+    }
+
+    this.modified = true;
+    this.pages = this._parse();
+    this._renderContent();
+    this._updateWriteButton();
   }
 }
