@@ -24,7 +24,7 @@
     "build": "npm run prebuild && node update-sw-version.cjs && tsc --skipLibCheck && tsc -p tsconfig.util.json && rollup -c && node -e \"const fs=require('fs'); fs.readdirSync('dist/web').filter(f=>f.endsWith('.js')).forEach(f=>fs.copyFileSync('dist/web/'+f,'js/modules/'+f)); fs.renameSync('js/modules/index.js','js/modules/esptool.js');\" && node fix-cli-imports.cjs",
     "build:binary": "node build-single-binary.cjs",
     "build:cli-electron": "node build-electron-cli.cjs",
-    "format": "npm exec -- prettier --write src",
+    "format": "npm exec -- prettier --write src \"js/*.js\" electron css",
     "dev:clean": "node -e \"const fs=require('fs'); fs.rmSync('dist',{recursive:true,force:true});\"",
     "dev:tsc-once": "tsc",
     "dev:tsc": "tsc --watch",
