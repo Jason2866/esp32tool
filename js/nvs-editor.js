@@ -1790,6 +1790,14 @@ export class NVSEditor {
    * or extend the partition; the new payload must fit in the existing slots.
    */
   _uploadBlobToNVS(blob, fileBytes) {
+    // Refuse 0-byte uploads outright — replacing all chunks with an empty
+    // payload would leave the blob_index as an orphan (totalSize=0,
+    // chunkCount=0) which ESP-IDF NVS does not surface as a valid blob.
+    // Users who want to remove a blob should use the per-entry delete UI.
+    if (fileBytes.length === 0) {
+      throw new Error("Cannot upload an empty file as blob replacement.");
+    }
+
     // Resolve the parsed data-chunk items (in chunk-index order) so we know
     // each slot's offset/span and can size-check before mutating anything.
     const sortedChunks = [...blob.chunks].sort((a, b) => a.index - b.index);
