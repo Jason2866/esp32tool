@@ -87,6 +87,9 @@
     "serialize-javascript": "^7.0.3",
     "@tootallnate/once": "^3.0.1",
     "http-proxy-agent": "^7.0.2",
-    "make-fetch-happen": "^13.0.1"
+    "make-fetch-happen": "^13.0.1",
+    "@electron/rebuild": {
+      "@electron/node-gyp": "^10.2.0-electron.2"
+    }
   }
 }
