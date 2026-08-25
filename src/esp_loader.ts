@@ -4416,43 +4416,52 @@ export class ESPLoader extends EventTarget {
           }
 
           let blockSize: number;
-          let maxInFlight: number;
+          let maxInFlightBytes: number;
 
           if (
             options?.blockSize !== undefined &&
             options?.maxInFlight !== undefined
           ) {
-            // Use user-provided values if in advanced mode
+            // Use user-provided values if in advanced mode.
+            // The stubs interpret max_inflight as a packet window, while the host API
+            // still exposes the legacy byte-based value for backwards compatibility.
             blockSize = options.blockSize;
-            maxInFlight = options.maxInFlight;
+            maxInFlightBytes = options.maxInFlight;
             if (retryCount === 0) {
               this.logger.debug(
-                `Using custom parameters: blockSize=${blockSize}, maxInFlight=${maxInFlight}`,
+                `Using custom parameters: blockSize=${blockSize}, maxInFlight=${maxInFlightBytes}`,
               );
             }
           } else if (this.isWebUSB()) {
-            // WebUSB (Android): All devices use adaptive speed
-            // All have maxTransferSize=64, baseBlockSize=31
+            // WebUSB (Android): All devices use adaptive speed.
+            // All have maxTransferSize=64, baseBlockSize=31.
             const maxTransferSize =
               (this.port as WebUSBSerialPort).maxTransferSize || 64;
             const baseBlockSize = Math.floor((maxTransferSize - 2) / 2); // 31 bytes
 
             // Use current adaptive multipliers (initialized at start of readFlash)
             blockSize = baseBlockSize * this._adaptiveBlockMultiplier;
-            maxInFlight = baseBlockSize * this._adaptiveMaxInFlightMultiplier;
+            maxInFlightBytes =
+              baseBlockSize * this._adaptiveMaxInFlightMultiplier;
           } else {
-            // Web Serial (Desktop): Use multiples of 63 for consistency
+            // Web Serial (Desktop): Use multiples of 63 for consistency.
             const base = 63;
             blockSize = base * 65; // 63 * 65 = 4095 (close to 0x1000)
-            maxInFlight = base * 130; // 63 * 130 = 8190 (close to blockSize * 2)
+            maxInFlightBytes = base * 130; // 63 * 130 = 8190 (close to blockSize * 2)
           }
+
+          const safeBlockSize = Math.max(1, blockSize);
+          const maxInFlightPackets = Math.max(
+            1,
+            Math.ceil(maxInFlightBytes / safeBlockSize),
+          );
 
           const pkt = pack(
             "<IIII",
             currentAddr,
             chunkSize,
             blockSize,
-            maxInFlight,
+            maxInFlightPackets,
           );
 
           const chunkStartTime = Date.now();
@@ -4508,20 +4517,24 @@ export class ESPLoader extends EventTarget {
               newResp.set(packetData, resp.length);
               resp = newResp;
 
-              // Send acknowledgment when we've received maxInFlight bytes
-              // The stub sends packets until (num_sent - num_acked) >= max_in_flight
-              // We MUST wait for all packets before sending ACK
+              // The flasher stub tracks max_inflight in packets, not raw bytes.
+              // The host API historically exposed a byte window, so convert the
+              // configured byte budget back to a packet count before deciding when to ACK.
+              const ackWindowBytes = Math.max(
+                safeBlockSize,
+                maxInFlightPackets * safeBlockSize,
+              );
               const shouldAck =
                 resp.length >= chunkSize || // End of chunk
-                resp.length >= lastAckedLength + maxInFlight; // Received all packets
+                resp.length >= lastAckedLength + ackWindowBytes;
 
               if (shouldAck) {
                 const ackData = pack("<I", resp.length);
                 const slipEncodedAck = slipEncode(ackData);
                 await this.writeToStream(slipEncodedAck);
 
-                // Update lastAckedLength to current response length
-                // This ensures next ACK is sent at the right time
+                // Update lastAckedLength to current response length.
+                // This keeps the ACK cadence aligned with the packet-window limit.
                 lastAckedLength = resp.length;
               }
             }
