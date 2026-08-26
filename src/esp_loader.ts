@@ -4451,8 +4451,6 @@ export class ESPLoader extends EventTarget {
           }
 
           const safeBlockSize = Math.max(1, blockSize);
-          // maxInFlightPackets: how many packets the stub may send before the
-          // first ACK is required.  The new esp-flasher-stub counts packets, not bytes.
           const maxInFlightPackets = Math.max(
             1,
             Math.ceil(maxInFlightBytes / safeBlockSize),
@@ -4519,27 +4517,24 @@ export class ESPLoader extends EventTarget {
               newResp.set(packetData, resp.length);
               resp = newResp;
 
-              // The esp-flasher-stub stub (agents/implement-esptool-legacy-approach) uses
-              // a sliding-window protocol where max_inflight is a PACKET count.
-              // The stub batches up to max_inflight packets (queue_frame) then flushes
-              // them all at once, then waits for exactly ONE ACK frame before sending
-              // the next batch.
-              //
-              // The stub's frame_buffer only holds 2 complete frames. Sending more
-              // ACKs than the stub can process causes ACK frames to be dropped, which
-              // stalls the stub's window and leads to a deadlock.
-              //
-              // Correct ACK cadence: one ACK per window (every maxInFlightPackets packets).
-              // The ACK value is the total bytes received so far (LE32).
-              const ackWindowBytes = maxInFlightPackets * safeBlockSize;
+              // The flasher stub tracks max_inflight in packets, not raw bytes.
+              // The host API historically exposed a byte window, so convert the
+              // configured byte budget back to a packet count before deciding when to ACK.
+              const ackWindowBytes = Math.max(
+                safeBlockSize,
+                maxInFlightPackets * safeBlockSize,
+              );
               const shouldAck =
-                resp.length >= chunkSize || // End of chunk: final ACK
-                resp.length >= lastAckedLength + ackWindowBytes; // After each full window
+                resp.length >= chunkSize || // End of chunk
+                resp.length >= lastAckedLength + ackWindowBytes;
 
               if (shouldAck) {
                 const ackData = pack("<I", resp.length);
                 const slipEncodedAck = slipEncode(ackData);
                 await this.writeToStream(slipEncodedAck);
+
+                // Update lastAckedLength to current response length.
+                // This keeps the ACK cadence aligned with the packet-window limit.
                 lastAckedLength = resp.length;
               }
             }
