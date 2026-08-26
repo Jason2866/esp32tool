@@ -4519,15 +4519,22 @@ export class ESPLoader extends EventTarget {
               newResp.set(packetData, resp.length);
               resp = newResp;
 
-              // The new esp-flasher-stub tracks max_inflight in packets:
-              // it sends up to max_inflight packets then waits for one ACK frame
-              // before it will queue the next packet.
-              // ACK format: SLIP-framed LE32 of total bytes received so far.
-              // We ACK after every received packet so the stub can advance its
-              // window one step at a time and never stalls waiting for a late ACK.
+              // The esp-flasher-stub stub (agents/implement-esptool-legacy-approach) uses
+              // a sliding-window protocol where max_inflight is a PACKET count.
+              // The stub batches up to max_inflight packets (queue_frame) then flushes
+              // them all at once, then waits for exactly ONE ACK frame before sending
+              // the next batch.
+              //
+              // The stub's frame_buffer only holds 2 complete frames. Sending more
+              // ACKs than the stub can process causes ACK frames to be dropped, which
+              // stalls the stub's window and leads to a deadlock.
+              //
+              // Correct ACK cadence: one ACK per window (every maxInFlightPackets packets).
+              // The ACK value is the total bytes received so far (LE32).
+              const ackWindowBytes = maxInFlightPackets * safeBlockSize;
               const shouldAck =
                 resp.length >= chunkSize || // End of chunk: final ACK
-                resp.length >= lastAckedLength + safeBlockSize; // After each packet
+                resp.length >= lastAckedLength + ackWindowBytes; // After each full window
 
               if (shouldAck) {
                 const ackData = pack("<I", resp.length);
