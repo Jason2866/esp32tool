@@ -4405,7 +4405,6 @@ export class ESPLoader extends EventTarget {
       // Retry loop for this chunk
       while (!chunkSuccess && retryCount <= MAX_RETRIES) {
         let resp = new Uint8Array(0);
-        let lastAckedLength = 0; // Track last acknowledged length
 
         try {
           // Only log on first attempt or retries
@@ -4416,44 +4415,42 @@ export class ESPLoader extends EventTarget {
           }
 
           let blockSize: number;
-          let maxInFlightBytes: number;
+          let maxInFlight: number;
 
           if (
             options?.blockSize !== undefined &&
             options?.maxInFlight !== undefined
           ) {
-            // Use user-provided values if in advanced mode.
-            // The stubs interpret max_inflight as a packet window, while the host API
-            // still exposes the legacy byte-based value for backwards compatibility.
+            // Use user-provided values if in advanced mode
             blockSize = options.blockSize;
-            maxInFlightBytes = options.maxInFlight;
+            maxInFlight = options.maxInFlight;
             if (retryCount === 0) {
               this.logger.debug(
-                `Using custom parameters: blockSize=${blockSize}, maxInFlight=${maxInFlightBytes}`,
+                `Using custom parameters: blockSize=${blockSize}, maxInFlight=${maxInFlight}`,
               );
             }
           } else if (this.isWebUSB()) {
-            // WebUSB (Android): All devices use adaptive speed.
-            // All have maxTransferSize=64, baseBlockSize=31.
+            // WebUSB (Android): All devices use adaptive speed
+            // All have maxTransferSize=64, baseBlockSize=31
             const maxTransferSize =
               (this.port as WebUSBSerialPort).maxTransferSize || 64;
             const baseBlockSize = Math.floor((maxTransferSize - 2) / 2); // 31 bytes
 
             // Use current adaptive multipliers (initialized at start of readFlash)
             blockSize = baseBlockSize * this._adaptiveBlockMultiplier;
-            maxInFlightBytes =
-              baseBlockSize * this._adaptiveMaxInFlightMultiplier;
+            maxInFlight = baseBlockSize * this._adaptiveMaxInFlightMultiplier;
           } else {
-            // Web Serial (Desktop): Use multiples of 63 for consistency.
+            // Web Serial (Desktop): Use multiples of 63 for consistency
             const base = 63;
             blockSize = base * 65; // 63 * 65 = 4095 (close to 0x1000)
-            maxInFlightBytes = base * 130; // 63 * 130 = 8190 (close to blockSize * 2)
+            maxInFlight = base * 130; // 63 * 130 = 8190 (close to blockSize * 2)
           }
 
-          const safeBlockSize = Math.max(1, blockSize);
-          const maxInFlightPackets = Math.max(
+          // The stub (legacy approach) interprets the 4th READ_FLASH parameter as
+          // max_unacked_packets (a packet count), not bytes. Convert accordingly.
+          const maxUnackedPackets = Math.max(
             1,
-            Math.ceil(maxInFlightBytes / safeBlockSize),
+            Math.floor(maxInFlight / blockSize),
           );
 
           const pkt = pack(
@@ -4461,7 +4458,7 @@ export class ESPLoader extends EventTarget {
             currentAddr,
             chunkSize,
             blockSize,
-            maxInFlightPackets,
+            maxUnackedPackets,
           );
 
           const chunkStartTime = Date.now();
@@ -4483,11 +4480,12 @@ export class ESPLoader extends EventTarget {
                   `${err.message} at byte 0x${resp.length.toString(16)}`,
                 );
 
-                // Send empty SLIP frame to abort the stub's read operation
-                // The stub expects 4 bytes (ACK), if we send less it will break out
+                // Send a 1-byte SLIP frame to abort the stub's read operation.
+                // The stub checks ack_size == 4; a differently-sized frame
+                // causes it to break out of its send loop.
+                // (Empty frames 0xC0 0xC0 are silently ignored by the stub.)
                 try {
-                  // Send SLIP frame with no data (just delimiters)
-                  const abortFrame = [this.SLIP_END, this.SLIP_END]; // Empty SLIP frame
+                  const abortFrame = [this.SLIP_END, 0x00, this.SLIP_END];
                   await this.writeToStream(abortFrame);
                   this.logger.debug(`Sent abort frame to stub`);
 
@@ -4517,27 +4515,22 @@ export class ESPLoader extends EventTarget {
               newResp.set(packetData, resp.length);
               resp = newResp;
 
-              // The flasher stub tracks max_inflight in packets, not raw bytes.
-              // The host API historically exposed a byte window, so convert the
-              // configured byte budget back to a packet count before deciding when to ACK.
-              const ackWindowBytes = Math.max(
-                safeBlockSize,
-                maxInFlightPackets * safeBlockSize,
-              );
-              const shouldAck =
-                resp.length >= chunkSize || // End of chunk
-                resp.length >= lastAckedLength + ackWindowBytes;
-
-              if (shouldAck) {
-                const ackData = pack("<I", resp.length);
-                const slipEncodedAck = slipEncode(ackData);
-                await this.writeToStream(slipEncodedAck);
-
-                // Update lastAckedLength to current response length.
-                // This keeps the ACK cadence aligned with the packet-window limit.
-                lastAckedLength = resp.length;
-              }
+              // Send ACK after every packet (mirrors Python esptool behaviour).
+              // The stub (legacy approach) uses ACK count for flow-control; sending
+              // after each packet keeps the pipeline flowing without overwhelming
+              // the USB buffer.
+              const ackData = pack("<I", resp.length);
+              const slipEncodedAck = slipEncode(ackData);
+              await this.writeToStream(slipEncodedAck);
             }
+          }
+
+          // The stub sends a 16-byte MD5 hash after every chunk.
+          // Read and discard it so it doesn't corrupt the next command response.
+          try {
+            await this.readPacket(FLASH_READ_TIMEOUT);
+          } catch {
+            // Ignore timeout — stub may not have sent MD5 yet if something failed
           }
 
           // Chunk read successfully - append to all data
