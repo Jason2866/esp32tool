@@ -837,7 +837,7 @@ const FLASH_DEVICES = {
     0x464018: "XT25F128B (128Mbit)",
 };
 
-/*! pako 2.1.0 https://github.com/nodeca/pako @license (MIT AND Zlib) */
+/*! pako 2.2.0 https://github.com/nodeca/pako @license (MIT AND Zlib) */
 // (C) 1995-2013 Jean-loup Gailly and Mark Adler
 // (C) 2014-2017 Vitaly Puzrin and Andrey Tupitsin
 //
@@ -2245,7 +2245,7 @@ const { _tr_init, _tr_stored_block, _tr_flush_block, _tr_tally, _tr_align } = tr
 
 const {
   Z_NO_FLUSH: Z_NO_FLUSH$2, Z_PARTIAL_FLUSH, Z_FULL_FLUSH: Z_FULL_FLUSH$1, Z_FINISH: Z_FINISH$3, Z_BLOCK: Z_BLOCK$1,
-  Z_OK: Z_OK$3, Z_STREAM_END: Z_STREAM_END$3, Z_STREAM_ERROR: Z_STREAM_ERROR$2, Z_DATA_ERROR: Z_DATA_ERROR$2, Z_BUF_ERROR: Z_BUF_ERROR$1,
+  Z_OK: Z_OK$3, Z_STREAM_END: Z_STREAM_END$3, Z_STREAM_ERROR: Z_STREAM_ERROR$2, Z_DATA_ERROR: Z_DATA_ERROR$2, Z_BUF_ERROR: Z_BUF_ERROR$2,
   Z_DEFAULT_COMPRESSION: Z_DEFAULT_COMPRESSION$1,
   Z_FILTERED, Z_HUFFMAN_ONLY, Z_RLE, Z_FIXED, Z_DEFAULT_STRATEGY: Z_DEFAULT_STRATEGY$1,
   Z_UNKNOWN,
@@ -2344,11 +2344,35 @@ const slide_hash = (s) => {
 };
 
 /* eslint-disable new-cap */
-let HASH_ZLIB = (s, prev, data) => ((prev << s.hash_shift) ^ data) & s.hash_mask;
-// This hash causes less collisions, https://github.com/nodeca/pako/issues/135
-// But breaks binary compatibility
-//let HASH_FAST = (s, prev, data) => ((prev << 8) + (prev >> 8) + (data << 4)) & s.hash_mask;
-let HASH = HASH_ZLIB;
+let HASH = (s, prev, data) => ((prev << s.hash_shift) ^ data) & s.hash_mask;
+
+
+/* ===========================================================================
+ * Insert string str in the dictionary and set match_head to the previous head
+ * of the hash chain (the most recent string with same hash key). Return
+ * the previous length of the hash chain.
+ * IN  assertion: all calls to INSERT_STRING are made with consecutive input
+ *    characters and the first MIN_MATCH bytes of str are valid (except for
+ *    the last MIN_MATCH-1 bytes of the input file).
+ */
+const INSERT_STRING = (s, str) => {
+  let h;
+  if (s.legacy_hash) {
+    /* UPDATE_HASH(s, s->ins_h, s->window[(str) + (MIN_MATCH-1)]); */
+    h = s.ins_h = HASH(s, s.ins_h, s.window[str + MIN_MATCH - 1]);
+  } else {
+    // ANZAC++ hash: reads 4 bytes, matches node.js zlib output (legacyHash
+    // restores classic zlib hash). Faster, with fewer collisions.
+    const w = s.window;
+    // Read 4 bytes little-endian. Math.imul reproduces C uint32 overflow in
+    // `(value * 66521 + 66521) >> 16` exactly.
+    const value = w[str] | (w[str + 1] << 8) | (w[str + 2] << 16) | (w[str + 3] << 24);
+    h = s.ins_h = ((Math.imul(value, 66521) + 66521) >>> 16) & s.hash_mask;
+  }
+  const hash_head = s.prev[str & s.w_mask] = s.head[h];
+  s.head[h] = str;
+  return hash_head;
+};
 
 
 /* =========================================================================
@@ -2622,7 +2646,20 @@ const fill_window = (s) => {
     s.lookahead += n;
 
     /* Initialize the hash value now that we have some input: */
-    if (s.lookahead + s.insert >= MIN_MATCH) {
+    if (!s.legacy_hash) {
+      /* The 4-byte hash reads one extra byte, so it needs one more available. */
+      if (s.lookahead + s.insert > MIN_MATCH) {
+        str = s.strstart - s.insert;
+        while (s.insert) {
+          INSERT_STRING(s, str);
+          str++;
+          s.insert--;
+          if (s.lookahead + s.insert <= MIN_MATCH) {
+            break;
+          }
+        }
+      }
+    } else if (s.lookahead + s.insert >= MIN_MATCH) {
       str = s.strstart - s.insert;
       s.ins_h = s.window[str];
 
@@ -2632,11 +2669,7 @@ const fill_window = (s) => {
 //        Call update_hash() MIN_MATCH-3 more times
 //#endif
       while (s.insert) {
-        /* UPDATE_HASH(s, s->ins_h, s->window[str + MIN_MATCH-1]); */
-        s.ins_h = HASH(s, s.ins_h, s.window[str + MIN_MATCH - 1]);
-
-        s.prev[str & s.w_mask] = s.head[s.ins_h];
-        s.head[s.ins_h] = str;
+        INSERT_STRING(s, str);
         str++;
         s.insert--;
         if (s.lookahead + s.insert < MIN_MATCH) {
@@ -2934,11 +2967,7 @@ const deflate_fast = (s, flush) => {
      */
     hash_head = 0/*NIL*/;
     if (s.lookahead >= MIN_MATCH) {
-      /*** INSERT_STRING(s, s.strstart, hash_head); ***/
-      s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + MIN_MATCH - 1]);
-      hash_head = s.prev[s.strstart & s.w_mask] = s.head[s.ins_h];
-      s.head[s.ins_h] = s.strstart;
-      /***/
+      hash_head = INSERT_STRING(s, s.strstart);
     }
 
     /* Find the longest match, discarding those <= prev_length.
@@ -2968,11 +2997,7 @@ const deflate_fast = (s, flush) => {
         s.match_length--; /* string at strstart already in table */
         do {
           s.strstart++;
-          /*** INSERT_STRING(s, s.strstart, hash_head); ***/
-          s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + MIN_MATCH - 1]);
-          hash_head = s.prev[s.strstart & s.w_mask] = s.head[s.ins_h];
-          s.head[s.ins_h] = s.strstart;
-          /***/
+          hash_head = INSERT_STRING(s, s.strstart);
           /* strstart never exceeds WSIZE-MAX_MATCH, so there are
            * always MIN_MATCH bytes ahead.
            */
@@ -2982,16 +3007,18 @@ const deflate_fast = (s, flush) => {
       {
         s.strstart += s.match_length;
         s.match_length = 0;
-        s.ins_h = s.window[s.strstart];
-        /* UPDATE_HASH(s, s.ins_h, s.window[s.strstart+1]); */
-        s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + 1]);
+        if (s.legacy_hash) {
+          s.ins_h = s.window[s.strstart];
+          /* UPDATE_HASH(s, s.ins_h, s.window[s.strstart+1]); */
+          s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + 1]);
 
 //#if MIN_MATCH != 3
 //                Call UPDATE_HASH() MIN_MATCH-3 more times
 //#endif
-        /* If lookahead < MIN_MATCH, ins_h is garbage, but it does not
-         * matter since it will be recomputed at next deflate call.
-         */
+          /* If lookahead < MIN_MATCH, ins_h is garbage, but it does not
+           * matter since it will be recomputed at next deflate call.
+           */
+        }
       }
     } else {
       /* No match, output a literal byte */
@@ -3064,11 +3091,7 @@ const deflate_slow = (s, flush) => {
      */
     hash_head = 0/*NIL*/;
     if (s.lookahead >= MIN_MATCH) {
-      /*** INSERT_STRING(s, s.strstart, hash_head); ***/
-      s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + MIN_MATCH - 1]);
-      hash_head = s.prev[s.strstart & s.w_mask] = s.head[s.ins_h];
-      s.head[s.ins_h] = s.strstart;
-      /***/
+      hash_head = INSERT_STRING(s, s.strstart);
     }
 
     /* Find the longest match, discarding those <= prev_length.
@@ -3116,11 +3139,7 @@ const deflate_slow = (s, flush) => {
       s.prev_length -= 2;
       do {
         if (++s.strstart <= max_insert) {
-          /*** INSERT_STRING(s, s.strstart, hash_head); ***/
-          s.ins_h = HASH(s, s.ins_h, s.window[s.strstart + MIN_MATCH - 1]);
-          hash_head = s.prev[s.strstart & s.w_mask] = s.head[s.ins_h];
-          s.head[s.ins_h] = s.strstart;
-          /***/
+          hash_head = INSERT_STRING(s, s.strstart);
         }
       } while (--s.prev_length !== 0);
       s.match_available = 0;
@@ -3445,6 +3464,7 @@ function DeflateState() {
   this.head = null;   /* Heads of the hash chains or NIL. */
 
   this.ins_h = 0;       /* hash index of string to be inserted */
+  this.legacy_hash = 0; /* use classic zlib hash instead of default ANZAC++ */
   this.hash_size = 0;   /* number of elements in hash table */
   this.hash_bits = 0;   /* log2(hash_size) */
   this.hash_mask = 0;   /* hash_size-1 */
@@ -3667,7 +3687,7 @@ const deflateSetHeader = (strm, head) => {
 };
 
 
-const deflateInit2 = (strm, level, method, windowBits, memLevel, strategy) => {
+const deflateInit2 = (strm, level, method, windowBits, memLevel, strategy, legacyHash) => {
 
   if (!strm) { // === Z_NULL
     return Z_STREAM_ERROR$2;
@@ -3713,7 +3733,13 @@ const deflateInit2 = (strm, level, method, windowBits, memLevel, strategy) => {
   s.w_size = 1 << s.w_bits;
   s.w_mask = s.w_size - 1;
 
+  s.legacy_hash = legacyHash ? 1 : 0;
+
   s.hash_bits = memLevel + 7;
+  /* ANZAC++ hash needs >= 15 hash bits to span its 4 read bytes. */
+  if (!s.legacy_hash && s.hash_bits < 15) {
+    s.hash_bits = 15;
+  }
   s.hash_size = 1 << s.hash_bits;
   s.hash_mask = s.hash_size - 1;
   s.hash_shift = ~~((s.hash_bits + MIN_MATCH - 1) / MIN_MATCH);
@@ -3805,7 +3831,7 @@ const deflate$2 = (strm, flush) => {
   if (!strm.output ||
       (strm.avail_in !== 0 && !strm.input) ||
       (s.status === FINISH_STATE && flush !== Z_FINISH$3)) {
-    return err(strm, (strm.avail_out === 0) ? Z_BUF_ERROR$1 : Z_STREAM_ERROR$2);
+    return err(strm, (strm.avail_out === 0) ? Z_BUF_ERROR$2 : Z_STREAM_ERROR$2);
   }
 
   const old_flush = s.last_flush;
@@ -3831,12 +3857,12 @@ const deflate$2 = (strm, flush) => {
      */
   } else if (strm.avail_in === 0 && rank(flush) <= rank(old_flush) &&
     flush !== Z_FINISH$3) {
-    return err(strm, Z_BUF_ERROR$1);
+    return err(strm, Z_BUF_ERROR$2);
   }
 
   /* User must not provide more input after the first FINISH: */
   if (s.status === FINISH_STATE && strm.avail_in !== 0) {
-    return err(strm, Z_BUF_ERROR$1);
+    return err(strm, Z_BUF_ERROR$2);
   }
 
   /* Write the header */
@@ -4217,12 +4243,7 @@ const deflateSetDictionary = (strm, dictionary) => {
     let str = s.strstart;
     let n = s.lookahead - (MIN_MATCH - 1);
     do {
-      /* UPDATE_HASH(s, s->ins_h, s->window[str + MIN_MATCH-1]); */
-      s.ins_h = HASH(s, s.ins_h, s.window[str + MIN_MATCH - 1]);
-
-      s.prev[str & s.w_mask] = s.head[s.ins_h];
-
-      s.head[s.ins_h] = str;
+      INSERT_STRING(s, str);
       str++;
     } while (--n);
     s.strstart = str;
@@ -4346,7 +4367,7 @@ const _utf8len = new Uint8Array(256);
 for (let q = 0; q < 256; q++) {
   _utf8len[q] = (q >= 252 ? 6 : q >= 248 ? 5 : q >= 240 ? 4 : q >= 224 ? 3 : q >= 192 ? 2 : 1);
 }
-_utf8len[254] = _utf8len[254] = 1; // Invalid sequence start
+_utf8len[254] = _utf8len[255] = 1; // Invalid sequence start
 
 
 // convert string to array (typed, when possible)
@@ -4567,6 +4588,15 @@ const {
 
 /* ===========================================================================*/
 
+const defaultOptions$1 = {
+  level: Z_DEFAULT_COMPRESSION,
+  method: Z_DEFLATED$1,
+  chunkSize: 16384,
+  windowBits: 15,
+  memLevel: 8,
+  strategy: Z_DEFAULT_STRATEGY,
+  legacyHash: true
+};
 
 /**
  * class Deflate
@@ -4622,6 +4652,10 @@ const {
  * [http://zlib.net/manual.html#Advanced](http://zlib.net/manual.html#Advanced)
  * for more information on these.
  *
+ * - `legacyHash` (Boolean) - use the classic zlib hash (default), which matches
+ *   canonical zlib output byte-for-byte. Set to `false` to use the faster
+ *   ANZAC++ hash, which matches recent (chromium) node.js output instead.
+ *
  * Additional options, for internal needs:
  *
  * - `chunkSize` - size of generated data chunks (16K by default)
@@ -4654,14 +4688,7 @@ const {
  * ```
  **/
 function Deflate$1(options) {
-  this.options = common.assign({
-    level: Z_DEFAULT_COMPRESSION,
-    method: Z_DEFLATED$1,
-    chunkSize: 16384,
-    windowBits: 15,
-    memLevel: 8,
-    strategy: Z_DEFAULT_STRATEGY
-  }, options || {});
+  this.options = common.assign({}, defaultOptions$1, options || {});
 
   let opt = this.options;
 
@@ -4687,7 +4714,8 @@ function Deflate$1(options) {
     opt.method,
     opt.windowBits,
     opt.memLevel,
-    opt.strategy
+    opt.strategy,
+    opt.legacyHash
   );
 
   if (status !== Z_OK$2) {

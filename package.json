@@ -1,6 +1,6 @@
 {
   "name": "esp32tool",
-  "version": "1.6.7",
+  "version": "1.7.0",
   "type": "module",
   "description": "Flash & Read ESP devices using WebSerial, Electron, and also Android mobile via WebUSB",
   "main": "electron/main.cjs",
@@ -88,8 +88,15 @@
     "@tootallnate/once": "^3.0.1",
     "http-proxy-agent": "^7.0.2",
     "make-fetch-happen": "^13.0.1",
+    "node-addon-api": "8.3.0",
     "@electron/rebuild": {
       "@electron/node-gyp": "^10.2.0-electron.2"
     }
+  },
+  "allowScripts": {
+    "macos-alias@0.2.12": true,
+    "fs-xattr@0.3.1": true,
+    "usb@2.18.0": true,
+    "electron-winstaller@5.4.4": true
   }
 }
