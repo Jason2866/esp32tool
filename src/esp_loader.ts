@@ -4405,7 +4405,6 @@ export class ESPLoader extends EventTarget {
       // Retry loop for this chunk
       while (!chunkSuccess && retryCount <= MAX_RETRIES) {
         let resp = new Uint8Array(0);
-        let lastAckedLength = 0; // Track last acknowledged length
 
         try {
           // Only log on first attempt or retries
@@ -4447,12 +4446,19 @@ export class ESPLoader extends EventTarget {
             maxInFlight = base * 130; // 63 * 130 = 8190 (close to blockSize * 2)
           }
 
+          // The stub (legacy approach) interprets the 4th READ_FLASH parameter as
+          // max_unacked_packets (a packet count), not bytes. Convert accordingly.
+          const maxUnackedPackets = Math.max(
+            1,
+            Math.ceil(maxInFlight / blockSize),
+          );
+
           const pkt = pack(
             "<IIII",
             currentAddr,
             chunkSize,
             blockSize,
-            maxInFlight,
+            maxUnackedPackets,
           );
 
           const chunkStartTime = Date.now();
@@ -4474,11 +4480,12 @@ export class ESPLoader extends EventTarget {
                   `${err.message} at byte 0x${resp.length.toString(16)}`,
                 );
 
-                // Send empty SLIP frame to abort the stub's read operation
-                // The stub expects 4 bytes (ACK), if we send less it will break out
+                // Send a 1-byte SLIP frame to abort the stub's read operation.
+                // The stub checks ack_size == 4; a differently-sized frame
+                // causes it to break out of its send loop.
+                // (Empty frames 0xC0 0xC0 are silently ignored by the stub.)
                 try {
-                  // Send SLIP frame with no data (just delimiters)
-                  const abortFrame = [this.SLIP_END, this.SLIP_END]; // Empty SLIP frame
+                  const abortFrame = [this.SLIP_END, 0x00, this.SLIP_END];
                   await this.writeToStream(abortFrame);
                   this.logger.debug(`Sent abort frame to stub`);
 
@@ -4508,23 +4515,22 @@ export class ESPLoader extends EventTarget {
               newResp.set(packetData, resp.length);
               resp = newResp;
 
-              // Send acknowledgment when we've received maxInFlight bytes
-              // The stub sends packets until (num_sent - num_acked) >= max_in_flight
-              // We MUST wait for all packets before sending ACK
-              const shouldAck =
-                resp.length >= chunkSize || // End of chunk
-                resp.length >= lastAckedLength + maxInFlight; // Received all packets
-
-              if (shouldAck) {
-                const ackData = pack("<I", resp.length);
-                const slipEncodedAck = slipEncode(ackData);
-                await this.writeToStream(slipEncodedAck);
-
-                // Update lastAckedLength to current response length
-                // This ensures next ACK is sent at the right time
-                lastAckedLength = resp.length;
-              }
+              // Send ACK after every packet (mirrors Python esptool behaviour).
+              // The stub (legacy approach) uses ACK count for flow-control; sending
+              // after each packet keeps the pipeline flowing without overwhelming
+              // the USB buffer.
+              const ackData = pack("<I", resp.length);
+              const slipEncodedAck = slipEncode(ackData);
+              await this.writeToStream(slipEncodedAck);
             }
+          }
+
+          // The stub sends a 16-byte MD5 hash after every chunk.
+          // Read and discard it so it doesn't corrupt the next command response.
+          try {
+            await this.readPacket(FLASH_READ_TIMEOUT);
+          } catch {
+            // Ignore timeout — stub may not have sent MD5 yet if something failed
           }
 
           // Chunk read successfully - append to all data

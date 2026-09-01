@@ -12,6 +12,7 @@ export const FLASH_MANUFACTURERS: Record<number, string> = {
   0x5e: "Zbit",
   0x37: "AMIC",
   0xe0: "Berg Micro",
+  0x46: "XTX Technology",
 };
 
 export const FLASH_DEVICES: Record<number, string> = {
@@ -111,4 +112,8 @@ export const FLASH_DEVICES: Record<number, string> = {
   0xef6011: "W25Q10EW (1Mbit)",
   0xef6012: "W25Q20EW (2Mbit)",
   0xef6013: "W25Q40EW (4Mbit)",
+  0x464015: "XT25F16B (16Mbit)",
+  0x464016: "XT25F32B (32Mbit)",
+  0x464017: "XT25F64B (64Mbit)",
+  0x464018: "XT25F128B (128Mbit)",
 };
