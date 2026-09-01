@@ -732,6 +732,7 @@ const FLASH_MANUFACTURERS = {
     0x5e: "Zbit",
     0x37: "AMIC",
     0xe0: "Berg Micro",
+    0x46: "XTX Technology",
 };
 const FLASH_DEVICES = {
     0x010219: "S25FL256S (256Mbit)",
@@ -830,6 +831,10 @@ const FLASH_DEVICES = {
     0xef6011: "W25Q10EW (1Mbit)",
     0xef6012: "W25Q20EW (2Mbit)",
     0xef6013: "W25Q40EW (4Mbit)",
+    0x464015: "XT25F16B (16Mbit)",
+    0x464016: "XT25F32B (32Mbit)",
+    0x464017: "XT25F64B (64Mbit)",
+    0x464018: "XT25F128B (128Mbit)",
 };
 
 /*! pako 2.1.0 https://github.com/nodeca/pako @license (MIT AND Zlib) */
@@ -8557,7 +8562,7 @@ class ESPLoader extends EventTarget {
                     }
                     // The stub (legacy approach) interprets the 4th READ_FLASH parameter as
                     // max_unacked_packets (a packet count), not bytes. Convert accordingly.
-                    const maxUnackedPackets = Math.max(1, Math.floor(maxInFlight / blockSize));
+                    const maxUnackedPackets = Math.max(1, Math.ceil(maxInFlight / blockSize));
                     const pkt = pack("<IIII", currentAddr, chunkSize, blockSize, maxUnackedPackets);
                     const chunkStartTime = Date.now();
                     const [res] = await this.checkCommand(ESP_READ_FLASH, pkt);
