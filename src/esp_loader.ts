@@ -4450,7 +4450,7 @@ export class ESPLoader extends EventTarget {
           // max_unacked_packets (a packet count), not bytes. Convert accordingly.
           const maxUnackedPackets = Math.max(
             1,
-            Math.floor(maxInFlight / blockSize),
+            Math.ceil(maxInFlight / blockSize),
           );
 
           const pkt = pack(
