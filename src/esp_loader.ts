@@ -67,6 +67,7 @@ import {
   ESP32C6_EFUSE_BLOCK1_ADDR,
   ESP32C61_EFUSE_BLOCK1_ADDR,
   ESP32H2_EFUSE_BLOCK1_ADDR,
+  ESP32H4_EFUSE_BLOCK1_ADDR,
   ESP32P4_EFUSE_BLOCK1_ADDR,
   ESP32S31_EFUSE_BLOCK1_ADDR,
   ESP32S31_RTC_CNTL_WDTWPROTECT_REG,
@@ -106,6 +107,8 @@ import {
   ESP32P4_RTC_CNTL_WDT_WKEY,
   ESP32P4_RTC_CNTL_OPTION1_REG,
   ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
+  ESP32P4_EFUSE_RD_REPEAT_DATA1_REG,
+  ESP32P4_EFUSE_DOWNLOAD_MODE_XPD_ON_MASK,
   ESP32P4_LP_SYSTEM_REG_ANA_XPD_PAD_GROUP_REG,
   ESP32P4_PMU_EXT_LDO_P0_0P1A_ANA_REG,
   ESP32P4_PMU_ANA_0P1A_EN_CUR_LIM_0,
@@ -192,13 +195,6 @@ export class ESPLoader extends EventTarget {
   public get isUsbJtagOrOtg(): boolean | undefined {
     return this._parent ? this._parent._isUsbJtagOrOtg : this._isUsbJtagOrOtg;
   }
-
-  // Adaptive speed adjustment for flash read operations
-  private __adaptiveBlockMultiplier: number = 1;
-  private __adaptiveMaxInFlightMultiplier: number = 1;
-  private __consecutiveSuccessfulChunks: number = 0;
-  private __lastAdaptiveAdjustment: number = 0;
-  private __isCDCDevice: boolean = false;
 
   constructor(
     public port: SerialPort,
@@ -385,74 +381,6 @@ export class ESPLoader extends EventTarget {
     }
   }
 
-  private get _adaptiveBlockMultiplier(): number {
-    return this._parent
-      ? this._parent._adaptiveBlockMultiplier
-      : this.__adaptiveBlockMultiplier;
-  }
-
-  private set _adaptiveBlockMultiplier(value: number) {
-    if (this._parent) {
-      this._parent._adaptiveBlockMultiplier = value;
-    } else {
-      this.__adaptiveBlockMultiplier = value;
-    }
-  }
-
-  private get _adaptiveMaxInFlightMultiplier(): number {
-    return this._parent
-      ? this._parent._adaptiveMaxInFlightMultiplier
-      : this.__adaptiveMaxInFlightMultiplier;
-  }
-
-  private set _adaptiveMaxInFlightMultiplier(value: number) {
-    if (this._parent) {
-      this._parent._adaptiveMaxInFlightMultiplier = value;
-    } else {
-      this.__adaptiveMaxInFlightMultiplier = value;
-    }
-  }
-
-  private get _consecutiveSuccessfulChunks(): number {
-    return this._parent
-      ? this._parent._consecutiveSuccessfulChunks
-      : this.__consecutiveSuccessfulChunks;
-  }
-
-  private set _consecutiveSuccessfulChunks(value: number) {
-    if (this._parent) {
-      this._parent._consecutiveSuccessfulChunks = value;
-    } else {
-      this.__consecutiveSuccessfulChunks = value;
-    }
-  }
-
-  private get _lastAdaptiveAdjustment(): number {
-    return this._parent
-      ? this._parent._lastAdaptiveAdjustment
-      : this.__lastAdaptiveAdjustment;
-  }
-
-  private set _lastAdaptiveAdjustment(value: number) {
-    if (this._parent) {
-      this._parent._lastAdaptiveAdjustment = value;
-    } else {
-      this.__lastAdaptiveAdjustment = value;
-    }
-  }
-
-  private get _isCDCDevice(): boolean {
-    return this._parent ? this._parent._isCDCDevice : this.__isCDCDevice;
-  }
-
-  private set _isCDCDevice(value: boolean) {
-    if (this._parent) {
-      this._parent._isCDCDevice = value;
-    } else {
-      this.__isCDCDevice = value;
-    }
-  }
-
   private detectUSBSerialChip(
     vendorId: number,
     productId: number,
@@ -528,15 +456,6 @@ export class ESPLoader extends EventTarget {
         if (portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x2) {
           this._isESP32S2NativeUSB = true;
         }
-
-        // Detect CDC devices for adaptive speed adjustment
-        // Espressif Native USB (VID: 0x303a) or CH343 (VID: 0x1a86, PID: 0x55d3)
-        if (
-          portInfo.usbVendorId === 0x303a ||
-          (portInfo.usbVendorId === 0x1a86 && portInfo.usbProductId === 0x55d3)
-        ) {
-          this._isCDCDevice = true;
-        }
       }
 
       // Don't await this promise so it doesn't block rest of method.
@@ -549,8 +468,12 @@ export class ESPLoader extends EventTarget {
     // Detect chip type
     await this.detectChip();
 
-    // Power on flash for ESP32-P4 Rev 301 (must be done before loading stub)
-    if (this.chipFamily === CHIP_FAMILY_ESP32P4 && this.chipRevision === 301) {
+    // Power on flash for ESP32-P4 Rev 3.1 (301) & Rev 3.2 (302)
+    // (MUST be done BEFORE loading stub)
+    if (
+      this.chipFamily === CHIP_FAMILY_ESP32P4 &&
+      (this.chipRevision === 301 || this.chipRevision === 302)
+    ) {
       await this.powerOnFlash();
     }
 
@@ -755,6 +678,9 @@ export class ESPLoader extends EventTarget {
         break;
       }
       case CHIP_FAMILY_ESP32H4: {
+        const w3 = await this.readRegister(ESP32H4_EFUSE_BLOCK1_ADDR + 4 * 3);
+        minor = (w3 >> 18) & 0x0f;
+        major = (w3 >> 22) & 0x03;
         break;
       }
       case CHIP_FAMILY_ESP32H21: {
@@ -778,20 +704,36 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * Power on the flash chip for ESP32-P4 Rev 301 (ECO6)
-   * The flash chip is powered off by default on ECO6, when the default flash
-   * voltage changed from 1.8V to 3.3V. This is to prevent damage to 1.8V flash chips.
+   * Power on the flash chip for ESP32-P4 Rev 3.1 (301) & Rev 3.2 (302).
+   * The flash chip is powered off by default on P4 Rev 3.1 (301) & Rev 3.2 (302)
+   * when the default flash voltage changed from 1.8V to 3.3V.
+   * This is to prevent damage to 1.8V flash chips.
    */
   async powerOnFlash(): Promise<void> {
     if (this.chipFamily !== CHIP_FAMILY_ESP32P4) {
       return; // Only needed for ESP32-P4
     }
 
-    if (this.chipRevision !== 301) {
-      return; // Only needed for Rev 301 (ECO6)
+    const revision = this.chipRevision;
+    // Only Rev 3.1 (301) and Rev 3.2 (302) need the flash power handling below.
+    // All other revisions return immediately.
+    if (!revision || (revision !== 301 && revision !== 302)) {
+      return;
     }
 
-    this.logger.debug("Powering on flash for ESP32-P4 Rev 301 (ECO6)");
+    // Rev 3.2 (302) may already have flash XPD asserted by ROM in download mode.
+    // When that efuse bit is set, clear the PMU force-on state and skip the
+    // Rev 3.1-style full power-on sequence.
+    if (revision && revision === 302) {
+      const efuseValue = await this.readRegister(
+        ESP32P4_EFUSE_RD_REPEAT_DATA1_REG,
+      );
+
+      if (efuseValue & ESP32P4_EFUSE_DOWNLOAD_MODE_XPD_ON_MASK) {
+        await this.writeRegister(ESP32P4_PMU_DATE_REG, 0);
+        return;
+      }
+    }
 
     // Power up pad group
     await this.writeRegister(ESP32P4_LP_SYSTEM_REG_ANA_XPD_PAD_GROUP_REG, 1);
@@ -2102,188 +2044,87 @@ export class ESPLoader extends EventTarget {
    * @name readPacket
    * Generator to read SLIP packets from a serial port.
    * Yields one full SLIP packet at a time, raises exception on timeout or invalid data.
-   *
-   * Two implementations:
-   * - Burst: CDC devices (Native USB) and CH343 - very fast processing
-   * - Byte-by-byte: CH340, CP2102, and other USB-Serial adapters - stable fast processing
    */
   async readPacket(timeout: number): Promise<number[]> {
     let partialPacket: number[] | null = null;
     let inEscape = false;
+    let readBytes: number[] = [];
+    while (true) {
+      // Check abandon flag (for reset strategy timeout)
+      if (this._abandonCurrentOperation) {
+        throw new SlipReadError("Operation abandoned (reset strategy timeout)");
+      }
 
-    // CDC devices use burst processing, non-CDC use byte-by-byte
-    if (this._isCDCDevice) {
-      // Burst version: Process all available bytes in one pass for ultra-high-speed transfers
-      // Used for: CDC devices (all platforms) and CH343
-      const startTime = Date.now();
-
-      while (true) {
-        // Check abandon flag (for reset strategy timeout)
-        if (this._abandonCurrentOperation) {
-          throw new SlipReadError(
-            "Operation abandoned (reset strategy timeout)",
-          );
-        }
-
-        // Check timeout
-        if (Date.now() - startTime > timeout) {
-          const waitingFor = partialPacket === null ? "header" : "content";
-          throw new SlipReadError("Timed out waiting for packet " + waitingFor);
-        }
-
-        // If no data available, wait a bit
-        if (this._inputBufferAvailable === 0) {
+      const stamp = Date.now();
+      readBytes = [];
+      while (Date.now() - stamp < timeout) {
+        if (this._inputBufferAvailable > 0) {
+          readBytes.push(this._readByte()!);
+          break;
+        } else {
+          // Reduced sleep time for faster response during high-speed transfers
           await sleep(1);
-          continue;
-        }
-
-        // Process all available bytes without going back to outer loop
-        // This is critical for handling high-speed burst transfers
-        while (this._inputBufferAvailable > 0) {
-          // Periodic timeout check to prevent hang on slow data
-          if (Date.now() - startTime > timeout) {
-            const waitingFor = partialPacket === null ? "header" : "content";
-            throw new SlipReadError(
-              "Timed out waiting for packet " + waitingFor,
-            );
-          }
-          const byte = this._readByte()!;
-
-          if (partialPacket === null) {
-            // waiting for packet header
-            if (byte == this.SLIP_END) {
-              partialPacket = [];
-            } else {
-              if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(byte));
-                this.logger.debug(
-                  "Remaining data in serial buffer: " +
-                    hexFormatter(this._inputBuffer),
-                );
-              }
-              throw new SlipReadError(
-                "Invalid head of packet (" + toHex(byte) + ")",
-              );
-            }
-          } else if (inEscape) {
-            // part-way through escape sequence
-            inEscape = false;
-            if (byte == this.SLIP_ESC_END) {
-              partialPacket.push(this.SLIP_END);
-            } else if (byte == this.SLIP_ESC_ESC) {
-              partialPacket.push(this.SLIP_ESC);
-            } else {
-              if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(byte));
-                this.logger.debug(
-                  "Remaining data in serial buffer: " +
-                    hexFormatter(this._inputBuffer),
-                );
-              }
-              throw new SlipReadError(
-                "Invalid SLIP escape (0xdb, " + toHex(byte) + ")",
-              );
-            }
-          } else if (byte == this.SLIP_ESC) {
-            // start of escape sequence
-            inEscape = true;
-          } else if (byte == this.SLIP_END) {
-            // end of packet
-            if (this.debug)
-              this.logger.debug(
-                "Received full packet: " + hexFormatter(partialPacket),
-              );
-            // Compact buffer periodically to prevent memory growth
-            this._compactInputBuffer();
-            return partialPacket;
-          } else {
-            // normal byte in packet
-            partialPacket.push(byte);
-          }
         }
       }
-    } else {
-      // Byte-by-byte version: Stable for non CDC USB-Serial adapters (CH340, CP2102, etc.)
-      let readBytes: number[] = [];
-      while (true) {
-        // Check abandon flag (for reset strategy timeout)
-        if (this._abandonCurrentOperation) {
-          throw new SlipReadError(
-            "Operation abandoned (reset strategy timeout)",
-          );
-        }
-
-        const stamp = Date.now();
-        readBytes = [];
-        while (Date.now() - stamp < timeout) {
-          if (this._inputBufferAvailable > 0) {
-            readBytes.push(this._readByte()!);
-            break;
+      if (readBytes.length == 0) {
+        const waitingFor = partialPacket === null ? "header" : "content";
+        throw new SlipReadError("Timed out waiting for packet " + waitingFor);
+      }
+      if (this.debug)
+        this.logger.debug(
+          "Read " + readBytes.length + " bytes: " + hexFormatter(readBytes),
+        );
+      for (const byte of readBytes) {
+        if (partialPacket === null) {
+          // waiting for packet header
+          if (byte == this.SLIP_END) {
+            partialPacket = [];
           } else {
-            // Reduced sleep time for faster response during high-speed transfers
-            await sleep(1);
-          }
-        }
-        if (readBytes.length == 0) {
-          const waitingFor = partialPacket === null ? "header" : "content";
-          throw new SlipReadError("Timed out waiting for packet " + waitingFor);
-        }
-        if (this.debug)
-          this.logger.debug(
-            "Read " + readBytes.length + " bytes: " + hexFormatter(readBytes),
-          );
-        for (const byte of readBytes) {
-          if (partialPacket === null) {
-            // waiting for packet header
-            if (byte == this.SLIP_END) {
-              partialPacket = [];
-            } else {
-              if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(byte));
-                this.logger.debug(
-                  "Remaining data in serial buffer: " +
-                    hexFormatter(this._inputBuffer),
-                );
-              }
-              throw new SlipReadError(
-                "Invalid head of packet (" + toHex(byte) + ")",
-              );
-            }
-          } else if (inEscape) {
-            // part-way through escape sequence
-            inEscape = false;
-            if (byte == this.SLIP_ESC_END) {
-              partialPacket.push(this.SLIP_END);
-            } else if (byte == this.SLIP_ESC_ESC) {
-              partialPacket.push(this.SLIP_ESC);
-            } else {
-              if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(byte));
-                this.logger.debug(
-                  "Remaining data in serial buffer: " +
-                    hexFormatter(this._inputBuffer),
-                );
-              }
-              throw new SlipReadError(
-                "Invalid SLIP escape (0xdb, " + toHex(byte) + ")",
-              );
-            }
-          } else if (byte == this.SLIP_ESC) {
-            // start of escape sequence
-            inEscape = true;
-          } else if (byte == this.SLIP_END) {
-            // end of packet
-            if (this.debug)
+            if (this.debug) {
+              this.logger.debug("Read invalid data: " + toHex(byte));
               this.logger.debug(
-                "Received full packet: " + hexFormatter(partialPacket),
+                "Remaining data in serial buffer: " +
+                  hexFormatter(this._inputBuffer),
               );
-            // Compact buffer periodically to prevent memory growth
-            this._compactInputBuffer();
-            return partialPacket;
-          } else {
-            // normal byte in packet
-            partialPacket.push(byte);
+            }
+            throw new SlipReadError(
+              "Invalid head of packet (" + toHex(byte) + ")",
+            );
           }
+        } else if (inEscape) {
+          // part-way through escape sequence
+          inEscape = false;
+          if (byte == this.SLIP_ESC_END) {
+            partialPacket.push(this.SLIP_END);
+          } else if (byte == this.SLIP_ESC_ESC) {
+            partialPacket.push(this.SLIP_ESC);
+          } else {
+            if (this.debug) {
+              this.logger.debug("Read invalid data: " + toHex(byte));
+              this.logger.debug(
+                "Remaining data in serial buffer: " +
+                  hexFormatter(this._inputBuffer),
+              );
+            }
+            throw new SlipReadError(
+              "Invalid SLIP escape (0xdb, " + toHex(byte) + ")",
+            );
+          }
+        } else if (byte == this.SLIP_ESC) {
+          // start of escape sequence
+          inEscape = true;
+        } else if (byte == this.SLIP_END) {
+          // end of packet
+          if (this.debug)
+            this.logger.debug(
+              "Received full packet: " + hexFormatter(partialPacket),
+            );
+          // Compact buffer periodically to prevent memory growth
+          this._compactInputBuffer();
+          return partialPacket;
+        } else {
+          // normal byte in packet
+          partialPacket.push(byte);
         }
       }
     }
@@ -2774,26 +2615,18 @@ export class ESPLoader extends EventTarget {
       eraseSize = size;
     }
 
-    const timeout = this.IS_STUB
-      ? DEFAULT_TIMEOUT
-      : timeoutPerMb(ERASE_REGION_TIMEOUT_PER_MB, size);
+    const timeout = timeoutPerMb(ERASE_REGION_TIMEOUT_PER_MB, size);
 
     const stamp = Date.now();
     let buffer = pack("<IIII", eraseSize, numBlocks, flashWriteSize, offset);
+    // ESP32/ESP8266 ROM bootloaders use the legacy 4-word format,
+    // while stubs and newer ROMs accept the 5th "encrypted" word.
+    // Reference:
+    // https://github.com/espressif/esptool/blob/c7dd1c6ffe4266ba398d44b6c43678263570b8ac/esptool/loader.py#L1091
     if (
-      this.chipFamily == CHIP_FAMILY_ESP32 ||
-      this.chipFamily == CHIP_FAMILY_ESP32S2 ||
-      this.chipFamily == CHIP_FAMILY_ESP32S3 ||
-      this.chipFamily == CHIP_FAMILY_ESP32C2 ||
-      this.chipFamily == CHIP_FAMILY_ESP32C3 ||
-      this.chipFamily == CHIP_FAMILY_ESP32C5 ||
-      this.chipFamily == CHIP_FAMILY_ESP32C6 ||
-      this.chipFamily == CHIP_FAMILY_ESP32C61 ||
-      this.chipFamily == CHIP_FAMILY_ESP32H2 ||
-      this.chipFamily == CHIP_FAMILY_ESP32H4 ||
-      this.chipFamily == CHIP_FAMILY_ESP32H21 ||
-      this.chipFamily == CHIP_FAMILY_ESP32P4 ||
-      this.chipFamily == CHIP_FAMILY_ESP32S31
+      this.IS_STUB ||
+      (this.chipFamily != CHIP_FAMILY_ESP32 &&
+        this.chipFamily != CHIP_FAMILY_ESP8266)
     ) {
       buffer = buffer.concat(pack("<I", encrypted ? 1 : 0));
     }
@@ -3117,7 +2950,17 @@ export class ESPLoader extends EventTarget {
   async memFinish(entrypoint = 0) {
     const timeout = this.IS_STUB ? DEFAULT_TIMEOUT : MEM_END_ROM_TIMEOUT;
     const data = pack("<II", entrypoint == 0 ? 1 : 0, entrypoint);
-    return await this.checkCommand(ESP_MEM_END, data, 0, timeout);
+    try {
+      return await this.checkCommand(ESP_MEM_END, data, 0, timeout);
+    } catch (err) {
+      if (this.IS_STUB) {
+        throw err;
+      }
+      if (this.debug) {
+        this.logger.debug(`Ignoring ROM MEM_END error: ${err}`);
+      }
+      return [0, []];
+    }
   }
 
   async runStub(skipFlashDetection = false): Promise<EspStubLoader> {
@@ -3156,13 +2999,14 @@ export class ESPLoader extends EventTarget {
     }
     await this.memFinish(stub.entry);
 
-    const p = await this.readPacket(500);
+    const p = await this.readPacket(2500);
     const pChar = String.fromCharCode(...p);
 
     if (pChar != "OHAI") {
       throw new Error("Failed to start stub. Unexpected response: " + pChar);
     }
     this.logger.debug("Stub is now running...");
+    this._commandLock = Promise.resolve([0, []]);
     const espStubLoader = new EspStubLoader(this.port, this.logger, this);
 
     // Try to autodetect the flash size.
@@ -3923,10 +3767,11 @@ export class ESPLoader extends EventTarget {
         throw new Error("Port not ready after reconnect");
       }
 
-      // Power on flash for ESP32-P4 Rev 301 (must be done before loading stub)
+      // Power on flash for ESP32-P4 Rev 3.1 (301) & Rev 3.2 (302)
+      // (MUST be done BEFORE loading stub)
       if (
         this.chipFamily === CHIP_FAMILY_ESP32P4 &&
-        this.chipRevision === 301
+        (this.chipRevision === 301 || this.chipRevision === 302)
       ) {
         await this.powerOnFlash();
       }
@@ -4319,8 +4164,8 @@ export class ESPLoader extends EventTarget {
    * @param onPacketReceived - Optional callback function called when packet is received
    * @param options - Optional parameters for advanced control
    *   - chunkSize: Amount of data to request from ESP in one command (bytes)
-   *   - blockSize: Size of each data block sent by ESP (bytes)
-   *   - maxInFlight: Maximum unacknowledged bytes (bytes)
+   *   - blockSize: Size of each packet sent by the stub (bytes)
+   *   - maxInFlight: Maximum number of unacknowledged packets
    * @returns Uint8Array containing the flash data
    */
   async readFlash(
@@ -4351,27 +4196,6 @@ export class ESPLoader extends EventTarget {
     this.logger.log(
       `Reading ${size} bytes from flash at address 0x${addr.toString(16)}...`,
     );
-
-    // Initialize adaptive speed multipliers for WebUSB devices
-    if (this.isWebUSB()) {
-      if (this._isCDCDevice) {
-        // CDC devices (CH343): Start with maximum, adaptive adjustment enabled
-        this._adaptiveBlockMultiplier = 8; // blockSize = 248 bytes
-        this._adaptiveMaxInFlightMultiplier = 8; // maxInFlight = 248 bytes
-        this._consecutiveSuccessfulChunks = 0;
-        this.logger.debug(
-          `CDC device - Initialized: blockMultiplier=${this._adaptiveBlockMultiplier}, maxInFlightMultiplier=${this._adaptiveMaxInFlightMultiplier}`,
-        );
-      } else {
-        // Non-CDC devices (CH340, CP2102): Fixed values, no adaptive adjustment
-        this._adaptiveBlockMultiplier = 1; // blockSize = 31 bytes (fixed)
-        this._adaptiveMaxInFlightMultiplier = 1; // maxInFlight = 31 bytes (fixed)
-        this._consecutiveSuccessfulChunks = 0;
-        this.logger.debug(
-          `Non-CDC device - Fixed values: blockSize=31, maxInFlight=31`,
-        );
-      }
-    }
 
     // Chunk size: Amount of data to request from ESP in one command
     // For WebUSB (Android), use smaller chunks to avoid timeouts and buffer issues
@@ -4414,51 +4238,41 @@ export class ESPLoader extends EventTarget {
             );
           }
 
-          let blockSize: number;
-          let maxInFlight: number;
+          let packetSize: number;
+          let maxInFlightPackets: number;
 
           if (
             options?.blockSize !== undefined &&
             options?.maxInFlight !== undefined
           ) {
-            // Use user-provided values if in advanced mode
-            blockSize = options.blockSize;
-            maxInFlight = options.maxInFlight;
+            // READ_FLASH expects packet size and max in-flight packet count.
+            packetSize = options.blockSize;
+            maxInFlightPackets = options.maxInFlight;
             if (retryCount === 0) {
               this.logger.debug(
-                `Using custom parameters: blockSize=${blockSize}, maxInFlight=${maxInFlight}`,
+                `Using custom parameters: packetSize=${packetSize}, maxInFlightPackets=${maxInFlightPackets}`,
               );
             }
           } else if (this.isWebUSB()) {
-            // WebUSB (Android): All devices use adaptive speed
-            // All have maxTransferSize=64, baseBlockSize=31
+            // WebUSB (Android): Use a smaller packet size, matching the
+            // protocol semantics used by esptool: packet size plus max
+            // in-flight packet count.
             const maxTransferSize =
               (this.port as WebUSBSerialPort).maxTransferSize || 64;
-            const baseBlockSize = Math.floor((maxTransferSize - 2) / 2); // 31 bytes
-
-            // Use current adaptive multipliers (initialized at start of readFlash)
-            blockSize = baseBlockSize * this._adaptiveBlockMultiplier;
-            maxInFlight = baseBlockSize * this._adaptiveMaxInFlightMultiplier;
+            packetSize = Math.floor((maxTransferSize - 2) / 2); // 31 bytes
+            maxInFlightPackets = 8;
           } else {
-            // Web Serial (Desktop): Use multiples of 63 for consistency
-            const base = 63;
-            blockSize = base * 65; // 63 * 65 = 4095 (close to 0x1000)
-            maxInFlight = base * 130; // 63 * 130 = 8190 (close to blockSize * 2)
+            // Web Serial (Desktop): Match esptool's default READ_FLASH protocol.
+            packetSize = FLASH_SECTOR_SIZE;
+            maxInFlightPackets = 64;
           }
-
-          // The stub (legacy approach) interprets the 4th READ_FLASH parameter as
-          // max_unacked_packets (a packet count), not bytes. Convert accordingly.
-          const maxUnackedPackets = Math.max(
-            1,
-            Math.ceil(maxInFlight / blockSize),
-          );
 
           const pkt = pack(
             "<IIII",
             currentAddr,
             chunkSize,
-            blockSize,
-            maxUnackedPackets,
+            packetSize,
+            maxInFlightPackets,
           );
 
           const chunkStartTime = Date.now();
@@ -4515,10 +4329,8 @@ export class ESPLoader extends EventTarget {
               newResp.set(packetData, resp.length);
               resp = newResp;
 
-              // Send ACK after every packet (mirrors Python esptool behaviour).
-              // The stub (legacy approach) uses ACK count for flow-control; sending
-              // after each packet keeps the pipeline flowing without overwhelming
-              // the USB buffer.
+              // READ_FLASH ACKs are sent after each received SLIP data packet and
+              // contain the total number of bytes received so far.
               const ackData = pack("<I", resp.length);
               const slipEncodedAck = slipEncode(ackData);
               await this.writeToStream(slipEncodedAck);
@@ -4550,92 +4362,8 @@ export class ESPLoader extends EventTarget {
           this.logger.debug(
             `Chunk read took ${chunkDuration} ms (${resp.length} bytes, ${speedKBs} KB/s)`,
           );
-
-          // ADAPTIVE SPEED ADJUSTMENT: Only for CDC devices
-          // Non-CDC devices (CH340, CP2102) stay at fixed blockSize=31, maxInFlight=31
-          if (this.isWebUSB() && this._isCDCDevice && retryCount === 0) {
-            this._consecutiveSuccessfulChunks++;
-
-            // After 2 consecutive successful chunks, increase speed gradually
-            if (this._consecutiveSuccessfulChunks >= 2) {
-              const maxTransferSize =
-                (this.port as WebUSBSerialPort).maxTransferSize || 64;
-              const baseBlockSize = Math.floor((maxTransferSize - 2) / 2); // 31 bytes
-
-              // Maximum: blockSize=248 (8 * 31), maxInFlight=248 (8 * 31)
-              const MAX_BLOCK_MULTIPLIER = 8; // 248 bytes - tested stable
-              const MAX_INFLIGHT_MULTIPLIER = 8; // 248 bytes - tested stable
-
-              let adjusted = false;
-
-              // Increase blockSize first (up to 248), then maxInFlight
-              if (this._adaptiveBlockMultiplier < MAX_BLOCK_MULTIPLIER) {
-                this._adaptiveBlockMultiplier = Math.min(
-                  this._adaptiveBlockMultiplier * 2,
-                  MAX_BLOCK_MULTIPLIER,
-                );
-                adjusted = true;
-              }
-              // Once blockSize is at maximum, increase maxInFlight
-              else if (
-                this._adaptiveMaxInFlightMultiplier < MAX_INFLIGHT_MULTIPLIER
-              ) {
-                this._adaptiveMaxInFlightMultiplier = Math.min(
-                  this._adaptiveMaxInFlightMultiplier * 2,
-                  MAX_INFLIGHT_MULTIPLIER,
-                );
-                adjusted = true;
-              }
-
-              if (adjusted) {
-                const newBlockSize =
-                  baseBlockSize * this._adaptiveBlockMultiplier;
-                const newMaxInFlight =
-                  baseBlockSize * this._adaptiveMaxInFlightMultiplier;
-                this.logger.debug(
-                  `Speed increased: blockSize=${newBlockSize}, maxInFlight=${newMaxInFlight}`,
-                );
-                this._lastAdaptiveAdjustment = Date.now();
-              }
-
-              // Reset counter
-              this._consecutiveSuccessfulChunks = 0;
-            }
-          }
         } catch (err) {
           retryCount++;
-
-          // ADAPTIVE SPEED ADJUSTMENT: Only for CDC devices
-          // Non-CDC devices stay at fixed values
-          if (this.isWebUSB() && this._isCDCDevice && retryCount === 1) {
-            // Only reduce if we're above minimum
-            if (
-              this._adaptiveBlockMultiplier > 1 ||
-              this._adaptiveMaxInFlightMultiplier > 1
-            ) {
-              // Reduce to minimum on error
-              this._adaptiveBlockMultiplier = 1; // 31 bytes (for CH343)
-              this._adaptiveMaxInFlightMultiplier = 1; // 31 bytes
-              this._consecutiveSuccessfulChunks = 0; // Reset success counter
-
-              const maxTransferSize =
-                (this.port as WebUSBSerialPort).maxTransferSize || 64;
-              const baseBlockSize = Math.floor((maxTransferSize - 2) / 2);
-              const newBlockSize =
-                baseBlockSize * this._adaptiveBlockMultiplier;
-              const newMaxInFlight =
-                baseBlockSize * this._adaptiveMaxInFlightMultiplier;
-
-              this.logger.debug(
-                `Error at higher speed - reduced to minimum: blockSize=${newBlockSize}, maxInFlight=${newMaxInFlight}`,
-              );
-            } else {
-              // Already at minimum and still failing - this is a real error
-              this.logger.debug(
-                `Error at minimum speed (blockSize=31, maxInFlight=31) - not a speed issue`,
-              );
-            }
-          }
 
           // Check if it's a timeout error or SLIP error
           if (err instanceof SlipReadError) {
