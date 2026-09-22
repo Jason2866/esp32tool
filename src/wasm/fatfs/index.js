@@ -362,7 +362,14 @@ function resolveWasmURL(input) {
         : undefined;
     const baseHref = locationLike?.href;
     try {
-        return baseHref ? new URL(input, baseHref) : new URL(input);
+        const resolved = baseHref ? new URL(input, baseHref) : new URL(input);
+        if (resolved.protocol !== "http:" && resolved.protocol !== "https:") {
+            throw new Error(`Unsupported wasm URL protocol "${resolved.protocol}"`);
+        }
+        if (baseHref && resolved.origin !== new URL(baseHref).origin) {
+            throw new Error(`Cross-origin wasm URL "${resolved.origin}" is not allowed`);
+        }
+        return resolved;
     }
     catch (error) {
         throw new Error(`Unable to resolve wasm URL from "${input}": ${String(error)}`);
