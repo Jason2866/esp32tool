@@ -97,6 +97,7 @@
     "macos-alias@0.2.12": true,
     "fs-xattr@0.3.1": true,
     "usb@2.18.0": true,
-    "electron-winstaller@5.4.4": true
+    "electron-winstaller@5.4.4": true,
+    "fsevents@2.3.3": true
   }
 }

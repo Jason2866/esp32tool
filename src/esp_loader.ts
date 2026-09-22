@@ -113,6 +113,8 @@ import {
   ESP32P4_PMU_0P1A_TARGET0_0,
   ESP32P4_PMU_0P1A_FORCE_TIEH_SEL_0,
   ESP32P4_PMU_DATE_REG,
+  ESP32P4_EFUSE_RD_REPEAT_DATA1_REG,
+  ESP32P4_EFUSE_DOWNLOAD_MODE_XPD_ON_MASK,
   ESP32S2_UARTDEV_BUF_NO,
   ESP32S2_UARTDEV_BUF_NO_USB_OTG,
   ESP32S3_UARTDEV_BUF_NO,
@@ -130,8 +132,10 @@ import {
   ESP32C61_UARTDEV_BUF_NO_USB_JTAG_SERIAL_REV_GT2,
   ESP32H2_UARTDEV_BUF_NO,
   ESP32H2_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
+  ESP32H21_EFUSE_BLOCK1_ADDR,
   ESP32H4_UARTDEV_BUF_NO,
   ESP32H4_UARTDEV_BUF_NO_USB_JTAG_SERIAL,
+  ESP32H4_EFUSE_BLOCK1_ADDR,
   ESP32P4_UARTDEV_BUF_NO_REV0,
   ESP32P4_UARTDEV_BUF_NO_REV300,
   ESP32P4_UARTDEV_BUF_NO_USB_OTG,
@@ -549,8 +553,12 @@ export class ESPLoader extends EventTarget {
     // Detect chip type
     await this.detectChip();
 
-    // Power on flash for ESP32-P4 Rev 301 (must be done before loading stub)
-    if (this.chipFamily === CHIP_FAMILY_ESP32P4 && this.chipRevision === 301) {
+    // Power on flash for ESP32-P4 Rev 3.1 (301) & Rev 3.2 (302)
+    // (MUST be done BEFORE loading stub)
+    if (
+      this.chipFamily === CHIP_FAMILY_ESP32P4 &&
+      (this.chipRevision === 301 || this.chipRevision === 302)
+    ) {
       await this.powerOnFlash();
     }
 
@@ -755,9 +763,16 @@ export class ESPLoader extends EventTarget {
         break;
       }
       case CHIP_FAMILY_ESP32H4: {
+        const w3 = await this.readRegister(ESP32H4_EFUSE_BLOCK1_ADDR + 4 * 3);
+        minor = (w3 >> 18) & 0x0f;
+        major = (w3 >> 22) & 0x03;
         break;
       }
       case CHIP_FAMILY_ESP32H21: {
+        // pkg: EFUSE_BLOCK1 word 5 bits 13:11, minor: word 5 bits 7:4, major: word 5 bits 9:8
+        const w5 = await this.readRegister(ESP32H21_EFUSE_BLOCK1_ADDR + 4 * 5);
+        minor = (w5 >> 4) & 0x0f;
+        major = (w5 >> 8) & 0x03;
         break;
       }
       case CHIP_FAMILY_ESP32P4: {
@@ -778,20 +793,36 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * Power on the flash chip for ESP32-P4 Rev 301 (ECO6)
-   * The flash chip is powered off by default on ECO6, when the default flash
-   * voltage changed from 1.8V to 3.3V. This is to prevent damage to 1.8V flash chips.
+   * Power on the flash chip for ESP32-P4 Rev 3.1 (301) & Rev 3.2 (302).
+   * The flash chip is powered off by default on P4 Rev 3.1 (301) & Rev 3.2 (302)
+   * when the default flash voltage changed from 1.8V to 3.3V.
+   * This is to prevent damage to 1.8V flash chips.
    */
   async powerOnFlash(): Promise<void> {
     if (this.chipFamily !== CHIP_FAMILY_ESP32P4) {
       return; // Only needed for ESP32-P4
     }
 
-    if (this.chipRevision !== 301) {
-      return; // Only needed for Rev 301 (ECO6)
+    const revision = this.chipRevision;
+    // Only Rev 3.1 (301) and Rev 3.2 (302) need the flash power handling below.
+    // All other revisions return immediately.
+    if (!revision || (revision !== 301 && revision !== 302)) {
+      return;
     }
 
-    this.logger.debug("Powering on flash for ESP32-P4 Rev 301 (ECO6)");
+    // Rev 3.2 (302) may already have flash XPD asserted by ROM in download mode.
+    // When that efuse bit is set, clear the PMU force-on state and skip the
+    // Rev 3.1-style full power-on sequence.
+    if (revision && revision === 302) {
+      const efuseValue = await this.readRegister(
+        ESP32P4_EFUSE_RD_REPEAT_DATA1_REG,
+      );
+
+      if (efuseValue & ESP32P4_EFUSE_DOWNLOAD_MODE_XPD_ON_MASK) {
+        await this.writeRegister(ESP32P4_PMU_DATE_REG, 0);
+        return;
+      }
+    }
 
     // Power up pad group
     await this.writeRegister(ESP32P4_LP_SYSTEM_REG_ANA_XPD_PAD_GROUP_REG, 1);
@@ -2780,20 +2811,14 @@ export class ESPLoader extends EventTarget {
 
     const stamp = Date.now();
     let buffer = pack("<IIII", eraseSize, numBlocks, flashWriteSize, offset);
+    // ESP32/ESP8266 ROM bootloaders use the legacy 4-word format,
+    // while stubs and newer ROMs accept the 5th "encrypted" word.
+    // Reference:
+    // https://github.com/espressif/esptool/blob/c7dd1c6ffe4266ba398d44b6c43678263570b8ac/esptool/loader.py#L1091
     if (
-      this.chipFamily == CHIP_FAMILY_ESP32 ||
-      this.chipFamily == CHIP_FAMILY_ESP32S2 ||
-      this.chipFamily == CHIP_FAMILY_ESP32S3 ||
-      this.chipFamily == CHIP_FAMILY_ESP32C2 ||
-      this.chipFamily == CHIP_FAMILY_ESP32C3 ||
-      this.chipFamily == CHIP_FAMILY_ESP32C5 ||
-      this.chipFamily == CHIP_FAMILY_ESP32C6 ||
-      this.chipFamily == CHIP_FAMILY_ESP32C61 ||
-      this.chipFamily == CHIP_FAMILY_ESP32H2 ||
-      this.chipFamily == CHIP_FAMILY_ESP32H4 ||
-      this.chipFamily == CHIP_FAMILY_ESP32H21 ||
-      this.chipFamily == CHIP_FAMILY_ESP32P4 ||
-      this.chipFamily == CHIP_FAMILY_ESP32S31
+      this.IS_STUB ||
+      (this.chipFamily != CHIP_FAMILY_ESP32 &&
+        this.chipFamily != CHIP_FAMILY_ESP8266)
     ) {
       buffer = buffer.concat(pack("<I", encrypted ? 1 : 0));
     }
@@ -3117,7 +3142,17 @@ export class ESPLoader extends EventTarget {
   async memFinish(entrypoint = 0) {
     const timeout = this.IS_STUB ? DEFAULT_TIMEOUT : MEM_END_ROM_TIMEOUT;
     const data = pack("<II", entrypoint == 0 ? 1 : 0, entrypoint);
-    return await this.checkCommand(ESP_MEM_END, data, 0, timeout);
+    try {
+      return await this.checkCommand(ESP_MEM_END, data, 0, timeout);
+    } catch (err) {
+      if (this.IS_STUB) {
+        throw err;
+      }
+      if (this.debug) {
+        this.logger.debug(`Ignoring ROM MEM_END error: ${err}`);
+      }
+      return [0, []];
+    }
   }
 
   async runStub(skipFlashDetection = false): Promise<EspStubLoader> {
@@ -3163,6 +3198,7 @@ export class ESPLoader extends EventTarget {
       throw new Error("Failed to start stub. Unexpected response: " + pChar);
     }
     this.logger.debug("Stub is now running...");
+    this._commandLock = Promise.resolve([0, []]);
     const espStubLoader = new EspStubLoader(this.port, this.logger, this);
 
     // Try to autodetect the flash size.
@@ -3923,10 +3959,11 @@ export class ESPLoader extends EventTarget {
         throw new Error("Port not ready after reconnect");
       }
 
-      // Power on flash for ESP32-P4 Rev 301 (must be done before loading stub)
+      // Power on flash for ESP32-P4 Rev 3.1 (301) & Rev 3.2 (302)
+      // (MUST be done BEFORE loading stub)
       if (
         this.chipFamily === CHIP_FAMILY_ESP32P4 &&
-        this.chipRevision === 301
+        (this.chipRevision === 301 || this.chipRevision === 302)
       ) {
         await this.powerOnFlash();
       }
