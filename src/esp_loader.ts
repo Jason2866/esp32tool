@@ -3535,6 +3535,7 @@ export class ESPLoader extends EventTarget {
             ? ESP32C61_UARTDEV_BUF_NO_USB_JTAG_SERIAL_REV_LE2
             : ESP32C61_UARTDEV_BUF_NO_USB_JTAG_SERIAL_REV_GT2;
         break;
+      case CHIP_FAMILY_ESP32H21: // falls through to H2 (ESP32H21ROM extends ESP32H2ROM in esptool)
       case CHIP_FAMILY_ESP32H2:
         bufNoAddr = ESP32H2_UARTDEV_BUF_NO;
         jtagSerialVal = ESP32H2_UARTDEV_BUF_NO_USB_JTAG_SERIAL;
@@ -3589,6 +3590,7 @@ export class ESPLoader extends EventTarget {
       CHIP_FAMILY_ESP32C61, // USB-JTAG/Serial
       CHIP_FAMILY_ESP32H2, // USB-JTAG/Serial
       CHIP_FAMILY_ESP32H4, // USB-JTAG/Serial
+      CHIP_FAMILY_ESP32H21, // USB-JTAG/Serial
       CHIP_FAMILY_ESP32P4, // USB-OTG + USB-JTAG/Serial
     ];
 
