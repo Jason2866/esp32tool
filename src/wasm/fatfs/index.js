@@ -262,7 +262,7 @@ async function instantiateFatFSModule(input) {
     console.info("[fatfs-wasm] Fetching wasm from", source.href);
     const wasmContext = { memory: null };
     const imports = createDefaultImports(wasmContext);
-    let response = await fetch(source);
+    let response = await fetch(source, { redirect: "error" });
     if (!response.ok) {
         throw new Error(`Unable to fetch FATFS wasm from ${response.url}`);
     }
@@ -277,7 +277,7 @@ async function instantiateFatFSModule(input) {
         }
         catch (error) {
             console.warn("Unable to instantiate FATFS wasm via streaming, retrying with arrayBuffer()", error);
-            response = await fetch(source);
+            response = await fetch(source, { redirect: "error" });
             if (!response.ok) {
                 throw new Error(`Unable to fetch FATFS wasm from ${response.url}`);
             }
@@ -354,15 +354,23 @@ function asBinaryUint8Array(source) {
     throw new Error("Expected Uint8Array or ArrayBuffer for filesystem image");
 }
 function resolveWasmURL(input) {
-    if (input instanceof URL) {
-        return input;
-    }
     const locationLike = typeof globalThis !== "undefined" && "location" in globalThis
         ? globalThis.location
         : undefined;
     const baseHref = locationLike?.href;
     try {
-        return baseHref ? new URL(input, baseHref) : new URL(input);
+        const resolved = input instanceof URL
+            ? input
+            : baseHref
+                ? new URL(input, baseHref)
+                : new URL(input);
+        if (resolved.protocol !== "http:" && resolved.protocol !== "https:") {
+            throw new Error(`Unsupported wasm URL protocol "${resolved.protocol}"`);
+        }
+        if (baseHref && resolved.origin !== new URL(baseHref).origin) {
+            throw new Error(`Cross-origin wasm URL "${resolved.origin}" is not allowed`);
+        }
+        return resolved;
     }
     catch (error) {
         throw new Error(`Unable to resolve wasm URL from "${input}": ${String(error)}`);
