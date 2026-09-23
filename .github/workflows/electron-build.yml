@@ -78,7 +78,7 @@ jobs:
         run: npm run make -- --arch=${{ matrix.arch }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GYP_MSVS_VERSION: "2022"
+          npm_config_msvs_version: "2022"
 
       - name: Rename Windows ARM64 Setup.exe
         if: matrix.platform == 'win32' && matrix.arch == 'arm64'
@@ -106,7 +106,7 @@ jobs:
       - name: Build Electron CLI app
         run: npm run build:cli-electron
         env:
-          GYP_MSVS_VERSION: "2022"
+          npm_config_msvs_version: "2022"
 
       # macOS: DMG and ZIP artifacts (GUI), ZIP only for CLI
       - name: Upload macOS artifacts
