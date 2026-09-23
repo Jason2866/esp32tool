@@ -89,9 +89,7 @@
     "http-proxy-agent": "^7.0.2",
     "make-fetch-happen": "^13.0.1",
     "node-addon-api": "8.3.0",
-    "@electron/rebuild": {
-      "@electron/node-gyp": "^10.2.0-electron.2"
-    }
+    "@electron/rebuild": "^4.2.0"
   },
   "allowScripts": {
     "macos-alias@0.2.12": true,
