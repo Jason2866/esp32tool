@@ -5437,7 +5437,12 @@ class ESPLoader extends EventTarget {
         }
         if (!this._secureDownloadMode &&
             (detectedUsbMode === null || detectedUsbMode === void 0 ? void 0 : detectedUsbMode.mode) === "usb-jtag-serial") {
-            await this.disableWatchdogsForUsbJtagSerial();
+            try {
+                await this.disableWatchdogsForUsbJtagSerial();
+            }
+            catch (err) {
+                this.logger.debug(`Could not disable watchdogs: ${err}`);
+            }
         }
         // Read the OTP data for this chip and store into this.efuses array
         const FlAddr = getSpiFlashAddresses(this.getChipFamily());
@@ -6349,8 +6354,7 @@ class ESPLoader extends EventTarget {
             WDT_WKEY = ESP32C3_RTC_CNTL_WDT_WKEY;
         }
         else if (this.chipFamily === CHIP_FAMILY_ESP32C5 ||
-            this.chipFamily === CHIP_FAMILY_ESP32C6 ||
-            this.chipFamily === CHIP_FAMILY_ESP32C61) {
+            this.chipFamily === CHIP_FAMILY_ESP32C6) {
             // C5 and C6 use LP_WDT (Low Power Watchdog Timer)
             WDTWPROTECT_REG = ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG;
             WDTCONFIG0_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG;
@@ -6413,7 +6417,8 @@ class ESPLoader extends EventTarget {
             SWD_AUTO_FEED_EN = ESP32C3_RTC_CNTL_SWD_AUTO_FEED_EN;
         }
         else if (this.chipFamily === CHIP_FAMILY_ESP32C5 ||
-            this.chipFamily === CHIP_FAMILY_ESP32C6) {
+            this.chipFamily === CHIP_FAMILY_ESP32C6 ||
+            this.chipFamily === CHIP_FAMILY_ESP32C61) {
             WDTWPROTECT_REG = ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG;
             WDTCONFIG0_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG;
             WDT_WKEY = ESP32C5_C6_RTC_CNTL_WDT_WKEY;

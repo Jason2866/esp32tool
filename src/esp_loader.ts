@@ -630,7 +630,11 @@ export class ESPLoader extends EventTarget {
       !this._secureDownloadMode &&
       detectedUsbMode?.mode === "usb-jtag-serial"
     ) {
-      await this.disableWatchdogsForUsbJtagSerial();
+      try {
+        await this.disableWatchdogsForUsbJtagSerial();
+      } catch (err) {
+        this.logger.debug(`Could not disable watchdogs: ${err}`);
+      }
     }
 
     // Read the OTP data for this chip and store into this.efuses array
