@@ -73,6 +73,9 @@ import {
   ESP32S31_RTC_CNTL_WDTCONFIG0_REG,
   ESP32S31_RTC_CNTL_WDTCONFIG1_REG,
   ESP32S31_RTC_CNTL_WDT_WKEY,
+  ESP32S31_RTC_CNTL_SWD_CONF_REG,
+  ESP32S31_RTC_CNTL_SWD_AUTO_FEED_EN,
+  ESP32S31_RTC_CNTL_SWD_WPROTECT_REG,
   SlipReadError,
   ESP32S2_RTC_CNTL_WDTWPROTECT_REG,
   ESP32S2_RTC_CNTL_WDTCONFIG0_REG,
@@ -84,6 +87,10 @@ import {
   ESP32S3_RTC_CNTL_WDTCONFIG0_REG,
   ESP32S3_RTC_CNTL_WDTCONFIG1_REG,
   ESP32S3_RTC_CNTL_WDT_WKEY,
+  ESP32S3_RTC_CNTL_SWD_CONF_REG,
+  ESP32S3_RTC_CNTL_SWD_AUTO_FEED_EN,
+  ESP32S3_RTC_CNTL_SWD_WPROTECT_REG,
+  ESP32S3_RTC_CNTL_SWD_WKEY,
   ESP32S3_RTC_CNTL_OPTION1_REG,
   ESP32S3_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
   ESP32C3_EFUSE_RD_MAC_SPI_SYS_3_REG,
@@ -92,10 +99,39 @@ import {
   ESP32C3_RTC_CNTL_WDTCONFIG0_REG,
   ESP32C3_RTC_CNTL_WDTCONFIG1_REG,
   ESP32C3_RTC_CNTL_WDT_WKEY,
+  ESP32C3_RTC_CNTL_SWD_CONF_REG,
+  ESP32C3_RTC_CNTL_SWD_AUTO_FEED_EN,
+  ESP32C3_RTC_CNTL_SWD_WPROTECT_REG,
+  ESP32C3_RTC_CNTL_SWD_WKEY,
   ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG,
   ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG,
   ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG,
   ESP32C5_C6_RTC_CNTL_WDT_WKEY,
+  ESP32C5_C6_RTC_CNTL_SWD_CONF_REG,
+  ESP32C5_C6_RTC_CNTL_SWD_AUTO_FEED_EN,
+  ESP32C5_C6_RTC_CNTL_SWD_WPROTECT_REG,
+  ESP32C6_RTC_CNTL_SWD_WKEY,
+  ESP32H2_RTC_CNTL_WDTWPROTECT_REG,
+  ESP32H2_RTC_CNTL_WDTCONFIG0_REG,
+  ESP32H2_RTC_CNTL_WDT_WKEY,
+  ESP32H2_RTC_CNTL_SWD_CONF_REG,
+  ESP32H2_RTC_CNTL_SWD_AUTO_FEED_EN,
+  ESP32H2_RTC_CNTL_SWD_WPROTECT_REG,
+  ESP32H2_RTC_CNTL_SWD_WKEY,
+  ESP32H4_RTC_CNTL_WDTWPROTECT_REG,
+  ESP32H4_RTC_CNTL_WDTCONFIG0_REG,
+  ESP32H4_RTC_CNTL_WDT_WKEY,
+  ESP32H4_RTC_CNTL_SWD_CONF_REG,
+  ESP32H4_RTC_CNTL_SWD_AUTO_FEED_EN,
+  ESP32H4_RTC_CNTL_SWD_WPROTECT_REG,
+  ESP32H4_RTC_CNTL_SWD_WKEY,
+  ESP32H21_RTC_CNTL_WDTWPROTECT_REG,
+  ESP32H21_RTC_CNTL_WDTCONFIG0_REG,
+  ESP32H21_RTC_CNTL_WDT_WKEY,
+  ESP32H21_RTC_CNTL_SWD_CONF_REG,
+  ESP32H21_RTC_CNTL_SWD_AUTO_FEED_EN,
+  ESP32H21_RTC_CNTL_SWD_WPROTECT_REG,
+  ESP32H21_RTC_CNTL_SWD_WKEY,
   ESP32C5_UART_CLKDIV_REG,
   ESP32C5_PCR_SYSCLK_CONF_REG,
   ESP32C5_PCR_SYSCLK_XTAL_FREQ_V,
@@ -104,6 +140,10 @@ import {
   ESP32P4_RTC_CNTL_WDTCONFIG0_REG,
   ESP32P4_RTC_CNTL_WDTCONFIG1_REG,
   ESP32P4_RTC_CNTL_WDT_WKEY,
+  ESP32P4_RTC_CNTL_SWD_CONF_REG,
+  ESP32P4_RTC_CNTL_SWD_AUTO_FEED_EN,
+  ESP32P4_RTC_CNTL_SWD_WPROTECT_REG,
+  ESP32P4_RTC_CNTL_SWD_WKEY,
   ESP32P4_RTC_CNTL_OPTION1_REG,
   ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK,
   ESP32P4_LP_SYSTEM_REG_ANA_XPD_PAD_GROUP_REG,
@@ -163,6 +203,7 @@ export class ESPLoader extends EventTarget {
   __chipName: string | null = null;
   __chipRevision: number | null = null;
   __chipVariant: string | null = null;
+  private _secureDownloadMode = false;
   _efuses = new Array(4).fill(0);
   _flashsize = 4 * 1024 * 1024;
   debug = false;
@@ -573,13 +614,23 @@ export class ESPLoader extends EventTarget {
       this.logger.debug(`Could not detect USB connection type: ${err}`);
     }
 
+    let detectedUsbMode:
+      | { mode: "uart" | "usb-jtag-serial" | "usb-otg"; uartNo: number }
+      | undefined;
     try {
-      const usbMode = await this.getUsbMode();
+      detectedUsbMode = await this.getUsbMode();
       this.logger.debug(
-        `USB mode (register): ${usbMode.mode} (uartNo=${usbMode.uartNo})`,
+        `USB mode (register): ${detectedUsbMode.mode} (uartNo=${detectedUsbMode.uartNo})`,
       );
     } catch (err) {
       this.logger.debug(`Could not detect USB mode: ${err}`);
+    }
+
+    if (
+      !this._secureDownloadMode &&
+      detectedUsbMode?.mode === "usb-jtag-serial"
+    ) {
+      await this.disableWatchdogsForUsbJtagSerial();
     }
 
     // Read the OTP data for this chip and store into this.efuses array
@@ -608,6 +659,7 @@ export class ESPLoader extends EventTarget {
     try {
       // Try GET_SECURITY_INFO command first (ESP32-C3 and later)
       const securityInfo = await this.getSecurityInfo();
+      this._secureDownloadMode = (securityInfo.flags & (1 << 2)) !== 0;
       const chipId = securityInfo.chipId;
 
       const chipInfo = CHIP_ID_TO_INFO[chipId];
@@ -1702,6 +1754,112 @@ export class ESPLoader extends EventTarget {
 
     // Wait for reset to take effect
     await sleep(500);
+  }
+
+  private async disableWatchdogsForUsbJtagSerial(): Promise<void> {
+    let WDTWPROTECT_REG: number;
+    let WDTCONFIG0_REG: number;
+    let WDT_WKEY: number;
+    let SWD_WPROTECT_REG: number;
+    let SWD_CONF_REG: number;
+    let SWD_WKEY: number;
+    let SWD_AUTO_FEED_EN: number;
+
+    if (this.chipFamily === CHIP_FAMILY_ESP32S3) {
+      WDTWPROTECT_REG = ESP32S3_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32S3_RTC_CNTL_WDTCONFIG0_REG;
+      WDT_WKEY = ESP32S3_RTC_CNTL_WDT_WKEY;
+      SWD_WPROTECT_REG = ESP32S3_RTC_CNTL_SWD_WPROTECT_REG;
+      SWD_CONF_REG = ESP32S3_RTC_CNTL_SWD_CONF_REG;
+      SWD_WKEY = ESP32S3_RTC_CNTL_SWD_WKEY;
+      SWD_AUTO_FEED_EN = ESP32S3_RTC_CNTL_SWD_AUTO_FEED_EN;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32C3) {
+      WDTWPROTECT_REG = ESP32C3_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32C3_RTC_CNTL_WDTCONFIG0_REG;
+      WDT_WKEY = ESP32C3_RTC_CNTL_WDT_WKEY;
+      SWD_WPROTECT_REG = ESP32C3_RTC_CNTL_SWD_WPROTECT_REG;
+      SWD_CONF_REG = ESP32C3_RTC_CNTL_SWD_CONF_REG;
+      SWD_WKEY = ESP32C3_RTC_CNTL_SWD_WKEY;
+      SWD_AUTO_FEED_EN = ESP32C3_RTC_CNTL_SWD_AUTO_FEED_EN;
+    } else if (
+      this.chipFamily === CHIP_FAMILY_ESP32C5 ||
+      this.chipFamily === CHIP_FAMILY_ESP32C6 ||
+      this.chipFamily === CHIP_FAMILY_ESP32C61
+    ) {
+      WDTWPROTECT_REG = ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG;
+      WDT_WKEY = ESP32C5_C6_RTC_CNTL_WDT_WKEY;
+      SWD_WPROTECT_REG = ESP32C5_C6_RTC_CNTL_SWD_WPROTECT_REG;
+      SWD_CONF_REG = ESP32C5_C6_RTC_CNTL_SWD_CONF_REG;
+      SWD_WKEY = ESP32C6_RTC_CNTL_SWD_WKEY;
+      SWD_AUTO_FEED_EN = ESP32C5_C6_RTC_CNTL_SWD_AUTO_FEED_EN;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32H2) {
+      WDTWPROTECT_REG = ESP32H2_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32H2_RTC_CNTL_WDTCONFIG0_REG;
+      WDT_WKEY = ESP32H2_RTC_CNTL_WDT_WKEY;
+      SWD_WPROTECT_REG = ESP32H2_RTC_CNTL_SWD_WPROTECT_REG;
+      SWD_CONF_REG = ESP32H2_RTC_CNTL_SWD_CONF_REG;
+      SWD_WKEY = ESP32H2_RTC_CNTL_SWD_WKEY;
+      SWD_AUTO_FEED_EN = ESP32H2_RTC_CNTL_SWD_AUTO_FEED_EN;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32H4) {
+      WDTWPROTECT_REG = ESP32H4_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32H4_RTC_CNTL_WDTCONFIG0_REG;
+      WDT_WKEY = ESP32H4_RTC_CNTL_WDT_WKEY;
+      SWD_WPROTECT_REG = ESP32H4_RTC_CNTL_SWD_WPROTECT_REG;
+      SWD_CONF_REG = ESP32H4_RTC_CNTL_SWD_CONF_REG;
+      SWD_WKEY = ESP32H4_RTC_CNTL_SWD_WKEY;
+      SWD_AUTO_FEED_EN = ESP32H4_RTC_CNTL_SWD_AUTO_FEED_EN;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32H21) {
+      WDTWPROTECT_REG = ESP32H21_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32H21_RTC_CNTL_WDTCONFIG0_REG;
+      WDT_WKEY = ESP32H21_RTC_CNTL_WDT_WKEY;
+      SWD_WPROTECT_REG = ESP32H21_RTC_CNTL_SWD_WPROTECT_REG;
+      SWD_CONF_REG = ESP32H21_RTC_CNTL_SWD_CONF_REG;
+      SWD_WKEY = ESP32H21_RTC_CNTL_SWD_WKEY;
+      SWD_AUTO_FEED_EN = ESP32H21_RTC_CNTL_SWD_AUTO_FEED_EN;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
+      WDTWPROTECT_REG = ESP32P4_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32P4_RTC_CNTL_WDTCONFIG0_REG;
+      WDT_WKEY = ESP32P4_RTC_CNTL_WDT_WKEY;
+      SWD_WPROTECT_REG = ESP32P4_RTC_CNTL_SWD_WPROTECT_REG;
+      SWD_CONF_REG = ESP32P4_RTC_CNTL_SWD_CONF_REG;
+      SWD_WKEY = ESP32P4_RTC_CNTL_SWD_WKEY;
+      SWD_AUTO_FEED_EN = ESP32P4_RTC_CNTL_SWD_AUTO_FEED_EN;
+    } else if (this.chipFamily === CHIP_FAMILY_ESP32S31) {
+      WDTWPROTECT_REG = ESP32S31_RTC_CNTL_WDTWPROTECT_REG;
+      WDTCONFIG0_REG = ESP32S31_RTC_CNTL_WDTCONFIG0_REG;
+      WDT_WKEY = ESP32S31_RTC_CNTL_WDT_WKEY;
+      SWD_WPROTECT_REG = ESP32S31_RTC_CNTL_SWD_WPROTECT_REG;
+      SWD_CONF_REG = ESP32S31_RTC_CNTL_SWD_CONF_REG;
+      SWD_WKEY = ESP32S31_RTC_CNTL_WDT_WKEY;
+      SWD_AUTO_FEED_EN = ESP32S31_RTC_CNTL_SWD_AUTO_FEED_EN;
+    } else {
+      return;
+    }
+
+    this.logger.debug(
+      "Disabling RTC watchdog and enabling SWD watchdog auto-feed",
+    );
+
+    await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
+    try {
+      await this.writeRegister(WDTCONFIG0_REG, 0, undefined, 0);
+    } finally {
+      await this.writeRegister(WDTWPROTECT_REG, 0, undefined, 0);
+    }
+
+    await this.writeRegister(SWD_WPROTECT_REG, SWD_WKEY, undefined, 0);
+    try {
+      const swdConfig = await this.readRegister(SWD_CONF_REG);
+      await this.writeRegister(
+        SWD_CONF_REG,
+        swdConfig | SWD_AUTO_FEED_EN,
+        undefined,
+        0,
+      );
+    } finally {
+      await this.writeRegister(SWD_WPROTECT_REG, 0, undefined, 0);
+    }
   }
 
   /**
