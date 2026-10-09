@@ -3659,6 +3659,17 @@ export class ESPLoader extends EventTarget {
       ? (this._parent.chipRevision ?? 0)
       : (this.chipRevision ?? 0);
 
+    if (family === CHIP_FAMILY_ESP32S31) {
+      const portInfo = this.port.getInfo();
+      if (
+        portInfo.usbVendorId === 0x303a &&
+        portInfo.usbProductId === USB_JTAG_SERIAL_PID
+      ) {
+        this.logger.debug("USB mode: USB-JTAG/Serial detected by VID/PID");
+        return { mode: "usb-jtag-serial", uartNo: 0 };
+      }
+    }
+
     let bufNoAddr: number | null = null;
     let jtagSerialVal: number | null = null;
     let otgVal: number | null = null;
