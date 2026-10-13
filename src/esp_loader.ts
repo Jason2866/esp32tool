@@ -4566,6 +4566,11 @@ export class ESPLoader extends EventTarget {
 
     // Initialize adaptive speed multipliers for WebUSB devices
     if (this.isWebUSB()) {
+      // Check if running on Android (maxTransferSize=64) or Desktop (maxTransferSize=512)
+      const maxTransferSize =
+        (this.port as WebUSBSerialPort).maxTransferSize || 64;
+      const isAndroid = maxTransferSize === 64;
+
       if (this._isCDCDevice) {
         // CDC devices (CH343): Start with maximum, adaptive adjustment enabled
         this._adaptiveBlockMultiplier = 8; // blockSize = 248 bytes
@@ -4576,12 +4581,24 @@ export class ESPLoader extends EventTarget {
         );
       } else {
         // Non-CDC devices (CH340, CP2102): Fixed values, no adaptive adjustment
-        this._adaptiveBlockMultiplier = 1; // blockSize = 31 bytes (fixed)
-        this._adaptiveMaxInFlightMultiplier = 1; // maxInFlight = 31 bytes (fixed)
-        this._consecutiveSuccessfulChunks = 0;
-        this.logger.debug(
-          `Non-CDC device - Fixed values: blockSize=31, maxInFlight=31`,
-        );
+        if (isAndroid) {
+          // Android: Keep original values (maxTransferSize=64, baseBlockSize=31)
+          this._adaptiveBlockMultiplier = 1; // blockSize = 31 bytes (fixed)
+          this._adaptiveMaxInFlightMultiplier = 1; // maxInFlight = 31 bytes (fixed)
+          this._consecutiveSuccessfulChunks = 0;
+          this.logger.debug(
+            `Non-CDC device (Android) - Fixed values: blockSize=31, maxInFlight=31`,
+          );
+        } else {
+          // Desktop: Use maximum possible values (maxTransferSize=512, baseBlockSize=255)
+          // blockSize = 496 = 2 * 255, maxInFlight = 1984 = 8 * 255
+          this._adaptiveBlockMultiplier = 2; // blockSize = 496 bytes (2 * 255)
+          this._adaptiveMaxInFlightMultiplier = 8; // maxInFlight = 1984 bytes (8 * 255)
+          this._consecutiveSuccessfulChunks = 0;
+          this.logger.debug(
+            `Non-CDC device (Desktop) - Fixed values: blockSize=496, maxInFlight=1984`,
+          );
+        }
       }
     }
 
