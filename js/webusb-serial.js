@@ -65,13 +65,7 @@ class WebUSBSerial {
     isAndroid = typeof navigator !== "undefined" &&
       /Android/i.test(navigator.userAgent || ""),
   ) {
-    const filters = [
-      { vendorId: 0x303a }, // Espressif
-      { vendorId: 0x0403 }, // FTDI
-      { vendorId: 0x1a86 }, // CH340
-      { vendorId: 0x10c4 }, // CP210x
-      { vendorId: 0x067b }, // PL2303
-    ];
+    const filters = webUSBDeviceFilters;
 
     // Helper to call logger (supports both function and object with log() method)
     const log = (msg) => {
@@ -211,9 +205,7 @@ class WebUSBSerial {
           } catch (e) {}
           this.controlInterface = preControlIface.interfaceNumber;
         } catch (e) {
-          this._log(
-            `[WebUSB] Could not pre-claim CDC control iface: ${e.message}`,
-          );
+          this._log(`[WebUSB] Info: Could not pre-claim CDC control iface.`);
         }
       }
 
@@ -1131,6 +1123,22 @@ class WebUSBSerial {
   }
 }
 
+// Known USB-Serial vendor IDs for ESP devices and bridges
+// Single source of truth for both WebUSB (vendorId) and Web Serial (usbVendorId) filters
+const knownVendorIds = [
+  0x303a, // Espressif
+  0x0403, // FTDI
+  0x1a86, // QinHeng (CH340, CH341, CH343, CH9102)
+  0x10c4, // Silicon Labs (CP210x)
+  0x067b, // Prolific (PL2303)
+];
+
+// Web Serial port filters (hiding non-ESP ports like Bluetooth)
+const serialPortFilters = knownVendorIds.map((id) => ({ usbVendorId: id }));
+
+// WebUSB device filters
+const webUSBDeviceFilters = knownVendorIds.map((id) => ({ vendorId: id }));
+
 /**
  * Unified port request function that tries WebUSB first on Android, Web Serial on Desktop
  * This provides seamless support for both desktop (Web Serial) and Android (WebUSB)
@@ -1185,7 +1193,9 @@ async function requestSerialPort(
       // In auto mode, fallback to Web Serial if WebUSB fails
       if (transportMode === "auto" && hasSerial) {
         log("WebUSB failed, falling back to Web Serial...");
-        return await navigator.serial.requestPort();
+        return await navigator.serial.requestPort({
+          filters: serialPortFilters,
+        });
       }
       throw err;
     }
@@ -1195,7 +1205,7 @@ async function requestSerialPort(
       throw new Error("Web Serial not available in this browser");
     }
     try {
-      return await navigator.serial.requestPort();
+      return await navigator.serial.requestPort({ filters: serialPortFilters });
     } catch (err) {
       // In auto mode, fallback to WebUSB if Web Serial fails
       if (transportMode === "auto" && hasUSB) {
@@ -1214,4 +1224,4 @@ if (typeof globalThis !== "undefined") {
 }
 
 // Export as ES modules
-export { WebUSBSerial, requestSerialPort };
+export { WebUSBSerial, requestSerialPort, serialPortFilters };

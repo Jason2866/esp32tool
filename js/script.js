@@ -1,5 +1,9 @@
 // Import WebUSB serial support for Android compatibility
-import { WebUSBSerial, requestSerialPort } from "./webusb-serial.js";
+import {
+  WebUSBSerial,
+  requestSerialPort,
+  serialPortFilters,
+} from "./webusb-serial.js";
 import { ESP32ToolConsole } from "./console.js";
 import { HexEditor } from "./hex-editor.js";
 import { NVSEditor } from "./nvs-editor.js";
@@ -1113,7 +1117,7 @@ function bindCheckboxSetting(checkbox, key, onChange) {
 async function requestPort() {
   return isUsingWebUSB()
     ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
-    : await navigator.serial.requestPort();
+    : await navigator.serial.requestPort({ filters: serialPortFilters });
 }
 
 /**

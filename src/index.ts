@@ -1,10 +1,10 @@
 /// <reference types="@types/w3c-web-serial" />
 
 import { ESP_ROM_BAUD, Logger } from "./const";
-import { ESPLoader } from "./esp_loader";
+import { ESPLoader, serialPortFilters } from "./esp_loader";
 
 export type { Logger } from "./const";
-export { ESPLoader } from "./esp_loader";
+export { ESPLoader, serialPortFilters, USB_SERIAL_CHIPS } from "./esp_loader";
 
 export {
   CHIP_FAMILY_ESP32,
@@ -75,7 +75,7 @@ export const connect = async (logger: Logger) => {
           "Note: The page must be served over HTTPS or localhost.",
       );
     }
-    port = await navigator.serial.requestPort();
+    port = await navigator.serial.requestPort({ filters: serialPortFilters });
   }
 
   // Only open if not already open (requestSerialPort may return an opened port)
