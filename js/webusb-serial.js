@@ -10,6 +10,8 @@
  * (or endpoint packetSize if smaller) to ensure SLIP frames don't get split.
  * On Desktop, larger transfer sizes are used for better performance.
  */
+import { serialPortFilters, webUSBDeviceFilters } from "./util/usb-chips.js";
+
 class WebUSBSerial {
   constructor(logger = null, isAndroid = false) {
     this.device = null;
@@ -1122,22 +1124,6 @@ class WebUSBSerial {
     }
   }
 }
-
-// Known USB-Serial vendor IDs for ESP devices and bridges
-// Single source of truth for both WebUSB (vendorId) and Web Serial (usbVendorId) filters
-const knownVendorIds = [
-  0x303a, // Espressif
-  0x0403, // FTDI
-  0x1a86, // QinHeng (CH340, CH341, CH343, CH9102)
-  0x10c4, // Silicon Labs (CP210x)
-  0x067b, // Prolific (PL2303)
-];
-
-// Web Serial port filters (hiding non-ESP ports like Bluetooth)
-const serialPortFilters = knownVendorIds.map((id) => ({ usbVendorId: id }));
-
-// WebUSB device filters
-const webUSBDeviceFilters = knownVendorIds.map((id) => ({ vendorId: id }));
 
 /**
  * Unified port request function that tries WebUSB first on Android, Web Serial on Desktop
