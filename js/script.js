@@ -554,88 +554,39 @@ function initBaudRate() {
   }
 }
 
-function initAdvancedParams() {
-  // Get default values based on connection type
-  const defaults = getDefaultAdvancedParams();
-  const connectionType = getConnectionType();
-
-  // Initialize chunkSize dropdown with values for current connection type
-  const chunkSizes =
-    chunkSizesByType[connectionType] || chunkSizesByType.webserial;
-  chunkSizeSelect.innerHTML = ""; // Clear existing options
-  for (let item of chunkSizes) {
+function populateSelectOptions(selectElement, items) {
+  selectElement.innerHTML = "";
+  for (let item of items) {
     const option = document.createElement("option");
     option.text = item.label;
     option.value = item.value;
-    chunkSizeSelect.add(option);
+    selectElement.add(option);
   }
-  chunkSizeSelect.value = defaults.chunkSize;
-
-  // Initialize blockSize dropdown with values for current connection type
-  const blockSizes =
-    blockSizesByType[connectionType] || blockSizesByType.webserial;
-  blockSizeSelect.innerHTML = ""; // Clear existing options
-  for (let item of blockSizes) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    blockSizeSelect.add(option);
-  }
-  blockSizeSelect.value = defaults.blockSize;
-
-  // Initialize maxInFlight dropdown with values for current connection type
-  const maxInFlights =
-    maxInFlightsByType[connectionType] || maxInFlightsByType.webserial;
-  maxInFlightSelect.innerHTML = ""; // Clear existing options
-  for (let item of maxInFlights) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    maxInFlightSelect.add(option);
-  }
-  maxInFlightSelect.value = defaults.maxInFlight;
 }
 
 /**
- * Update advanced parameters after connection based on actual port type
- * This ensures we use optimal values for WebUSB vs Web Serial
- * Also updates the dropdown options to show only valid values for the connection type
+ * Rebuild advanced parameter dropdowns for the current connection type,
+ * validate saved values against valid options (falling back to defaults),
+ * update dropdown selections, and optionally persist the selections.
+ *
+ * @param {boolean} [persist=false] - Whether to save the resolved values
+ * @returns {string} The resolved connection type
  */
-function updateAdvancedParamsForConnection() {
-  // Get the correct defaults based on actual connection
+function updateAdvancedParamDropdowns(persist = false) {
   const defaults = getDefaultAdvancedParams();
   const connectionType = getConnectionType();
 
-  // Reinitialize dropdowns with values for the actual connection type
   const chunkSizes =
     chunkSizesByType[connectionType] || chunkSizesByType.webserial;
-  chunkSizeSelect.innerHTML = "";
-  for (let item of chunkSizes) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    chunkSizeSelect.add(option);
-  }
+  populateSelectOptions(chunkSizeSelect, chunkSizes);
 
   const blockSizes =
     blockSizesByType[connectionType] || blockSizesByType.webserial;
-  blockSizeSelect.innerHTML = "";
-  for (let item of blockSizes) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    blockSizeSelect.add(option);
-  }
+  populateSelectOptions(blockSizeSelect, blockSizes);
 
   const maxInFlights =
     maxInFlightsByType[connectionType] || maxInFlightsByType.webserial;
-  maxInFlightSelect.innerHTML = "";
-  for (let item of maxInFlights) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    maxInFlightSelect.add(option);
-  }
+  populateSelectOptions(maxInFlightSelect, maxInFlights);
 
   // Load saved values or defaults
   const savedChunkSize = loadSetting("chunkSize", defaults.chunkSize);
@@ -664,10 +615,27 @@ function updateAdvancedParamsForConnection() {
   blockSizeSelect.value = selectedBlockSize;
   maxInFlightSelect.value = selectedMaxInFlight;
 
-  // Save the selected values
-  saveSetting("chunkSize", selectedChunkSize);
-  saveSetting("blockSize", selectedBlockSize);
-  saveSetting("maxInFlight", selectedMaxInFlight);
+  // Save the selected values if requested
+  if (persist) {
+    saveSetting("chunkSize", selectedChunkSize);
+    saveSetting("blockSize", selectedBlockSize);
+    saveSetting("maxInFlight", selectedMaxInFlight);
+  }
+
+  return connectionType;
+}
+
+function initAdvancedParams() {
+  updateAdvancedParamDropdowns(false);
+}
+
+/**
+ * Update advanced parameters after connection based on actual port type
+ * This ensures we use optimal values for WebUSB vs Web Serial
+ * Also updates the dropdown options to show only valid values for the connection type
+ */
+function updateAdvancedParamsForConnection() {
+  const connectionType = updateAdvancedParamDropdowns(true);
 
   const connectionTypeLabel =
     connectionType === "webserial"
@@ -903,11 +871,8 @@ async function clickConnect() {
     console.log("[Connect] Using WebUSB");
     try {
       let port;
-      if (isAndroid && transportMode === "auto") {
-        // Android Auto flow: use requestSerialPort to get the port
-        port = await requestSerialPort(false, "auto", logMsg);
-      } else if (!isAndroid && transportMode === "auto") {
-        // Desktop Auto flow: use requestSerialPort to get the port (WebUSB fallback)
+      if (transportMode === "auto") {
+        // Auto flow: use requestSerialPort to get the port
         port = await requestSerialPort(false, "auto", logMsg);
       } else {
         // Explicit WebUSB selection: use direct WebUSB request
@@ -2826,10 +2791,6 @@ function loadAllSettings() {
     }
   }
 
-  // Get default values based on connection type
-  const defaults = getDefaultAdvancedParams();
-  const connectionType = getConnectionType();
-
   // Load all saved settings or defaults
   autoscroll.checked = loadSetting("autoscroll", true);
   baudRateSelect.value = loadSetting("baudrate", 2000000);
@@ -2838,59 +2799,8 @@ function loadAllSettings() {
   showLog.checked = loadSetting("showlog", false);
   consoleSwitch.checked = loadSetting("console", false);
 
-  // Reinitialize dropdowns with values for current connection type
-  const chunkSizes =
-    chunkSizesByType[connectionType] || chunkSizesByType.webserial;
-  chunkSizeSelect.innerHTML = "";
-  for (let item of chunkSizes) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    chunkSizeSelect.add(option);
-  }
-
-  const blockSizes =
-    blockSizesByType[connectionType] || blockSizesByType.webserial;
-  blockSizeSelect.innerHTML = "";
-  for (let item of blockSizes) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    blockSizeSelect.add(option);
-  }
-
-  const maxInFlights =
-    maxInFlightsByType[connectionType] || maxInFlightsByType.webserial;
-  maxInFlightSelect.innerHTML = "";
-  for (let item of maxInFlights) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    maxInFlightSelect.add(option);
-  }
-
   // Load advanced parameters with connection-type-specific defaults
-  // Only use saved value if it's valid for current connection type
-  const savedChunkSize = loadSetting("chunkSize", defaults.chunkSize);
-  const savedBlockSize = loadSetting("blockSize", defaults.blockSize);
-  const savedMaxInFlight = loadSetting("maxInFlight", defaults.maxInFlight);
-
-  // Check if saved values are valid for current connection type
-  const validChunkSize = chunkSizes.some(
-    (item) => item.value === savedChunkSize,
-  );
-  const validBlockSize = blockSizes.some(
-    (item) => item.value === savedBlockSize,
-  );
-  const validMaxInFlight = maxInFlights.some(
-    (item) => item.value === savedMaxInFlight,
-  );
-
-  chunkSizeSelect.value = validChunkSize ? savedChunkSize : defaults.chunkSize;
-  blockSizeSelect.value = validBlockSize ? savedBlockSize : defaults.blockSize;
-  maxInFlightSelect.value = validMaxInFlight
-    ? savedMaxInFlight
-    : defaults.maxInFlight;
+  updateAdvancedParamDropdowns(false);
 
   // Apply show log setting
   updateLogVisibility();
