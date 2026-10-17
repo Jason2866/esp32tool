@@ -4570,11 +4570,15 @@ export class ESPLoader extends EventTarget {
       const maxTransferSize =
         (this.port as WebUSBSerialPort).maxTransferSize || 64;
       const isAndroid = maxTransferSize === 64;
+      const baseBlockSize = Math.floor((maxTransferSize - 2) / 2);
 
       if (this._isCDCDevice) {
         // CDC devices (CH343): Start with maximum, adaptive adjustment enabled
-        this._adaptiveBlockMultiplier = 8; // blockSize = 248 bytes
-        this._adaptiveMaxInFlightMultiplier = 8; // maxInFlight = 248 bytes
+        // Initial values:
+        // - maxTransferSize 64 (Android, baseBlockSize=31): blockSize = 248 bytes (8 * 31), maxInFlight = 248 bytes (8 * 31)
+        // - maxTransferSize 512 (Desktop, baseBlockSize=255): blockSize = 2040 bytes (8 * 255), maxInFlight = 2040 bytes (8 * 255)
+        this._adaptiveBlockMultiplier = 8;
+        this._adaptiveMaxInFlightMultiplier = 8;
         this._consecutiveSuccessfulChunks = 0;
         this.logger.debug(
           `CDC device - Initialized: blockMultiplier=${this._adaptiveBlockMultiplier}, maxInFlightMultiplier=${this._adaptiveMaxInFlightMultiplier}`,
@@ -4587,16 +4591,16 @@ export class ESPLoader extends EventTarget {
           this._adaptiveMaxInFlightMultiplier = 1; // maxInFlight = 31 bytes (fixed)
           this._consecutiveSuccessfulChunks = 0;
           this.logger.debug(
-            `Non-CDC device (Android) - Fixed values: blockSize=31, maxInFlight=31`,
+            `Non-CDC device (Android) - Fixed values: blockSize=${baseBlockSize * this._adaptiveBlockMultiplier}, maxInFlight=${baseBlockSize * this._adaptiveMaxInFlightMultiplier}`,
           );
         } else {
           // Desktop: Use maximum possible values (maxTransferSize=512, baseBlockSize=255)
-          // blockSize = 496 = 2 * 255, maxInFlight = 1984 = 8 * 255
-          this._adaptiveBlockMultiplier = 2; // blockSize = 496 bytes (2 * 255)
-          this._adaptiveMaxInFlightMultiplier = 8; // maxInFlight = 1984 bytes (8 * 255)
+          // blockSize = 510 = 2 * 255, maxInFlight = 2040 = 8 * 255
+          this._adaptiveBlockMultiplier = 2; // blockSize = 510 bytes (2 * 255)
+          this._adaptiveMaxInFlightMultiplier = 8; // maxInFlight = 2040 bytes (8 * 255)
           this._consecutiveSuccessfulChunks = 0;
           this.logger.debug(
-            `Non-CDC device (Desktop) - Fixed values: blockSize=496, maxInFlight=1984`,
+            `Non-CDC device (Desktop) - Fixed values: blockSize=${baseBlockSize * this._adaptiveBlockMultiplier}, maxInFlight=${baseBlockSize * this._adaptiveMaxInFlightMultiplier}`,
           );
         }
       }

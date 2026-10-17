@@ -59,7 +59,12 @@ class WebUSBSerial {
    * @param {boolean} forceNew - If true, forces selection of a new device (ignores already paired devices)
    * @param {boolean} isAndroid - If true, indicates this is running on Android (affects maxTransferSize)
    */
-  static async requestPort(logger = null, forceNew = false, isAndroid = false) {
+  static async requestPort(
+    logger = null,
+    forceNew = false,
+    isAndroid = typeof navigator !== "undefined" &&
+      /Android/i.test(navigator.userAgent || ""),
+  ) {
     const filters = [
       { vendorId: 0x303a }, // Espressif
       { vendorId: 0x0403 }, // FTDI

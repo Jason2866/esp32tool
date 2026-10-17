@@ -624,15 +624,37 @@ function updateAdvancedParamsForConnection() {
     maxInFlightSelect.add(option);
   }
 
-  // Set default values
-  chunkSizeSelect.value = defaults.chunkSize;
-  blockSizeSelect.value = defaults.blockSize;
-  maxInFlightSelect.value = defaults.maxInFlight;
+  // Load saved values or defaults
+  const savedChunkSize = loadSetting("chunkSize", defaults.chunkSize);
+  const savedBlockSize = loadSetting("blockSize", defaults.blockSize);
+  const savedMaxInFlight = loadSetting("maxInFlight", defaults.maxInFlight);
 
-  // Save the new values
-  saveSetting("chunkSize", defaults.chunkSize);
-  saveSetting("blockSize", defaults.blockSize);
-  saveSetting("maxInFlight", defaults.maxInFlight);
+  // Preserve saved parameter if valid for current connection type, otherwise use default
+  const selectedChunkSize = chunkSizes.some(
+    (item) => item.value === savedChunkSize,
+  )
+    ? savedChunkSize
+    : defaults.chunkSize;
+  const selectedBlockSize = blockSizes.some(
+    (item) => item.value === savedBlockSize,
+  )
+    ? savedBlockSize
+    : defaults.blockSize;
+  const selectedMaxInFlight = maxInFlights.some(
+    (item) => item.value === savedMaxInFlight,
+  )
+    ? savedMaxInFlight
+    : defaults.maxInFlight;
+
+  // Set dropdown values
+  chunkSizeSelect.value = selectedChunkSize;
+  blockSizeSelect.value = selectedBlockSize;
+  maxInFlightSelect.value = selectedMaxInFlight;
+
+  // Save the selected values
+  saveSetting("chunkSize", selectedChunkSize);
+  saveSetting("blockSize", selectedBlockSize);
+  saveSetting("maxInFlight", selectedMaxInFlight);
 
   const connectionTypeLabel =
     connectionType === "webserial"
