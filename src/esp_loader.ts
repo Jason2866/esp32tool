@@ -227,6 +227,10 @@ export const USB_SERIAL_CHIPS: Record<
     0x6014: { name: "FT232H", maxBaudrate: 12000000 },
     0x6015: { name: "FT230X", maxBaudrate: 3000000 },
   },
+  0x067b: {
+    // Prolific
+    0x2303: { name: "PL2303", maxBaudrate: 6000000 },
+  },
   0x303a: {
     // Espressif (native USB)
     0x2: { name: "ESP32-S2 Native USB", maxBaudrate: 2000000 },
@@ -235,11 +239,10 @@ export const USB_SERIAL_CHIPS: Record<
   },
 };
 
-// Web Serial port filters derived from known chip vendor IDs plus Prolific (hiding non-ESP ports like Bluetooth)
-export const serialPortFilters: SerialPortFilter[] = [
-  ...Object.keys(USB_SERIAL_CHIPS).map((vid) => ({ usbVendorId: Number(vid) })),
-  { usbVendorId: 0x067b }, // Prolific
-];
+// Web Serial port filters derived from known chip vendor IDs (hiding non-ESP ports like Bluetooth)
+export const serialPortFilters: SerialPortFilter[] = Object.keys(
+  USB_SERIAL_CHIPS,
+).map((vid) => ({ usbVendorId: Number(vid) }));
 
 export class ESPLoader extends EventTarget {
   __chipFamily?: ChipFamily;
