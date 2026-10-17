@@ -617,9 +617,14 @@ function updateAdvancedParamDropdowns(persist = false) {
 
   // Save the selected values if requested
   if (persist) {
-    saveSetting("chunkSize", selectedChunkSize);
-    saveSetting("blockSize", selectedBlockSize);
-    saveSetting("maxInFlight", selectedMaxInFlight);
+    // Persist only values that were valid saved selections; keep fallbacks
+    // in-memory so other connection types' preferences are not overwritten.
+    if (selectedChunkSize === savedChunkSize)
+      saveSetting("chunkSize", selectedChunkSize);
+    if (selectedBlockSize === savedBlockSize)
+      saveSetting("blockSize", selectedBlockSize);
+    if (selectedMaxInFlight === savedMaxInFlight)
+      saveSetting("maxInFlight", selectedMaxInFlight);
   }
 
   return connectionType;
