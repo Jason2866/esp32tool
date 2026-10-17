@@ -1190,6 +1190,10 @@ async function requestSerialPort(
     try {
       return await WebUSBSerial.requestPort(logger, forceNew, isAndroid);
     } catch (err) {
+      // Rethrow chooser cancellation errors instead of switching transports
+      if (err && (err.name === "NotFoundError" || err.name === "AbortError")) {
+        throw err;
+      }
       // In auto mode, fallback to Web Serial if WebUSB fails
       if (transportMode === "auto" && hasSerial) {
         log("WebUSB failed, falling back to Web Serial...");
@@ -1207,6 +1211,10 @@ async function requestSerialPort(
     try {
       return await navigator.serial.requestPort({ filters: serialPortFilters });
     } catch (err) {
+      // Rethrow chooser cancellation errors instead of switching transports
+      if (err && (err.name === "NotFoundError" || err.name === "AbortError")) {
+        throw err;
+      }
       // In auto mode, fallback to WebUSB if Web Serial fails
       if (transportMode === "auto" && hasUSB) {
         log("Web Serial failed, falling back to WebUSB...");

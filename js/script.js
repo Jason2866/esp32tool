@@ -341,8 +341,8 @@ function getTransportMode() {
  * Web Serial is used on desktop browsers
  */
 function isUsingWebUSB() {
-  // If we have an active connection, check the port's isWebUSB property
-  if (espStub && espStub.port && typeof espStub.port.isWebUSB !== "undefined") {
+  // If we have an active connection, classify using its isWebUSB property
+  if (espStub && espStub.port) {
     return espStub.port.isWebUSB === true;
   }
 
@@ -374,14 +374,11 @@ function isUsingWebUSB() {
  * vs Desktop (using WebUSB with maxTransferSize=512 or Web Serial)
  */
 function isAndroidWebUSB() {
-  // If we have an active WebUSB connection, check maxTransferSize
-  if (
-    espStub &&
-    espStub.port &&
-    espStub.port.isWebUSB &&
-    espStub.port.maxTransferSize
-  ) {
-    return espStub.port.maxTransferSize === 64;
+  // If we have an active connection, apply Android defaults only when the active port is WebUSB with maxTransferSize 64
+  if (espStub && espStub.port) {
+    return (
+      espStub.port.isWebUSB === true && espStub.port.maxTransferSize === 64
+    );
   }
 
   // Fallback: Check if we're on a mobile device (likely Android)

@@ -235,10 +235,11 @@ export const USB_SERIAL_CHIPS: Record<
   },
 };
 
-// Web Serial port filters derived from known chip vendor IDs (hiding non-ESP ports like Bluetooth)
-export const serialPortFilters: SerialPortFilter[] = Object.keys(
-  USB_SERIAL_CHIPS,
-).map((vid) => ({ usbVendorId: Number(vid) }));
+// Web Serial port filters derived from known chip vendor IDs plus Prolific (hiding non-ESP ports like Bluetooth)
+export const serialPortFilters: SerialPortFilter[] = [
+  ...Object.keys(USB_SERIAL_CHIPS).map((vid) => ({ usbVendorId: Number(vid) })),
+  { usbVendorId: 0x067b }, // Prolific
+];
 
 export class ESPLoader extends EventTarget {
   __chipFamily?: ChipFamily;
