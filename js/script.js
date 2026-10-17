@@ -1126,7 +1126,7 @@ function bindCheckboxSetting(checkbox, key, onChange) {
 async function requestPort() {
   return isUsingWebUSB()
     ? await WebUSBSerial.requestPort((...args) => logMsg(...args))
-    : await navigator.serial.requestPort({ filters: serialPortFilters });
+    : await navigator.serial.requestPort();
 }
 
 /**
