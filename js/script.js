@@ -233,6 +233,7 @@ const maxLogLength = 100;
 const log = document.getElementById("log");
 const butConnect = document.getElementById("butConnect");
 const baudRateSelect = document.getElementById("baudRate");
+const transportSelect = document.getElementById("transport");
 const advancedMode = document.getElementById("advanced");
 const advancedRow = document.querySelector(".advanced-row");
 const main = document.querySelector(".main");
@@ -329,7 +330,16 @@ function isUsingWebUSB() {
     return espStub.port.isWebUSB === true;
   }
 
-  // Fallback: Check if we're on a mobile device (likely using WebUSB)
+  // Check transport selection from UI
+  const transportMode = transportSelect ? transportSelect.value : "auto";
+  if (transportMode === "webusb") {
+    return true;
+  }
+  if (transportMode === "webserial") {
+    return false;
+  }
+
+  // Fallback for "auto": Check if we're on a mobile device (likely using WebUSB)
   if (isMobileDevice()) {
     return true;
   }
@@ -490,6 +500,9 @@ document.addEventListener("DOMContentLoaded", () => {
   bindCheckboxSetting(autoscroll, "autoscroll");
   consoleSwitch.addEventListener("click", clickConsole);
   baudRateSelect.addEventListener("change", changeBaudRate);
+  if (transportSelect) {
+    transportSelect.addEventListener("change", changeTransport);
+  }
   advancedMode.addEventListener("change", clickAdvancedMode);
   chunkSizeSelect.addEventListener("change", changeAdvancedParam);
   blockSizeSelect.addEventListener("change", changeAdvancedParam);
@@ -808,7 +821,6 @@ async function clickConnect() {
   const isAndroid = /Android/i.test(userAgent);
 
   // Get transport selection from UI
-  const transportSelect = document.getElementById("transport");
   const transportMode = transportSelect ? transportSelect.value : "auto";
 
   // Only log platform details to UI in debug mode (avoid fingerprinting surface)
@@ -1051,6 +1063,18 @@ async function changeBaudRate() {
       await espStub.setBaudrate(baud);
     }
   }
+}
+
+/**
+ * @name changeTransport
+ * Change handler for the Transport selector (Auto, Web Serial, WebUSB).
+ * Updates parameter options for the selected transport.
+ */
+function changeTransport() {
+  if (transportSelect) {
+    saveSetting("transport", transportSelect.value);
+  }
+  updateAdvancedParamsForConnection();
 }
 
 function bindCheckboxSetting(checkbox, key, onChange) {
@@ -2711,8 +2735,14 @@ function toggleUIConnected(connected) {
   if (connected) {
     lbl = "Disconnect";
     isConnected = true;
+    if (transportSelect) {
+      transportSelect.disabled = true;
+    }
   } else {
     isConnected = false;
+    if (transportSelect) {
+      transportSelect.disabled = false;
+    }
     toggleUIToolbar(false);
 
     // Cleanup console if it was running
@@ -2749,6 +2779,14 @@ function toggleUIConnected(connected) {
 }
 
 function loadAllSettings() {
+  // Load transport setting if saved
+  if (transportSelect) {
+    const savedTransport = loadSetting("transport", "auto");
+    if (["auto", "webserial", "webusb"].includes(savedTransport)) {
+      transportSelect.value = savedTransport;
+    }
+  }
+
   // Get default values based on connection type
   const defaults = getDefaultAdvancedParams();
   const connectionType = getConnectionType();
