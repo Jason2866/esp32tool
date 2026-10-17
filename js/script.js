@@ -324,6 +324,18 @@ function isMobileDevice() {
 }
 
 /**
+ * Get current transport mode.
+ * Returns the selected transport mode only if Advanced mode is enabled,
+ * otherwise returns "auto".
+ */
+function getTransportMode() {
+  if (!advancedMode || !advancedMode.checked) {
+    return "auto";
+  }
+  return transportSelect ? transportSelect.value : "auto";
+}
+
+/**
  * Detect if we're using WebUSB (mobile/Android) or Web Serial (desktop)
  * WebUSB is typically used on Android devices
  * Web Serial is used on desktop browsers
@@ -334,8 +346,8 @@ function isUsingWebUSB() {
     return espStub.port.isWebUSB === true;
   }
 
-  // Check transport selection from UI
-  const transportMode = transportSelect ? transportSelect.value : "auto";
+  // Check transport selection from UI (only active when Advanced is enabled)
+  const transportMode = getTransportMode();
   if (transportMode === "webusb") {
     return true;
   }
@@ -846,8 +858,8 @@ async function clickConnect() {
   const userAgent = navigator.userAgent || "";
   const isAndroid = /Android/i.test(userAgent);
 
-  // Get transport selection from UI
-  const transportMode = transportSelect ? transportSelect.value : "auto";
+  // Get transport selection from UI (only active when Advanced is enabled)
+  const transportMode = getTransportMode();
 
   // Only log platform details to UI in debug mode (avoid fingerprinting surface)
   if (debugMode.checked) {
@@ -1594,6 +1606,7 @@ function updateLogVisibility() {
 async function clickAdvancedMode() {
   saveSetting("advanced", advancedMode.checked);
   updateAdvancedVisibility();
+  updateAdvancedParamsForConnection();
 }
 
 /**
@@ -2805,6 +2818,9 @@ function toggleUIConnected(connected) {
 }
 
 function loadAllSettings() {
+  // Load advanced mode setting first so getConnectionType() reflects it
+  advancedMode.checked = loadSetting("advanced", false);
+
   // Load transport setting if saved
   if (transportSelect) {
     const savedTransport = loadSetting("transport", "auto");
@@ -2824,7 +2840,6 @@ function loadAllSettings() {
   debugMode.checked = loadSetting("debugmode", false);
   showLog.checked = loadSetting("showlog", false);
   consoleSwitch.checked = loadSetting("console", false);
-  advancedMode.checked = loadSetting("advanced", false);
 
   // Reinitialize dropdowns with values for current connection type
   const chunkSizes =

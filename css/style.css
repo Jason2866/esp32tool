@@ -1514,6 +1514,17 @@ pre.nvs-issue {
     order: 4;
   }
 
+  /* Zeile 4.5 (Advanced): Transport + Select (volle Breite) */
+  .header-content.advanced-row > label[for="transport"] {
+    order: 5;
+    flex-basis: 100%;
+  }
+
+  .header-content.advanced-row > select#transport {
+    order: 6;
+    flex: 1;
+  }
+
   /* Zeile 5 (Advanced): Chunk + Select (volle Breite) */
   .header-content.advanced-row > label[for="chunkSize"] {
     order: 10;
