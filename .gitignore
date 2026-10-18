@@ -5,9 +5,6 @@ dist
 out
 out-cli
 
-# Build artifacts
-js/util/usb-chips.js
-
 # CLI build artifacts
 esp32tool@*
 node
