@@ -207,7 +207,9 @@ class WebUSBSerial {
           } catch (e) {}
           this.controlInterface = preControlIface.interfaceNumber;
         } catch (e) {
-          this._log(`[WebUSB] Info: Could not pre-claim CDC control iface.`);
+          if (this.device.vendorId !== 0x1a86) {
+            this._log(`[WebUSB] Info: Could not pre-claim CDC control iface.`);
+          }
         }
       }
 
@@ -337,8 +339,15 @@ class WebUSBSerial {
             );
           } catch (e) {}
           this.controlInterface = controlIface.interfaceNumber;
-        } catch (e) {
+        } catch (_e) {
+          // On macOS, CDC control interface 0 is claimed by AppleUSBCDCACM.
+          // For WCH devices (CH343/CH9102), vendor request 0xA4 to device endpoint 0 is used.
           this.controlInterface = this.interfaceNumber;
+          if (this.device.vendorId !== 0x1a86) {
+            this._log(
+              `[WebUSB] Warning: Could not claim CDC control interface ${controlIface.interfaceNumber}.`,
+            );
+          }
         }
       } else {
         this.controlInterface = this.interfaceNumber;
@@ -563,6 +572,18 @@ class WebUSBSerial {
       }
 
       // Initialize DTR/RTS to idle state (both HIGH/asserted)
+      if (this.device.vendorId === 0x1a86) {
+        try {
+          await this.device.controlTransferOut({
+            requestType: "vendor",
+            recipient: "device",
+            request: 0xa4, // WCH SET_HANDSHAKE
+            value: ~((1 << 5) | (1 << 6)) & 0xffff, // DTR=1, RTS=1 (inverted)
+            index: 0x0000,
+          });
+        } catch (_e) {}
+      }
+
       try {
         await this.device.controlTransferOut({
           requestType: "class",
@@ -572,7 +593,9 @@ class WebUSBSerial {
           index: this.controlInterface || 0,
         });
       } catch (e) {
-        this._log("Could not set control lines:", e.message);
+        if (this.device.vendorId !== 0x1a86) {
+          this._log("Could not set control lines:", e.message);
+        }
       }
     }
 
@@ -683,14 +706,11 @@ class WebUSBSerial {
         if (vid === 0x10c4) {
           return await this._setSignalsCP2102(signals);
         }
-        // CH340 (WCH VID: 0x1a86, but not CDC variants like CH343/CH9102/CH9101)
-        else if (
-          vid === 0x1a86 &&
-          pid !== 0x55d3 &&
-          pid !== 0x55d4 &&
-          pid !== 0x55d8
-        ) {
-          return await this._setSignalsCH340(signals);
+        // WCH (CH340, CH341, CH342, CH343, CH344, CH9101, CH9102, etc. VID: 0x1a86)
+        // All WCH chips support vendor request 0xA4 to the device endpoint,
+        // which bypasses OS CDC control interface restrictions (e.g. on macOS)
+        else if (vid === 0x1a86) {
+          return await this._setSignalsWCH(signals);
         }
         // FTDI (VID: 0x0403)
         else if (vid === 0x0403) {
@@ -796,9 +816,9 @@ class WebUSBSerial {
   }
 
   /**
-   * Set signals for CH340 (WCH vendor-specific)
+   * Set signals for WCH chips (CH340, CH341, CH342, CH343, CH344, CH9101, CH9102, etc.)
    */
-  async _setSignalsCH340(signals) {
+  async _setSignalsWCH(signals) {
     // Preserve current state for unspecified signals (Web Serial semantics)
     const dtr =
       signals.dataTerminalReady !== undefined
@@ -813,26 +833,50 @@ class WebUSBSerial {
     this._currentDTR = dtr;
     this._currentRTS = rts;
 
-    // CH340 uses vendor-specific request 0xA4
-    // Bit 5: DTR, Bit 6: RTS (inverted logic!)
-    // Calculate value with bitwise NOT and mask to unsigned 16-bit
+    // WCH CMD_C2 (0xA4) control request on device endpoint 0:
+    // Bit 5 (0x20): DTR, Bit 6 (0x40): RTS (inverted logic)
+    // Masked to unsigned 16-bit
     const value = ~((dtr ? 1 << 5 : 0) | (rts ? 1 << 6 : 0)) & 0xffff;
 
     try {
       const result = await this.device.controlTransferOut({
         requestType: "vendor",
         recipient: "device",
-        request: 0xa4, // CH340 control request
+        request: 0xa4, // WCH control request
         value: value,
         index: 0,
       });
 
+      // If a separate CDC control interface was claimed, also send CDC SET_CONTROL_LINE_STATE
+      if (
+        this.controlInterface !== null &&
+        this.controlInterface !== this.interfaceNumber
+      ) {
+        try {
+          const cdcValue = (dtr ? 1 : 0) | (rts ? 2 : 0);
+          await this.device.controlTransferOut({
+            requestType: "class",
+            recipient: "interface",
+            request: 0x22,
+            value: cdcValue,
+            index: this.controlInterface,
+          });
+        } catch (_e) {}
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 50));
       return result;
     } catch (e) {
-      this._log(`[WebUSB CH340] Failed to set signals: ${e.message}`);
+      this._log(`[WebUSB WCH] Failed to set signals: ${e.message}`);
       throw e;
     }
+  }
+
+  /**
+   * Legacy alias for CH340 signal setting
+   */
+  async _setSignalsCH340(signals) {
+    return await this._setSignalsWCH(signals);
   }
 
   /**

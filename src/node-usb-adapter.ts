@@ -301,13 +301,8 @@ export function createNodeUSBAdapter(
       if (vendorId === 0x10c4) {
         await setSignalsCP2102(device, dtr, rts);
       }
-      // CH340 (WCH VID: 0x1a86, but not CDC variants like CH343/CH9102/CH9101)
-      else if (
-        vendorId === 0x1a86 &&
-        productId !== 0x55d3 &&
-        productId !== 0x55d4 &&
-        productId !== 0x55d8
-      ) {
+      // WCH (CH340, CH341, CH342, CH343, CH344, CH9101, CH9102, etc. VID: 0x1a86)
+      else if (vendorId === 0x1a86) {
         await setSignalsCH340(device, dtr, rts);
       }
       // FTDI (VID: 0x0403)
