@@ -480,12 +480,13 @@ class WebUSBSerial {
     else if (this.device.vendorId === 0x067b) {
       await this._initPL2303(baudRate);
     }
-    // CH340-specific initialization (VID: 0x1a86, but not CDC variants like CH343/CH9102/CH9101)
+    // CH340-specific initialization (VID: 0x1a86, non-CDC variants)
     else if (
       this.device.vendorId === 0x1a86 &&
-      this.device.productId !== 0x55d3 &&
-      this.device.productId !== 0x55d4 &&
-      this.device.productId !== 0x55d8
+      (this.device.productId === 0x7523 ||
+        this.device.productId === 0x5523 ||
+        this.device.productId === 0x7522 ||
+        this.device.productId === 0x7584)
     ) {
       try {
         // Step 1: Initialize CH340
@@ -544,6 +545,10 @@ class WebUSBSerial {
       } catch (e) {
         this._log("[WebUSB CH340] Initialization error:", e.message);
       }
+    }
+    // WCH CDC variants (CH342, CH343, CH344, CH9101, CH9102, CH9103, CH9104, etc.)
+    else if (this.device.vendorId === 0x1a86) {
+      await this._initCH343(baudRate);
     } else {
       // Standard CDC/ACM initialization for other chips
       try {
@@ -571,19 +576,6 @@ class WebUSBSerial {
         this._log("Could not set line coding:", e.message);
       }
 
-      // Initialize DTR/RTS to idle state (both HIGH/asserted)
-      if (this.device.vendorId === 0x1a86) {
-        try {
-          await this.device.controlTransferOut({
-            requestType: "vendor",
-            recipient: "device",
-            request: 0xa4, // WCH SET_HANDSHAKE
-            value: ~((1 << 5) | (1 << 6)) & 0xffff, // DTR=1, RTS=1 (inverted)
-            index: 0x0000,
-          });
-        } catch (_e) {}
-      }
-
       try {
         await this.device.controlTransferOut({
           requestType: "class",
@@ -593,9 +585,7 @@ class WebUSBSerial {
           index: this.controlInterface || 0,
         });
       } catch (e) {
-        if (this.device.vendorId !== 0x1a86) {
-          this._log("Could not set control lines:", e.message);
-        }
+        this._log("Could not set control lines:", e.message);
       }
     }
 
@@ -838,37 +828,174 @@ class WebUSBSerial {
     // Masked to unsigned 16-bit
     const value = ~((dtr ? 1 << 5 : 0) | (rts ? 1 << 6 : 0)) & 0xffff;
 
+    let result;
     try {
-      const result = await this.device.controlTransferOut({
+      result = await this.device.controlTransferOut({
         requestType: "vendor",
         recipient: "device",
-        request: 0xa4, // WCH control request
+        request: 0xa4, // WCH CMD_C2 control request
         value: value,
         index: 0,
       });
-
-      // If a separate CDC control interface was claimed, also send CDC SET_CONTROL_LINE_STATE
-      if (
-        this.controlInterface !== null &&
-        this.controlInterface !== this.interfaceNumber
-      ) {
-        try {
-          const cdcValue = (dtr ? 1 : 0) | (rts ? 2 : 0);
-          await this.device.controlTransferOut({
-            requestType: "class",
-            recipient: "interface",
-            request: 0x22,
-            value: cdcValue,
-            index: this.controlInterface,
-          });
-        } catch (_e) {}
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      return result;
     } catch (e) {
-      this._log(`[WebUSB WCH] Failed to set signals: ${e.message}`);
-      throw e;
+      this._log(`[WebUSB WCH] Vendor controlTransferOut failed: ${e.message}`);
+    }
+
+    // Also send standard CDC SET_CONTROL_LINE_STATE (0x22)
+    const cdcValue = (dtr ? 1 : 0) | (rts ? 2 : 0);
+    let cdcSent = false;
+    if (this.controlInterface !== null) {
+      try {
+        const cdcResult = await this.device.controlTransferOut({
+          requestType: "class",
+          recipient: "interface",
+          request: 0x22,
+          value: cdcValue,
+          index: this.controlInterface,
+        });
+        result = cdcResult || result;
+        cdcSent = true;
+      } catch (_e) {}
+    }
+    if (!cdcSent) {
+      try {
+        const cdcResult = await this.device.controlTransferOut({
+          requestType: "class",
+          recipient: "device",
+          request: 0x22,
+          value: cdcValue,
+          index: 0,
+        });
+        result = cdcResult || result;
+      } catch (_e) {}
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    return result;
+  }
+
+  /**
+   * Calculate baudrate divisor and parameters for WCH CH343/CH9102/CH342/CH344
+   * Reference: Official Linux ch343.c driver (Nanjing Qinheng Microelectronics)
+   */
+  _calcCH343Baud(baudRate) {
+    let b, c;
+    switch (baudRate) {
+      case 6000000:
+      case 4000000:
+      case 2400000:
+      case 921600:
+      case 307200:
+      case 256000:
+        b = 7;
+        c = 12000000;
+        break;
+      default:
+        if (baudRate > 6000000 / 255) {
+          b = 3;
+          c = 6000000;
+        } else if (baudRate > 750000 / 255) {
+          b = 2;
+          c = 750000;
+        } else if (baudRate > 93750 / 255) {
+          b = 1;
+          c = 93750;
+        } else {
+          b = 0;
+          c = 11719;
+        }
+        break;
+    }
+    let a = Math.floor(c / baudRate);
+    if (a === 0 || a >= 255) a = 1;
+    if (c / a - baudRate > baudRate - c / (a + 1)) {
+      a++;
+    }
+    a = (256 - a) & 0xff;
+    const fct = a;
+    const dvs = b;
+
+    // 8 data bits (CH343_L_C8 = 0x03), RX enable (0x80), TX enable (0x40)
+    const reg_value = 0xc3;
+    // CH343_L_R_CT (0x80) | CH343_L_R_CL (0x04) | CH343_L_R_T (0x08)
+    const reg_count = 0x8c;
+    const value = (reg_count | (reg_value << 8)) & 0xffff;
+    const index = (dvs | (fct << 8)) & 0xffff;
+    return { value, index };
+  }
+
+  /**
+   * Set baudrate for WCH CH343/CH9102/CH342/CH344 chips
+   */
+  async _setBaudRateCH343(baudRate) {
+    // 1. Vendor baud rate command CMD_C1 (0xA1) to device endpoint 0
+    try {
+      const { value, index } = this._calcCH343Baud(baudRate);
+      await this.device.controlTransferOut({
+        requestType: "vendor",
+        recipient: "device",
+        request: 0xa1, // CMD_C1
+        value: value,
+        index: index,
+      });
+    } catch (e) {
+      this._log("[WebUSB CH343] Vendor baudrate error:", e.message);
+    }
+
+    // 2. Also send standard CDC SET_LINE_CODING (0x20)
+    try {
+      const lineCoding = new Uint8Array([
+        baudRate & 0xff,
+        (baudRate >> 8) & 0xff,
+        (baudRate >> 16) & 0xff,
+        (baudRate >> 24) & 0xff,
+        0x00, // 1 stop bit
+        0x00, // No parity
+        0x08, // 8 data bits
+      ]);
+
+      await this.device.controlTransferOut(
+        {
+          requestType: "class",
+          recipient: "interface",
+          request: 0x20, // SET_LINE_CODING
+          value: 0,
+          index: this.controlInterface !== null ? this.controlInterface : 0,
+        },
+        lineCoding,
+      );
+    } catch (_e) {}
+  }
+
+  /**
+   * Initialize WCH CH343/CH9102/CH342/CH344 chips
+   */
+  async _initCH343(baudRate) {
+    try {
+      // Step 1: Configuration inquiry CMD_C6 (0x5F)
+      try {
+        await this.device.controlTransferIn(
+          {
+            requestType: "vendor",
+            recipient: "device",
+            request: 0x5f, // CMD_C6
+            value: 0,
+            index: 0,
+          },
+          8,
+        );
+      } catch (_e) {}
+
+      // Step 2: Set baud rate via CMD_C1 (0xA1) & CDC 0x20
+      await this._setBaudRateCH343(baudRate);
+
+      // Step 3: Set initial DTR/RTS (both asserted/idle)
+      await this._setSignalsWCH({
+        dataTerminalReady: true,
+        requestToSend: true,
+      });
+    } catch (e) {
+      this._log("[WebUSB CH343] Initialization error:", e.message);
     }
   }
 
@@ -1142,12 +1269,10 @@ class WebUSBSerial {
         baudrateBuffer,
       );
     }
-    // CH340 (WCH VID: 0x1a86, but not CDC variants like CH343/CH9102/CH9101)
+    // CH340 (WCH VID: 0x1a86, non-CDC variants)
     else if (
       vid === 0x1a86 &&
-      pid !== 0x55d3 &&
-      pid !== 0x55d4 &&
-      pid !== 0x55d8
+      (pid === 0x7523 || pid === 0x5523 || pid === 0x7522 || pid === 0x7584)
     ) {
       // CH340 baudrate calculation (from Linux kernel driver)
       const CH341_BAUDBASE_FACTOR = 1532620800;
@@ -1187,6 +1312,10 @@ class WebUSBSerial {
         value: 0x0f2c, // Fixed value
         index: b,
       });
+    }
+    // WCH CDC variants (CH342, CH343, CH344, CH9101, CH9102, CH9103, etc.)
+    else if (vid === 0x1a86) {
+      await this._setBaudRateCH343(baudRate);
     }
     // Prolific PL2303 (VID: 0x067b)
     else if (vid === 0x067b) {

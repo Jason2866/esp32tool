@@ -337,12 +337,13 @@ export function createNodeUSBAdapter(
           baudrateBuffer,
         );
       }
-      // CH340 (WCH VID: 0x1a86, but not CDC variants like CH343/CH9102/CH9101)
+      // CH340 (WCH VID: 0x1a86, non-CDC variants)
       else if (
         vendorId === 0x1a86 &&
-        productId !== 0x55d3 &&
-        productId !== 0x55d4 &&
-        productId !== 0x55d8
+        (productId === 0x7523 ||
+          productId === 0x5523 ||
+          productId === 0x7522 ||
+          productId === 0x7584)
       ) {
         const CH341_BAUDBASE_FACTOR = 1532620800;
         const CH341_BAUDBASE_DIVMAX = 3;
@@ -374,6 +375,10 @@ export function createNodeUSBAdapter(
           value: 0x0f2c,
           index: b,
         });
+      }
+      // WCH CDC variants (CH342, CH343, CH344, CH9101, CH9102, CH9103, etc.)
+      else if (vendorId === 0x1a86) {
+        await setBaudRateCH343(device, baudRate, controlInterface || 0);
       }
       // FTDI (VID: 0x0403)
       else if (vendorId === 0x0403) {
@@ -587,12 +592,13 @@ async function initializeChip(
 
     logger.debug("CP2102: Initialization complete");
   }
-  // CH340 (WCH)
+  // CH340 (WCH non-CDC)
   else if (
     vendorId === 0x1a86 &&
-    productId !== 0x55d3 &&
-    productId !== 0x55d4 &&
-    productId !== 0x55d8
+    (productId === 0x7523 ||
+      productId === 0x5523 ||
+      productId === 0x7522 ||
+      productId === 0x7584)
   ) {
     logger.debug("Initializing CH340...");
 
@@ -645,6 +651,30 @@ async function initializeChip(
       value: ~((1 << 5) | (1 << 6)) & 0xffff,
       index: 0x0000,
     });
+  }
+  // WCH CDC variants (CH342, CH343, CH344, CH9101, CH9102, CH9103, etc.)
+  else if (vendorId === 0x1a86) {
+    logger.debug("Initializing CH343/WCH CDC...");
+    try {
+      await controlTransferIn(
+        device,
+        {
+          requestType: "vendor",
+          recipient: "device",
+          request: 0x5f, // CMD_C6
+          value: 0,
+          index: 0,
+        },
+        8,
+      );
+    } catch (_e) {
+      // Ignore if device does not support CMD_C6
+    }
+
+    await setBaudRateCH343(device, baudRate, 0);
+
+    // Initial DTR/RTS
+    await setSignalsCH340(device, true, true);
   }
   // FTDI
   else if (vendorId === 0x0403) {
@@ -859,13 +889,117 @@ async function setSignalsCH340(
 ): Promise<void> {
   const value = ~((dtr ? 1 << 5 : 0) | (rts ? 1 << 6 : 0)) & 0xffff;
 
-  await controlTransferOut(device, {
-    requestType: "vendor",
-    recipient: "device",
-    request: 0xa4,
-    value: value,
-    index: 0,
-  });
+  try {
+    await controlTransferOut(device, {
+      requestType: "vendor",
+      recipient: "device",
+      request: 0xa4,
+      value: value,
+      index: 0,
+    });
+  } catch (_e) {
+    // Ignore vendor transfer failure
+  }
+
+  try {
+    const cdcValue = (dtr ? 1 : 0) | (rts ? 2 : 0);
+    await controlTransferOut(device, {
+      requestType: "class",
+      recipient: "interface",
+      request: 0x22,
+      value: cdcValue,
+      index: 0,
+    });
+  } catch (_e) {
+    // Ignore CDC control transfer failure
+  }
+}
+
+function calcCH343Baud(baudRate: number): { value: number; index: number } {
+  let b: number, c: number;
+  switch (baudRate) {
+    case 6000000:
+    case 4000000:
+    case 2400000:
+    case 921600:
+    case 307200:
+    case 256000:
+      b = 7;
+      c = 12000000;
+      break;
+    default:
+      if (baudRate > 6000000 / 255) {
+        b = 3;
+        c = 6000000;
+      } else if (baudRate > 750000 / 255) {
+        b = 2;
+        c = 750000;
+      } else if (baudRate > 93750 / 255) {
+        b = 1;
+        c = 93750;
+      } else {
+        b = 0;
+        c = 11719;
+      }
+      break;
+  }
+  let a = Math.floor(c / baudRate);
+  if (a === 0 || a >= 255) a = 1;
+  if (c / a - baudRate > baudRate - c / (a + 1)) {
+    a++;
+  }
+  a = (256 - a) & 0xff;
+  const fct = a;
+  const dvs = b;
+
+  const reg_value = 0xc3; // 8 data bits, RX enable, TX enable
+  const reg_count = 0x8c;
+  const value = (reg_count | (reg_value << 8)) & 0xffff;
+  const index = (dvs | (fct << 8)) & 0xffff;
+  return { value, index };
+}
+
+async function setBaudRateCH343(
+  device: Device,
+  baudRate: number,
+  controlInterface: number = 0,
+): Promise<void> {
+  // Vendor command CMD_C1 (0xA1) to device endpoint 0
+  try {
+    const { value, index } = calcCH343Baud(baudRate);
+    await controlTransferOut(device, {
+      requestType: "vendor",
+      recipient: "device",
+      request: 0xa1, // CMD_C1
+      value: value,
+      index: index,
+    });
+  } catch (_e) {
+    // Ignore vendor baudrate transfer failure
+  }
+
+  // Also send standard CDC SET_LINE_CODING (0x20)
+  try {
+    const lineCoding = Buffer.alloc(7);
+    lineCoding.writeUInt32LE(baudRate, 0);
+    lineCoding[4] = 0x00; // 1 stop bit
+    lineCoding[5] = 0x00; // No parity
+    lineCoding[6] = 0x08; // 8 data bits
+
+    await controlTransferOut(
+      device,
+      {
+        requestType: "class",
+        recipient: "interface",
+        request: 0x20,
+        value: 0,
+        index: controlInterface,
+      },
+      lineCoding,
+    );
+  } catch (_e) {
+    // Ignore CDC line coding transfer failure
+  }
 }
 
 async function setSignalsFTDI(
