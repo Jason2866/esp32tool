@@ -7,7 +7,7 @@
 
 import { Logger } from "./const";
 import type { Device, InEndpoint, OutEndpoint } from "usb";
-import { knownVendorIds } from "./util/usb-chips.js";
+import { USB_SERIAL_CHIPS } from "./util/usb-chips.js";
 
 export interface NodeUSBPort {
   readable: ReadableStream<Uint8Array> | null;
@@ -1165,8 +1165,9 @@ export async function listUSBPorts(): Promise<
 
     const serialDevices = devices.filter((device) => {
       const vid = device.deviceDescriptor.idVendor;
+      const pid = device.deviceDescriptor.idProduct;
       // Filter for known USB-Serial chips
-      return knownVendorIds.includes(vid);
+      return vid === 0x303a || USB_SERIAL_CHIPS[vid]?.[pid] !== undefined;
     });
 
     return serialDevices.map((device) => {
