@@ -954,6 +954,8 @@ class WebUSBSerial {
    * Set baudrate for WCH CH343/CH9102/CH342/CH344 chips
    */
   async _setBaudRateCH343(baudRate) {
+    let success = false;
+    let lastError = null;
     // 1. Vendor baud rate command CMD_C1 (0xA1) to device endpoint 0
     try {
       const { value, index } = this._calcCH343Baud(baudRate);
@@ -964,7 +966,9 @@ class WebUSBSerial {
         value: value,
         index: index,
       });
+      success = true;
     } catch (e) {
+      lastError = e;
       this._log("[WebUSB CH343] Vendor baudrate error:", e.message);
     }
 
@@ -990,7 +994,14 @@ class WebUSBSerial {
         },
         lineCoding,
       );
-    } catch (_e) {}
+      success = true;
+    } catch (e) {
+      lastError = e;
+    }
+
+    if (!success) {
+      throw lastError || new Error("Failed to set CH343 baud rate");
+    }
   }
 
   /**
