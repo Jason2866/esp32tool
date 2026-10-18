@@ -467,10 +467,16 @@ class WebUSBSerial {
         this._log("[WebUSB FTDI] Initialization error:", e.message);
       }
     }
-    // CH340-specific initialization (VID: 0x1a86, but not CH343 PID: 0x55d3)
+    // Prolific PL2303 initialization (VID: 0x067b)
+    else if (this.device.vendorId === 0x067b) {
+      await this._initPL2303(baudRate);
+    }
+    // CH340-specific initialization (VID: 0x1a86, but not CDC variants like CH343/CH9102/CH9101)
     else if (
       this.device.vendorId === 0x1a86 &&
-      this.device.productId !== 0x55d3
+      this.device.productId !== 0x55d3 &&
+      this.device.productId !== 0x55d4 &&
+      this.device.productId !== 0x55d8
     ) {
       try {
         // Step 1: Initialize CH340
@@ -677,11 +683,24 @@ class WebUSBSerial {
         if (vid === 0x10c4) {
           return await this._setSignalsCP2102(signals);
         }
-        // CH340 (WCH VID: 0x1a86, but not CH343 PID: 0x55d3)
-        else if (vid === 0x1a86 && pid !== 0x55d3) {
+        // CH340 (WCH VID: 0x1a86, but not CDC variants like CH343/CH9102/CH9101)
+        else if (
+          vid === 0x1a86 &&
+          pid !== 0x55d3 &&
+          pid !== 0x55d4 &&
+          pid !== 0x55d8
+        ) {
           return await this._setSignalsCH340(signals);
         }
-        // CDC/ACM (CH343, Native USB, etc.)
+        // FTDI (VID: 0x0403)
+        else if (vid === 0x0403) {
+          return await this._setSignalsFTDI(signals);
+        }
+        // Prolific PL2303 (VID: 0x067b)
+        else if (vid === 0x067b) {
+          return await this._setSignalsPL2303(signals);
+        }
+        // CDC/ACM (CH343, Native USB, MCP2200, CY7C65213, etc.)
         else {
           return await this._setSignalsCDC(signals);
         }
@@ -817,6 +836,177 @@ class WebUSBSerial {
   }
 
   /**
+   * Set signals for FTDI (FT232, FT2232, etc.)
+   */
+  async _setSignalsFTDI(signals) {
+    // Preserve current state for unspecified signals (Web Serial semantics)
+    const dtr =
+      signals.dataTerminalReady !== undefined
+        ? signals.dataTerminalReady
+        : this._currentDTR;
+    const rts =
+      signals.requestToSend !== undefined
+        ? signals.requestToSend
+        : this._currentRTS;
+
+    // Update tracked state
+    this._currentDTR = dtr;
+    this._currentRTS = rts;
+
+    // FTDI SIO_MODEM_CTRL (request 0x01)
+    // Bit 0: DTR, Bit 1: RTS
+    // Bit 8: DTR mask (0x0100), Bit 9: RTS mask (0x0200)
+    let value = 0;
+    value |= dtr ? 1 : 0;
+    value |= rts ? 2 : 0;
+    value |= 0x0100 | 0x0200; // Enable change of both DTR and RTS
+
+    try {
+      const result = await this.device.controlTransferOut({
+        requestType: "vendor",
+        recipient: "device",
+        request: 0x01, // SIO_MODEM_CTRL
+        value: value,
+        index: 0x00,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      return result;
+    } catch (e) {
+      this._log(`[WebUSB FTDI] Failed to set signals: ${e.message}`);
+      throw e;
+    }
+  }
+
+  /**
+   * Set signals for Prolific PL2303
+   */
+  async _setSignalsPL2303(signals) {
+    // Preserve current state for unspecified signals (Web Serial semantics)
+    const dtr =
+      signals.dataTerminalReady !== undefined
+        ? signals.dataTerminalReady
+        : this._currentDTR;
+    const rts =
+      signals.requestToSend !== undefined
+        ? signals.requestToSend
+        : this._currentRTS;
+
+    // Update tracked state
+    this._currentDTR = dtr;
+    this._currentRTS = rts;
+
+    let value = 0;
+    value |= dtr ? 1 : 0; // CONTROL_DTR
+    value |= rts ? 2 : 0; // CONTROL_RTS
+
+    try {
+      const result = await this.device.controlTransferOut({
+        requestType: "class",
+        recipient: "interface",
+        request: 0x22, // SET_CONTROL_LINE_STATE
+        value: value,
+        index: this.controlInterface || 0,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      return result;
+    } catch (e) {
+      this._log(`[WebUSB PL2303] Failed to set signals: ${e.message}`);
+      throw e;
+    }
+  }
+
+  /**
+   * Set line coding (baudrate) for Prolific PL2303
+   */
+  async _setLineCodingPL2303(baudRate) {
+    const lineCoding = new Uint8Array([
+      baudRate & 0xff,
+      (baudRate >> 8) & 0xff,
+      (baudRate >> 16) & 0xff,
+      (baudRate >> 24) & 0xff,
+      0x00, // 1 stop bit
+      0x00, // No parity
+      0x08, // 8 data bits
+    ]);
+
+    await this.device.controlTransferOut(
+      {
+        requestType: "class",
+        recipient: "interface",
+        request: 0x20, // SET_LINE_CODING
+        value: 0,
+        index: this.controlInterface || 0,
+      },
+      lineCoding,
+    );
+  }
+
+  /**
+   * Initialize Prolific PL2303 chip
+   */
+  async _initPL2303(baudRate) {
+    try {
+      // Vendor startup sequence (for PL2303HX/HXD/TA/etc.)
+      // Safe: ignore errors on newer revisions (e.g. PL2303G / GC)
+      const vendorRead = async (value) => {
+        try {
+          await this.device.controlTransferIn(
+            {
+              requestType: "vendor",
+              recipient: "device",
+              request: 0x01,
+              value: value,
+              index: 0,
+            },
+            1,
+          );
+        } catch (_e) {
+          // Ignore
+        }
+      };
+
+      const vendorWrite = async (value, index) => {
+        try {
+          await this.device.controlTransferOut({
+            requestType: "vendor",
+            recipient: "device",
+            request: 0x01,
+            value: value,
+            index: index,
+          });
+        } catch (_e) {
+          // Ignore
+        }
+      };
+
+      await vendorRead(0x8484);
+      await vendorWrite(0x0404, 0);
+      await vendorRead(0x8484);
+      await vendorRead(0x8383);
+      await vendorRead(0x8484);
+      await vendorWrite(0x0404, 1);
+      await vendorRead(0x8484);
+      await vendorRead(0x8383);
+      await vendorWrite(0, 1);
+      await vendorWrite(1, 0);
+      await vendorWrite(2, 0x44);
+
+      // Set baud rate and line coding
+      await this._setLineCodingPL2303(baudRate);
+
+      // Initial modem control signals (DTR=1, RTS=1)
+      await this._setSignalsPL2303({
+        dataTerminalReady: true,
+        requestToSend: true,
+      });
+    } catch (e) {
+      this._log("[WebUSB PL2303] Initialization error:", e.message);
+    }
+  }
+
+  /**
    * Change baudrate after port is already open
    * This is needed for ESP stub loader which changes baudrate after uploading stub
    * NOTE: Only needed for vendor-specific chips (CP2102, CH340, FTDI)
@@ -908,8 +1098,13 @@ class WebUSBSerial {
         baudrateBuffer,
       );
     }
-    // CH340 (WCH VID: 0x1a86, but not CH343 PID: 0x55d3)
-    else if (vid === 0x1a86 && pid !== 0x55d3) {
+    // CH340 (WCH VID: 0x1a86, but not CDC variants like CH343/CH9102/CH9101)
+    else if (
+      vid === 0x1a86 &&
+      pid !== 0x55d3 &&
+      pid !== 0x55d4 &&
+      pid !== 0x55d8
+    ) {
       // CH340 baudrate calculation (from Linux kernel driver)
       const CH341_BAUDBASE_FACTOR = 1532620800;
       const CH341_BAUDBASE_DIVMAX = 3;
@@ -949,8 +1144,37 @@ class WebUSBSerial {
         index: b,
       });
     }
-    // CDC devices (CH343, ESP32 Native USB) - no action needed in setBaudRate()
-    // They are handled by close/reopen in esp_loader.ts
+    // Prolific PL2303 (VID: 0x067b)
+    else if (vid === 0x067b) {
+      await this._setLineCodingPL2303(baudRate);
+    }
+    // CDC devices (CH343, CH9102, CH9101, ESP32 Native USB, MCP2200, CY7C65213, etc.)
+    else {
+      try {
+        const lineCoding = new Uint8Array([
+          baudRate & 0xff,
+          (baudRate >> 8) & 0xff,
+          (baudRate >> 16) & 0xff,
+          (baudRate >> 24) & 0xff,
+          0x00, // 1 stop bit
+          0x00, // No parity
+          0x08, // 8 data bits
+        ]);
+
+        await this.device.controlTransferOut(
+          {
+            requestType: "class",
+            recipient: "interface",
+            request: 0x20, // SET_LINE_CODING
+            value: 0,
+            index: this.controlInterface || 0,
+          },
+          lineCoding,
+        );
+      } catch (e) {
+        this._log(`[WebUSB CDC] Could not set line coding: ${e.message}`);
+      }
+    }
 
     // Wait for baudrate change to take effect
     await new Promise((resolve) => setTimeout(resolve, 50));

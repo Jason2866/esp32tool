@@ -7,6 +7,7 @@
 
 import { Logger } from "./const";
 import type { Device, InEndpoint, OutEndpoint } from "usb";
+import { knownVendorIds } from "./util/usb-chips.js";
 
 export interface NodeUSBPort {
   readable: ReadableStream<Uint8Array> | null;
@@ -300,15 +301,20 @@ export function createNodeUSBAdapter(
       if (vendorId === 0x10c4) {
         await setSignalsCP2102(device, dtr, rts);
       }
-      // CH340 (WCH VID: 0x1a86, but not CH343 PID: 0x55d3)
-      else if (vendorId === 0x1a86 && productId !== 0x55d3) {
+      // CH340 (WCH VID: 0x1a86, but not CDC variants like CH343/CH9102/CH9101)
+      else if (
+        vendorId === 0x1a86 &&
+        productId !== 0x55d3 &&
+        productId !== 0x55d4 &&
+        productId !== 0x55d8
+      ) {
         await setSignalsCH340(device, dtr, rts);
       }
       // FTDI (VID: 0x0403)
       else if (vendorId === 0x0403) {
         await setSignalsFTDI(device, dtr, rts);
       }
-      // CDC/ACM (CH343, Native USB, etc.)
+      // CDC/ACM (CH343, Native USB, PL2303, etc.)
       else {
         await setSignalsCDC(device, dtr, rts, controlInterface || 0);
       }
@@ -336,8 +342,13 @@ export function createNodeUSBAdapter(
           baudrateBuffer,
         );
       }
-      // CH340 (WCH VID: 0x1a86, but not CH343 PID: 0x55d3)
-      else if (vendorId === 0x1a86 && productId !== 0x55d3) {
+      // CH340 (WCH VID: 0x1a86, but not CDC variants like CH343/CH9102/CH9101)
+      else if (
+        vendorId === 0x1a86 &&
+        productId !== 0x55d3 &&
+        productId !== 0x55d4 &&
+        productId !== 0x55d8
+      ) {
         const CH341_BAUDBASE_FACTOR = 1532620800;
         const CH341_BAUDBASE_DIVMAX = 3;
 
@@ -582,7 +593,12 @@ async function initializeChip(
     logger.debug("CP2102: Initialization complete");
   }
   // CH340 (WCH)
-  else if (vendorId === 0x1a86 && productId !== 0x55d3) {
+  else if (
+    vendorId === 0x1a86 &&
+    productId !== 0x55d3 &&
+    productId !== 0x55d4 &&
+    productId !== 0x55d8
+  ) {
     logger.debug("Initializing CH340...");
 
     // Initialize
@@ -703,6 +719,81 @@ async function initializeChip(
       request: 0x01,
       value: 0x0303,
       index: 0x00,
+    });
+  }
+  // Prolific PL2303
+  else if (vendorId === 0x067b) {
+    logger.debug("Initializing PL2303...");
+    const vendorRead = async (value: number) => {
+      try {
+        await controlTransferIn(
+          device,
+          {
+            requestType: "vendor",
+            recipient: "device",
+            request: 0x01,
+            value: value,
+            index: 0,
+          },
+          1,
+        );
+      } catch (_e) {
+        // Ignore
+      }
+    };
+
+    const vendorWrite = async (value: number, index: number) => {
+      try {
+        await controlTransferOut(device, {
+          requestType: "vendor",
+          recipient: "device",
+          request: 0x01,
+          value: value,
+          index: index,
+        });
+      } catch (_e) {
+        // Ignore
+      }
+    };
+
+    await vendorRead(0x8484);
+    await vendorWrite(0x0404, 0);
+    await vendorRead(0x8484);
+    await vendorRead(0x8383);
+    await vendorRead(0x8484);
+    await vendorWrite(0x0404, 1);
+    await vendorRead(0x8484);
+    await vendorRead(0x8383);
+    await vendorWrite(0, 1);
+    await vendorWrite(1, 0);
+    await vendorWrite(2, 0x44);
+
+    // Set line coding
+    const lineCoding = Buffer.alloc(7);
+    lineCoding.writeUInt32LE(baudRate, 0);
+    lineCoding[4] = 0x00; // 1 stop bit
+    lineCoding[5] = 0x00; // No parity
+    lineCoding[6] = 0x08; // 8 data bits
+
+    await controlTransferOut(
+      device,
+      {
+        requestType: "class",
+        recipient: "interface",
+        request: 0x20,
+        value: 0,
+        index: 0,
+      },
+      lineCoding,
+    );
+
+    // Set control line state
+    await controlTransferOut(device, {
+      requestType: "class",
+      recipient: "interface",
+      request: 0x22,
+      value: 0x03,
+      index: 0,
     });
   }
   // CDC/ACM
@@ -872,6 +963,44 @@ async function controlTransferOut(
   });
 }
 
+async function controlTransferIn(
+  device: Device,
+  params: ControlTransferParams,
+  length: number,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const bmRequestType =
+      0x80 | // Direction: Device-to-Host (IN)
+      (params.requestType === "standard"
+        ? 0x00
+        : params.requestType === "class"
+          ? 0x20
+          : 0x40) |
+      (params.recipient === "device"
+        ? 0x00
+        : params.recipient === "interface"
+          ? 0x01
+          : params.recipient === "endpoint"
+            ? 0x02
+            : 0x03);
+
+    device.controlTransfer(
+      bmRequestType,
+      params.request,
+      params.value,
+      params.index,
+      length,
+      (err, data) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(data as Buffer);
+        }
+      },
+    );
+  });
+}
+
 /**
  * List available USB serial devices
  */
@@ -891,13 +1020,7 @@ export async function listUSBPorts(): Promise<
     const serialDevices = devices.filter((device) => {
       const vid = device.deviceDescriptor.idVendor;
       // Filter for known USB-Serial chips
-      return (
-        vid === 0x303a || // Espressif
-        vid === 0x0403 || // FTDI
-        vid === 0x1a86 || // CH340/CH343
-        vid === 0x10c4 || // CP210x
-        vid === 0x067b
-      ); // PL2303
+      return knownVendorIds.includes(vid);
     });
 
     return serialDevices.map((device) => {
