@@ -1,5 +1,9 @@
 // Import WebUSB serial support for Android compatibility
-import { WebUSBSerial, requestSerialPort } from "./webusb-serial.js";
+import {
+  WebUSBSerial,
+  requestSerialPort,
+  serialPortFilters,
+} from "./webusb-serial.js";
 import { ESP32ToolConsole } from "./console.js";
 import { HexEditor } from "./hex-editor.js";
 import { NVSEditor } from "./nvs-editor.js";
@@ -138,54 +142,93 @@ const baudRates = [
   2000000, 1500000, 921600, 500000, 460800, 230400, 153600, 128000, 115200,
 ];
 
-// Advanced read flash parameters
-// chunkSize: Amount of data to request from ESP in one command (in KB)
-const chunkSizes = [
-  { label: "4 KB", value: 0x1000 },
-  { label: "8 KB", value: 0x2000 },
-  { label: "16 KB (WebUSB)", value: 0x4000 },
-  { label: "64 KB", value: 0x10000 },
-  { label: "128 KB (Desktop)", value: 0x20000 },
-  { label: "256 KB", value: 0x40000 },
-];
+// Advanced read flash parameters - valid values for each connection type
+// chunkSize: Amount of data to request from ESP in one command (in bytes)
+const chunkSizesByType = {
+  webserial: [
+    { label: "4 KB", value: 0x1000 },
+    { label: "8 KB", value: 0x2000 },
+    { label: "16 KB", value: 0x4000 },
+    { label: "64 KB", value: 0x10000 },
+    { label: "128 KB", value: 0x20000 },
+    { label: "256 KB", value: 0x40000 },
+  ],
+  "webusb-desktop": [
+    { label: "4 KB", value: 0x1000 },
+    { label: "8 KB", value: 0x2000 },
+    { label: "16 KB", value: 0x4000 },
+    { label: "64 KB", value: 0x10000 },
+  ],
+  "webusb-android": [
+    { label: "4 KB", value: 0x1000 },
+    { label: "8 KB", value: 0x2000 },
+    { label: "16 KB", value: 0x4000 },
+  ],
+};
 
 // blockSize: Size of each data block sent by ESP (in bytes)
-const blockSizes = [
-  { label: "31 B (Android)", value: 31 },
-  { label: "62 B", value: 62 },
-  { label: "124 B", value: 124 },
-  { label: "248 B (CDC)", value: 248 },
-  { label: "256 B", value: 256 },
-  { label: "496 B", value: 496 },
-  { label: "512 B", value: 512 },
-  { label: "992 B", value: 992 },
-  { label: "1024 B", value: 1024 },
-  { label: "1984 B", value: 1984 },
-  { label: "2024 B", value: 2024 },
-  { label: "3968 B (Desktop)", value: 3968 },
-];
+const blockSizesByType = {
+  webserial: [
+    { label: "248 B", value: 248 },
+    { label: "256 B", value: 256 },
+    { label: "496 B", value: 496 },
+    { label: "512 B", value: 512 },
+    { label: "992 B", value: 992 },
+    { label: "1024 B", value: 1024 },
+    { label: "1984 B", value: 1984 },
+    { label: "2024 B", value: 2024 },
+    { label: "3968 B", value: 3968 },
+  ],
+  "webusb-desktop": [
+    { label: "248 B (CDC)", value: 248 },
+    { label: "256 B", value: 256 },
+    { label: "496 B", value: 496 },
+    { label: "512 B", value: 512 },
+    { label: "992 B", value: 992 },
+    { label: "1024 B", value: 1024 },
+    { label: "1984 B", value: 1984 },
+  ],
+  "webusb-android": [
+    { label: "31 B", value: 31 },
+    { label: "62 B", value: 62 },
+    { label: "124 B", value: 124 },
+    { label: "248 B (CDC)", value: 248 },
+  ],
+};
 
 // maxInFlight: Maximum unacknowledged bytes (in bytes)
-const maxInFlights = [
-  { label: "31 B (Android)", value: 31 },
-  { label: "62 B", value: 62 },
-  { label: "124 B", value: 124 },
-  { label: "248 B (Android CDC)", value: 248 },
-  { label: "512 B", value: 512 },
-  { label: "992 B", value: 992 },
-  { label: "1024 B", value: 1024 },
-  { label: "1984 B", value: 1984 },
-  { label: "2024 B", value: 2024 },
-  { label: "3968 B", value: 3968 },
-  { label: "4096 B", value: 4096 },
-  { label: "7936 B", value: 7936 },
-  { label: "8192 B", value: 8192 },
-  { label: "15872 B (Desktop)", value: 15872 },
-  { label: "31744 B", value: 31744 },
-  { label: "63488 B", value: 63488 },
-  { label: "126976 B", value: 126976 },
-  { label: "253952 B", value: 253952 },
-];
+const maxInFlightsByType = {
+  webserial: [
+    { label: "248 B", value: 248 },
+    { label: "512 B", value: 512 },
+    { label: "992 B", value: 992 },
+    { label: "1024 B", value: 1024 },
+    { label: "1984 B", value: 1984 },
+    { label: "2024 B", value: 2024 },
+    { label: "3968 B", value: 3968 },
+    { label: "4096 B", value: 4096 },
+    { label: "7936 B", value: 7936 },
+    { label: "8192 B", value: 8192 },
+    { label: "15872 B", value: 15872 },
+    { label: "31744 B", value: 31744 },
+    { label: "63488 B", value: 63488 },
+    { label: "126976 B", value: 126976 },
+    { label: "253952 B", value: 253952 },
+  ],
+  "webusb-desktop": [
+    { label: "248 B (CDC)", value: 248 },
+    { label: "512 B", value: 512 },
+    { label: "992 B", value: 992 },
+    { label: "1024 B", value: 1024 },
+    { label: "1984 B", value: 1984 },
+  ],
+  "webusb-android": [
+    { label: "31 B", value: 31 },
+    { label: "62 B", value: 62 },
+    { label: "124 B", value: 124 },
+    { label: "248 B (CDC)", value: 248 },
+  ],
+};
 
 // Check if running in Electron
 const isElectron = window.electronAPI && window.electronAPI.isElectron;
@@ -194,6 +237,7 @@ const maxLogLength = 100;
 const log = document.getElementById("log");
 const butConnect = document.getElementById("butConnect");
 const baudRateSelect = document.getElementById("baudRate");
+const transportSelect = document.getElementById("transport");
 const advancedMode = document.getElementById("advanced");
 const advancedRow = document.querySelector(".advanced-row");
 const main = document.querySelector(".main");
@@ -280,17 +324,38 @@ function isMobileDevice() {
 }
 
 /**
+ * Get current transport mode.
+ * Returns the selected transport mode only if Advanced mode is enabled,
+ * otherwise returns "auto".
+ */
+function getTransportMode() {
+  if (!advancedMode || !advancedMode.checked) {
+    return "auto";
+  }
+  return transportSelect ? transportSelect.value : "auto";
+}
+
+/**
  * Detect if we're using WebUSB (mobile/Android) or Web Serial (desktop)
  * WebUSB is typically used on Android devices
  * Web Serial is used on desktop browsers
  */
 function isUsingWebUSB() {
-  // If we have an active connection, check the port's isWebUSB property
-  if (espStub && espStub.port && typeof espStub.port.isWebUSB !== "undefined") {
+  // If we have an active connection, classify using its isWebUSB property
+  if (espStub && espStub.port) {
     return espStub.port.isWebUSB === true;
   }
 
-  // Fallback: Check if we're on a mobile device (likely using WebUSB)
+  // Check transport selection from UI (only active when Advanced is enabled)
+  const transportMode = getTransportMode();
+  if (transportMode === "webusb") {
+    return true;
+  }
+  if (transportMode === "webserial") {
+    return false;
+  }
+
+  // Fallback for "auto": Check if we're on a mobile device (likely using WebUSB)
   if (isMobileDevice()) {
     return true;
   }
@@ -305,18 +370,61 @@ function isUsingWebUSB() {
 }
 
 /**
- * Get default advanced parameters based on environment
- * Desktop (Web Serial): Higher values for better performance
- * Mobile/WebUSB: Lower values for compatibility
+ * Detect if we're on Android (using WebUSB with maxTransferSize=64)
+ * vs Desktop (using WebUSB with maxTransferSize=512 or Web Serial)
+ */
+function isAndroidWebUSB() {
+  // If we have an active connection, apply Android defaults only when the active port is WebUSB with maxTransferSize 64
+  if (espStub && espStub.port) {
+    return (
+      espStub.port.isWebUSB === true && espStub.port.maxTransferSize === 64
+    );
+  }
+
+  // Fallback: Check if we're on a mobile device (likely Android)
+  return isMobileDevice();
+}
+
+/**
+ * Get connection type: 'webserial', 'webusb-desktop', or 'webusb-android'
+ */
+function getConnectionType() {
+  if (!isUsingWebUSB()) {
+    return "webserial";
+  }
+  return isAndroidWebUSB() ? "webusb-android" : "webusb-desktop";
+}
+
+/**
+ * Get default advanced parameters based on connection type
+ * WebSerial (Desktop): Higher values for better performance
+ * WebUSB Desktop: Medium values
+ * WebUSB Android: Lower values for compatibility
  */
 function getDefaultAdvancedParams() {
-  const isWebUSB = isUsingWebUSB();
+  const connectionType = getConnectionType();
 
-  return {
-    chunkSize: isWebUSB ? 0x4000 : 0x20000, // 16 KB for WebUSB, 128 KB for Desktop
-    blockSize: isWebUSB ? 248 : 3968, // 248 B for WebUSB, 3968 B for Desktop
-    maxInFlight: isWebUSB ? 248 : 15872, // 248 B for WebUSB, 15872 B for Desktop
-  };
+  switch (connectionType) {
+    case "webusb-android":
+      return {
+        chunkSize: 0x4000, // 16 KB
+        blockSize: 31, // 31 B
+        maxInFlight: 31, // 31 B
+      };
+    case "webusb-desktop":
+      return {
+        chunkSize: 0x4000, // 16 KB
+        blockSize: 496, // 496 B
+        maxInFlight: 1984, // 1984 B
+      };
+    case "webserial":
+    default:
+      return {
+        chunkSize: 0x20000, // 128 KB
+        blockSize: 3968, // 3968 B
+        maxInFlight: 15872, // 15872 B
+      };
+  }
 }
 
 // Update mobile classes and padding
@@ -405,6 +513,9 @@ document.addEventListener("DOMContentLoaded", () => {
   bindCheckboxSetting(autoscroll, "autoscroll");
   consoleSwitch.addEventListener("click", clickConsole);
   baudRateSelect.addEventListener("change", changeBaudRate);
+  if (transportSelect) {
+    transportSelect.addEventListener("change", changeTransport);
+  }
   advancedMode.addEventListener("change", clickAdvancedMode);
   chunkSizeSelect.addEventListener("change", changeAdvancedParam);
   blockSizeSelect.addEventListener("change", changeAdvancedParam);
@@ -443,90 +554,101 @@ function initBaudRate() {
   }
 }
 
-function initAdvancedParams() {
-  // Get default values based on environment (Desktop vs WebUSB)
+function populateSelectOptions(selectElement, items) {
+  selectElement.innerHTML = "";
+  for (let item of items) {
+    const option = document.createElement("option");
+    option.text = item.label;
+    option.value = item.value;
+    selectElement.add(option);
+  }
+}
+
+/**
+ * Rebuild advanced parameter dropdowns for the current connection type,
+ * validate saved values against valid options (falling back to defaults),
+ * update dropdown selections, and optionally persist the selections.
+ *
+ * @param {boolean} [persist=false] - Whether to save the resolved values
+ * @returns {string} The resolved connection type
+ */
+function updateAdvancedParamDropdowns(persist = false) {
   const defaults = getDefaultAdvancedParams();
+  const connectionType = getConnectionType();
 
-  // Initialize chunkSize dropdown
-  for (let item of chunkSizes) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    chunkSizeSelect.add(option);
-  }
-  // Set default: 16 KB for WebUSB, 128 KB for Desktop
-  chunkSizeSelect.value = defaults.chunkSize;
+  const chunkSizes =
+    chunkSizesByType[connectionType] || chunkSizesByType.webserial;
+  populateSelectOptions(chunkSizeSelect, chunkSizes);
 
-  // Initialize blockSize dropdown
-  for (let item of blockSizes) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    blockSizeSelect.add(option);
-  }
-  // Set default: 248 B for WebUSB, 3968 B for Desktop
-  blockSizeSelect.value = defaults.blockSize;
+  const blockSizes =
+    blockSizesByType[connectionType] || blockSizesByType.webserial;
+  populateSelectOptions(blockSizeSelect, blockSizes);
 
-  // Initialize maxInFlight dropdown
-  for (let item of maxInFlights) {
-    const option = document.createElement("option");
-    option.text = item.label;
-    option.value = item.value;
-    maxInFlightSelect.add(option);
+  const maxInFlights =
+    maxInFlightsByType[connectionType] || maxInFlightsByType.webserial;
+  populateSelectOptions(maxInFlightSelect, maxInFlights);
+
+  // Load saved values or defaults
+  const savedChunkSize = loadSetting("chunkSize", defaults.chunkSize);
+  const savedBlockSize = loadSetting("blockSize", defaults.blockSize);
+  const savedMaxInFlight = loadSetting("maxInFlight", defaults.maxInFlight);
+
+  // Preserve saved parameter if valid for current connection type, otherwise use default
+  const selectedChunkSize = chunkSizes.some(
+    (item) => item.value === savedChunkSize,
+  )
+    ? savedChunkSize
+    : defaults.chunkSize;
+  const selectedBlockSize = blockSizes.some(
+    (item) => item.value === savedBlockSize,
+  )
+    ? savedBlockSize
+    : defaults.blockSize;
+  const selectedMaxInFlight = maxInFlights.some(
+    (item) => item.value === savedMaxInFlight,
+  )
+    ? savedMaxInFlight
+    : defaults.maxInFlight;
+
+  // Set dropdown values
+  chunkSizeSelect.value = selectedChunkSize;
+  blockSizeSelect.value = selectedBlockSize;
+  maxInFlightSelect.value = selectedMaxInFlight;
+
+  // Save the selected values if requested
+  if (persist) {
+    // Persist only values that were valid saved selections; keep fallbacks
+    // in-memory so other connection types' preferences are not overwritten.
+    if (selectedChunkSize === savedChunkSize)
+      saveSetting("chunkSize", selectedChunkSize);
+    if (selectedBlockSize === savedBlockSize)
+      saveSetting("blockSize", selectedBlockSize);
+    if (selectedMaxInFlight === savedMaxInFlight)
+      saveSetting("maxInFlight", selectedMaxInFlight);
   }
-  // Set default: 248 B for WebUSB, 15872 B for Desktop
-  maxInFlightSelect.value = defaults.maxInFlight;
+
+  return connectionType;
+}
+
+function initAdvancedParams() {
+  updateAdvancedParamDropdowns(false);
 }
 
 /**
  * Update advanced parameters after connection based on actual port type
  * This ensures we use optimal values for WebUSB vs Web Serial
+ * Also updates the dropdown options to show only valid values for the connection type
  */
 function updateAdvancedParamsForConnection() {
-  // Get the correct defaults based on actual connection
-  const defaults = getDefaultAdvancedParams();
+  const connectionType = updateAdvancedParamDropdowns(true);
 
-  // Get current values
-  const currentChunkSize = parseInt(chunkSizeSelect.value);
-  const currentBlockSize = parseInt(blockSizeSelect.value);
-  const currentMaxInFlight = parseInt(maxInFlightSelect.value);
-
-  // Check if values are at old defaults (need updating)
-  const oldWebUSBDefaults = {
-    chunkSize: 0x4000,
-    blockSize: 248,
-    maxInFlight: 248,
-  };
-  const oldDesktopDefaults = {
-    chunkSize: 0x40000,
-    blockSize: 3968,
-    maxInFlight: 15872,
-  };
-
-  const isAtWebUSBDefaults =
-    currentChunkSize === oldWebUSBDefaults.chunkSize &&
-    currentBlockSize === oldWebUSBDefaults.blockSize &&
-    currentMaxInFlight === oldWebUSBDefaults.maxInFlight;
-
-  const isAtDesktopDefaults =
-    currentChunkSize === oldDesktopDefaults.chunkSize &&
-    currentBlockSize === oldDesktopDefaults.blockSize &&
-    currentMaxInFlight === oldDesktopDefaults.maxInFlight;
-
-  // Only update if at defaults (user hasn't customized)
-  if (isAtWebUSBDefaults || isAtDesktopDefaults) {
-    chunkSizeSelect.value = defaults.chunkSize;
-    blockSizeSelect.value = defaults.blockSize;
-    maxInFlightSelect.value = defaults.maxInFlight;
-
-    // Save the new values
-    saveSetting("chunkSize", defaults.chunkSize);
-    saveSetting("blockSize", defaults.blockSize);
-    saveSetting("maxInFlight", defaults.maxInFlight);
-
-    const connectionType = isUsingWebUSB() ? "WebUSB" : "Web Serial";
-    debugMsg(`Advanced parameters updated for ${connectionType} connection`);
-  }
+  const connectionTypeLabel =
+    connectionType === "webserial"
+      ? "Web Serial"
+      : connectionType === "webusb-desktop"
+        ? "WebUSB Desktop"
+        : "WebUSB Android";
+  debugMsg(`Advanced parameters updated for ${connectionTypeLabel} connection`);
 }
 
 function logMsg(text) {
@@ -706,20 +828,65 @@ async function clickConnect() {
   const userAgent = navigator.userAgent || "";
   const isAndroid = /Android/i.test(userAgent);
 
+  // Get transport selection from UI (only active when Advanced is enabled)
+  const transportMode = getTransportMode();
+
   // Only log platform details to UI in debug mode (avoid fingerprinting surface)
   if (debugMode.checked) {
     const platformMsg = `Platform: ${isAndroid ? "Android" : "Desktop"} (UA: ${userAgent.substring(0, 50)}...)`;
     logMsg(platformMsg);
   }
-  logMsg(`Using: ${isAndroid ? "WebUSB" : "Web Serial"}`);
 
   let esploader;
+  let useWebUSB = false;
 
+  // Determine transport mode
   if (isAndroid) {
-    // Android: Use WebUSB directly
-    console.log("[Connect] Using WebUSB for Android");
+    // Android: Respect transport selection, but warn about Web Serial limitation
+    if (transportMode === "webserial") {
+      useWebUSB = false;
+      logMsg(
+        `Using: Web Serial (Android - User selected, but Web Serial has limited support on Android)`,
+      );
+    } else if (transportMode === "webusb") {
+      useWebUSB = true;
+      logMsg(`Using: WebUSB (Android - User selected)`);
+    } else {
+      // Auto mode: Use WebUSB on Android
+      useWebUSB = true;
+      logMsg(`Using: WebUSB (Android - Auto)`);
+    }
+  } else {
+    // Desktop: Respect transport selection
+    if (transportMode === "webusb") {
+      useWebUSB = true;
+      logMsg(`Using: WebUSB (Desktop - User selected)`);
+    } else if (transportMode === "webserial") {
+      useWebUSB = false;
+      logMsg(`Using: Web Serial (Desktop - User selected)`);
+    } else {
+      // Auto mode: Try Web Serial first, fallback to WebUSB if needed
+      useWebUSB = false;
+      logMsg(`Using: Web Serial (Desktop - Auto, WebUSB fallback available)`);
+    }
+  }
+
+  if (useWebUSB) {
+    // Use WebUSB
+    console.log("[Connect] Using WebUSB");
     try {
-      const port = await WebUSBSerial.requestPort((...args) => logMsg(...args));
+      let port;
+      if (transportMode === "auto") {
+        // Auto flow: use requestSerialPort to get the port
+        port = await requestSerialPort(false, "auto", logMsg);
+      } else {
+        // Explicit WebUSB selection: use direct WebUSB request
+        port = await WebUSBSerial.requestPort(
+          (...args) => logMsg(...args),
+          false,
+          isAndroid,
+        );
+      }
       esploader = await esploaderMod.connectWithPort(port, {
         log: (...args) => logMsg(...args),
         debug: (...args) => debugMsg(...args),
@@ -730,13 +897,25 @@ async function clickConnect() {
       throw err;
     }
   } else {
-    // Desktop: Use Web Serial (standard esptool connect)
-    console.log("[Connect] Using Web Serial for Desktop");
-    esploader = await esploaderMod.connect({
-      log: (...args) => logMsg(...args),
-      debug: (...args) => debugMsg(...args),
-      error: (...args) => errorMsg(...args),
-    });
+    // Use Web Serial (standard esptool connect)
+    console.log("[Connect] Using Web Serial");
+    if (transportMode === "auto") {
+      // Auto mode: use requestSerialPort for WebUSB fallback
+      const port = await requestSerialPort(false, "auto", logMsg);
+      esploader = await esploaderMod.connectWithPort(port, {
+        log: (...args) => logMsg(...args),
+        debug: (...args) => debugMsg(...args),
+        error: (...args) => errorMsg(...args),
+      });
+    } else {
+      // Explicit Web Serial selection: use direct connect
+      const port = await requestSerialPort(false, "webserial");
+      esploader = await esploaderMod.connectWithPort(port, {
+        log: (...args) => logMsg(...args),
+        debug: (...args) => debugMsg(...args),
+        error: (...args) => errorMsg(...args),
+      });
+    }
   }
 
   // Handle ESP32-S2 Native USB reconnection requirement for BROWSER
@@ -889,6 +1068,18 @@ async function changeBaudRate() {
       await espStub.setBaudrate(baud);
     }
   }
+}
+
+/**
+ * @name changeTransport
+ * Change handler for the Transport selector (Auto, Web Serial, WebUSB).
+ * Updates parameter options for the selected transport.
+ */
+function changeTransport() {
+  if (transportSelect) {
+    saveSetting("transport", transportSelect.value);
+  }
+  updateAdvancedParamsForConnection();
 }
 
 function bindCheckboxSetting(checkbox, key, onChange) {
@@ -1382,6 +1573,7 @@ function updateLogVisibility() {
 async function clickAdvancedMode() {
   saveSetting("advanced", advancedMode.checked);
   updateAdvancedVisibility();
+  updateAdvancedParamsForConnection();
 }
 
 /**
@@ -2549,8 +2741,14 @@ function toggleUIConnected(connected) {
   if (connected) {
     lbl = "Disconnect";
     isConnected = true;
+    if (transportSelect) {
+      transportSelect.disabled = true;
+    }
   } else {
     isConnected = false;
+    if (transportSelect) {
+      transportSelect.disabled = false;
+    }
     toggleUIToolbar(false);
 
     // Cleanup console if it was running
@@ -2587,8 +2785,16 @@ function toggleUIConnected(connected) {
 }
 
 function loadAllSettings() {
-  // Get default values based on environment (Desktop vs WebUSB)
-  const defaults = getDefaultAdvancedParams();
+  // Load advanced mode setting first so getConnectionType() reflects it
+  advancedMode.checked = loadSetting("advanced", false);
+
+  // Load transport setting if saved
+  if (transportSelect) {
+    const savedTransport = loadSetting("transport", "auto");
+    if (["auto", "webserial", "webusb"].includes(savedTransport)) {
+      transportSelect.value = savedTransport;
+    }
+  }
 
   // Load all saved settings or defaults
   autoscroll.checked = loadSetting("autoscroll", true);
@@ -2597,12 +2803,9 @@ function loadAllSettings() {
   debugMode.checked = loadSetting("debugmode", false);
   showLog.checked = loadSetting("showlog", false);
   consoleSwitch.checked = loadSetting("console", false);
-  advancedMode.checked = loadSetting("advanced", false);
 
-  // Load advanced parameters with environment-specific defaults
-  chunkSizeSelect.value = loadSetting("chunkSize", defaults.chunkSize);
-  blockSizeSelect.value = loadSetting("blockSize", defaults.blockSize);
-  maxInFlightSelect.value = loadSetting("maxInFlight", defaults.maxInFlight);
+  // Load advanced parameters with connection-type-specific defaults
+  updateAdvancedParamDropdowns(false);
 
   // Apply show log setting
   updateLogVisibility();

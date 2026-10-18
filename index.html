@@ -82,7 +82,7 @@
         <button id="butConnect" type="button">Connect</button>
         <label for="baudRate">Baud</label>
         <select id="baudRate"></select>
-        
+
         <label for="advanced">Advanced</label>
         <div class="onoffswitch">
           <input
@@ -148,6 +148,13 @@
       </div>
       
       <div class="header-content advanced-row" style="display: none;">
+        <label for="transport">Transport</label>
+        <select id="transport">
+          <option value="auto">Auto</option>
+          <option value="webserial">Web Serial</option>
+          <option value="webusb">WebUSB</option>
+        </select>
+        
         <label for="chunkSize">Chunk</label>
         <select id="chunkSize"></select>
         <label for="blockSize">Block</label>

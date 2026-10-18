@@ -198,6 +198,9 @@ interface WebUSBSerialPort extends SerialPort {
   setBaudRate(baudRate: number): Promise<void>;
 }
 
+import { USB_SERIAL_CHIPS, serialPortFilters } from "./util/usb-chips";
+export { USB_SERIAL_CHIPS, serialPortFilters };
+
 export class ESPLoader extends EventTarget {
   __chipFamily?: ChipFamily;
   __chipName: string | null = null;
@@ -502,44 +505,7 @@ export class ESPLoader extends EventTarget {
     vendorId: number,
     productId: number,
   ): { name: string; maxBaudrate?: number } {
-    // Common USB-Serial chip vendors and their products
-    const chips: Record<
-      number,
-      Record<number, { name: string; maxBaudrate?: number }>
-    > = {
-      0x1a86: {
-        // QinHeng Electronics
-        0x7522: { name: "CH340", maxBaudrate: 460800 },
-        0x7523: { name: "CH340", maxBaudrate: 460800 },
-        0x7584: { name: "CH340", maxBaudrate: 460800 },
-        0x5523: { name: "CH341", maxBaudrate: 2000000 },
-        0x55d3: { name: "CH343", maxBaudrate: 6000000 },
-        0x55d4: { name: "CH9102", maxBaudrate: 6000000 },
-        0x55d8: { name: "CH9101", maxBaudrate: 3000000 },
-      },
-      0x10c4: {
-        // Silicon Labs
-        0xea60: { name: "CP2102(n)", maxBaudrate: 3000000 },
-        0xea70: { name: "CP2105", maxBaudrate: 2000000 },
-        0xea71: { name: "CP2108", maxBaudrate: 2000000 },
-      },
-      0x0403: {
-        // FTDI
-        0x6001: { name: "FT232R", maxBaudrate: 3000000 },
-        0x6010: { name: "FT2232", maxBaudrate: 3000000 },
-        0x6011: { name: "FT4232", maxBaudrate: 3000000 },
-        0x6014: { name: "FT232H", maxBaudrate: 12000000 },
-        0x6015: { name: "FT230X", maxBaudrate: 3000000 },
-      },
-      0x303a: {
-        // Espressif (native USB)
-        0x2: { name: "ESP32-S2 Native USB", maxBaudrate: 2000000 },
-        0x12: { name: "ESP32-P4 Native USB", maxBaudrate: 2000000 },
-        0x1001: { name: "ESP32 Native USB", maxBaudrate: 2000000 },
-      },
-    };
-
-    const vendor = chips[vendorId];
+    const vendor = USB_SERIAL_CHIPS[vendorId];
     if (vendor && vendor[productId]) {
       return vendor[productId];
     }
@@ -4566,22 +4532,43 @@ export class ESPLoader extends EventTarget {
 
     // Initialize adaptive speed multipliers for WebUSB devices
     if (this.isWebUSB()) {
+      // Check if running on Android (maxTransferSize=64) or Desktop (maxTransferSize=512)
+      const maxTransferSize =
+        (this.port as WebUSBSerialPort).maxTransferSize || 64;
+      const isAndroid = maxTransferSize === 64;
+      const baseBlockSize = Math.floor((maxTransferSize - 2) / 2);
+
       if (this._isCDCDevice) {
         // CDC devices (CH343): Start with maximum, adaptive adjustment enabled
-        this._adaptiveBlockMultiplier = 8; // blockSize = 248 bytes
-        this._adaptiveMaxInFlightMultiplier = 8; // maxInFlight = 248 bytes
+        // Initial values:
+        // - maxTransferSize 64 (Android, baseBlockSize=31): blockSize = 248 bytes (8 * 31), maxInFlight = 248 bytes (8 * 31)
+        // - maxTransferSize 512 (Desktop, baseBlockSize=255): blockSize = 2040 bytes (8 * 255), maxInFlight = 2040 bytes (8 * 255)
+        this._adaptiveBlockMultiplier = 8;
+        this._adaptiveMaxInFlightMultiplier = 8;
         this._consecutiveSuccessfulChunks = 0;
         this.logger.debug(
           `CDC device - Initialized: blockMultiplier=${this._adaptiveBlockMultiplier}, maxInFlightMultiplier=${this._adaptiveMaxInFlightMultiplier}`,
         );
       } else {
         // Non-CDC devices (CH340, CP2102): Fixed values, no adaptive adjustment
-        this._adaptiveBlockMultiplier = 1; // blockSize = 31 bytes (fixed)
-        this._adaptiveMaxInFlightMultiplier = 1; // maxInFlight = 31 bytes (fixed)
-        this._consecutiveSuccessfulChunks = 0;
-        this.logger.debug(
-          `Non-CDC device - Fixed values: blockSize=31, maxInFlight=31`,
-        );
+        if (isAndroid) {
+          // Android: Keep original values (maxTransferSize=64, baseBlockSize=31)
+          this._adaptiveBlockMultiplier = 1; // blockSize = 31 bytes (fixed)
+          this._adaptiveMaxInFlightMultiplier = 1; // maxInFlight = 31 bytes (fixed)
+          this._consecutiveSuccessfulChunks = 0;
+          this.logger.debug(
+            `Non-CDC device (Android) - Fixed values: blockSize=${baseBlockSize * this._adaptiveBlockMultiplier}, maxInFlight=${baseBlockSize * this._adaptiveMaxInFlightMultiplier}`,
+          );
+        } else {
+          // Desktop: Use maximum possible values (maxTransferSize=512, baseBlockSize=255)
+          // blockSize = 510 = 2 * 255, maxInFlight = 2040 = 8 * 255
+          this._adaptiveBlockMultiplier = 2; // blockSize = 510 bytes (2 * 255)
+          this._adaptiveMaxInFlightMultiplier = 8; // maxInFlight = 2040 bytes (8 * 255)
+          this._consecutiveSuccessfulChunks = 0;
+          this.logger.debug(
+            `Non-CDC device (Desktop) - Fixed values: blockSize=${baseBlockSize * this._adaptiveBlockMultiplier}, maxInFlight=${baseBlockSize * this._adaptiveMaxInFlightMultiplier}`,
+          );
+        }
       }
     }
 

@@ -21,6 +21,7 @@ const CORE_ASSETS = [
   './js/nvs-editor.js',
   './js/utilities.js',
   './js/webusb-serial.js',
+  './js/util/usb-chips.js',
   './js/modules/esptool.js',
   
   // PWA manifest
