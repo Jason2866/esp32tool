@@ -896,7 +896,7 @@ async function clickConnect() {
       logMsg(`WebUSB connection failed: ${err.message || err}`);
       if (!isAndroid && (err.message || "").includes("Couldn't sync to ESP")) {
         logMsg(
-          "Tip: On Desktop (macOS), the OS driver claims control lines for CDC-ACM chips (CH343/CH9102/ESP32 native USB). Use 'Web Serial' or put the board into bootloader mode manually before connecting (hold BOOT + press EN/RST).",
+          "Tip: On Desktop, the OS driver can claim control lines for CDC-ACM chips (CH343/CH9102/ESP32 native USB). Use 'Web Serial' or put the board into bootloader mode manually before connecting (hold BOOT + press EN/RST).",
         );
       }
       throw err;
