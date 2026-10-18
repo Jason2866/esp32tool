@@ -888,6 +888,8 @@ async function setSignalsCH340(
   rts: boolean,
 ): Promise<void> {
   const value = ~((dtr ? 1 << 5 : 0) | (rts ? 1 << 6 : 0)) & 0xffff;
+  let success = false;
+  let lastError: Error | null = null;
 
   try {
     await controlTransferOut(device, {
@@ -897,8 +899,9 @@ async function setSignalsCH340(
       value: value,
       index: 0,
     });
-  } catch (_e) {
-    // Ignore vendor transfer failure
+    success = true;
+  } catch (err: any) {
+    lastError = err instanceof Error ? err : new Error(String(err));
   }
 
   try {
@@ -910,8 +913,13 @@ async function setSignalsCH340(
       value: cdcValue,
       index: 0,
     });
-  } catch (_e) {
-    // Ignore CDC control transfer failure
+    success = true;
+  } catch (err: any) {
+    lastError = err instanceof Error ? err : new Error(String(err));
+  }
+
+  if (!success) {
+    throw lastError || new Error("Failed to set CH340/CH343 signals");
   }
 }
 
@@ -964,6 +972,9 @@ async function setBaudRateCH343(
   baudRate: number,
   controlInterface: number = 0,
 ): Promise<void> {
+  let success = false;
+  let lastError: Error | null = null;
+
   // Vendor command CMD_C1 (0xA1) to device endpoint 0
   try {
     const { value, index } = calcCH343Baud(baudRate);
@@ -974,8 +985,9 @@ async function setBaudRateCH343(
       value: value,
       index: index,
     });
-  } catch (_e) {
-    // Ignore vendor baudrate transfer failure
+    success = true;
+  } catch (err: any) {
+    lastError = err instanceof Error ? err : new Error(String(err));
   }
 
   // Also send standard CDC SET_LINE_CODING (0x20)
@@ -997,8 +1009,13 @@ async function setBaudRateCH343(
       },
       lineCoding,
     );
-  } catch (_e) {
-    // Ignore CDC line coding transfer failure
+    success = true;
+  } catch (err: any) {
+    lastError = err instanceof Error ? err : new Error(String(err));
+  }
+
+  if (!success) {
+    throw lastError || new Error("Failed to set CH343 baud rate");
   }
 }
 

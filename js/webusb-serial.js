@@ -478,7 +478,12 @@ class WebUSBSerial {
     }
     // Prolific PL2303 initialization (VID: 0x067b)
     else if (this.device.vendorId === 0x067b) {
-      await this._initPL2303(baudRate);
+      try {
+        await this._initPL2303(baudRate);
+      } catch (e) {
+        await this.close();
+        throw e;
+      }
     }
     // CH340-specific initialization (VID: 0x1a86, non-CDC variants)
     else if (
@@ -635,6 +640,10 @@ class WebUSBSerial {
           this._log("Error closing device:", e.message || e);
         }
       }
+      this.interfaceNumber = null;
+      this.controlInterface = null;
+      this.endpointIn = null;
+      this.endpointOut = null;
       // Keep device reference for potential reconfiguration
     }
   }
@@ -829,6 +838,9 @@ class WebUSBSerial {
     const value = ~((dtr ? 1 << 5 : 0) | (rts ? 1 << 6 : 0)) & 0xffff;
 
     let result;
+    let success = false;
+    let lastError = null;
+
     try {
       result = await this.device.controlTransferOut({
         requestType: "vendor",
@@ -837,7 +849,9 @@ class WebUSBSerial {
         value: value,
         index: 0,
       });
+      success = true;
     } catch (e) {
+      lastError = e;
       this._log(`[WebUSB WCH] Vendor controlTransferOut failed: ${e.message}`);
     }
 
@@ -855,7 +869,10 @@ class WebUSBSerial {
         });
         result = cdcResult || result;
         cdcSent = true;
-      } catch (_e) {}
+        success = true;
+      } catch (e) {
+        lastError = e;
+      }
     }
     if (!cdcSent) {
       try {
@@ -867,7 +884,16 @@ class WebUSBSerial {
           index: 0,
         });
         result = cdcResult || result;
-      } catch (_e) {}
+        success = true;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+
+    if (!success) {
+      const err = lastError || new Error("Failed to set WCH signals");
+      this._log(`[WebUSB WCH] Failed to set signals: ${err.message}`);
+      throw err;
     }
 
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -1118,52 +1144,52 @@ class WebUSBSerial {
    * Initialize Prolific PL2303 chip
    */
   async _initPL2303(baudRate) {
-    try {
-      // Vendor startup sequence (for PL2303HX/HXD/TA/etc.)
-      // Safe: ignore errors on newer revisions (e.g. PL2303G / GC)
-      const vendorRead = async (value) => {
-        try {
-          await this.device.controlTransferIn(
-            {
-              requestType: "vendor",
-              recipient: "device",
-              request: 0x01,
-              value: value,
-              index: 0,
-            },
-            1,
-          );
-        } catch (_e) {
-          // Ignore
-        }
-      };
-
-      const vendorWrite = async (value, index) => {
-        try {
-          await this.device.controlTransferOut({
+    // Vendor startup sequence (for PL2303HX/HXD/TA/etc.)
+    // Safe: ignore errors on newer revisions (e.g. PL2303G / GC)
+    const vendorRead = async (value) => {
+      try {
+        await this.device.controlTransferIn(
+          {
             requestType: "vendor",
             recipient: "device",
             request: 0x01,
             value: value,
-            index: index,
-          });
-        } catch (_e) {
-          // Ignore
-        }
-      };
+            index: 0,
+          },
+          1,
+        );
+      } catch (_e) {
+        // Ignore
+      }
+    };
 
-      await vendorRead(0x8484);
-      await vendorWrite(0x0404, 0);
-      await vendorRead(0x8484);
-      await vendorRead(0x8383);
-      await vendorRead(0x8484);
-      await vendorWrite(0x0404, 1);
-      await vendorRead(0x8484);
-      await vendorRead(0x8383);
-      await vendorWrite(0, 1);
-      await vendorWrite(1, 0);
-      await vendorWrite(2, 0x44);
+    const vendorWrite = async (value, index) => {
+      try {
+        await this.device.controlTransferOut({
+          requestType: "vendor",
+          recipient: "device",
+          request: 0x01,
+          value: value,
+          index: index,
+        });
+      } catch (_e) {
+        // Ignore
+      }
+    };
 
+    await vendorRead(0x8484);
+    await vendorWrite(0x0404, 0);
+    await vendorRead(0x8484);
+    await vendorRead(0x8383);
+    await vendorRead(0x8484);
+    await vendorWrite(0x0404, 1);
+    await vendorRead(0x8484);
+    await vendorRead(0x8383);
+    await vendorWrite(0, 1);
+    await vendorWrite(1, 0);
+    await vendorWrite(2, 0x44);
+
+    try {
       // Set baud rate and line coding
       await this._setLineCodingPL2303(baudRate);
 
@@ -1174,6 +1200,7 @@ class WebUSBSerial {
       });
     } catch (e) {
       this._log("[WebUSB PL2303] Initialization error:", e.message);
+      throw e;
     }
   }
 
@@ -1346,6 +1373,7 @@ class WebUSBSerial {
         );
       } catch (e) {
         this._log(`[WebUSB CDC] Could not set line coding: ${e.message}`);
+        throw e;
       }
     }
 

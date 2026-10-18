@@ -2612,15 +2612,16 @@ export class ESPLoader extends EventTarget {
           !isCH343 &&
           typeof (this.port as WebUSBSerialPort).setBaudRate === "function"
         ) {
-          //          this.logger.log(
-          //            `[WebUSB] Changing baudrate to ${baud} using setBaudRate()...`,
-          //          );
-          await (this.port as WebUSBSerialPort).setBaudRate(baud);
-          //          this.logger.log(`[WebUSB] Baudrate changed to ${baud}`);
-
-          // Give the chip time to adjust to new baudrate
-          await sleep(100);
-          return;
+          try {
+            await (this.port as WebUSBSerialPort).setBaudRate(baud);
+            // Give the chip time to adjust to new baudrate
+            await sleep(100);
+            return;
+          } catch (err) {
+            this.logger.debug(
+              `[WebUSB] setBaudRate failed, falling back to close/reopen: ${err}`,
+            );
+          }
         } else if (isCH343) {
           //          this.logger.log(
           //            `[WebUSB] CH343 detected - using close/reopen for baudrate change`,
