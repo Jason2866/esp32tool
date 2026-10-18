@@ -1165,7 +1165,8 @@ async function requestSerialPort(
     useWebUSB = false;
   } else {
     // Auto mode: Android prefers WebUSB, Desktop prefers Web Serial
-    useWebUSB = isAndroid;
+    // Fall back to the other API when the preferred one is unavailable
+    useWebUSB = isAndroid ? hasUSB || !hasSerial : !hasSerial && hasUSB;
   }
 
   if (useWebUSB) {
