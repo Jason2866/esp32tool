@@ -4734,9 +4734,14 @@ export class ESPLoader extends EventTarget {
           // The stub sends a 16-byte MD5 hash after every chunk.
           // Read and discard it so it doesn't corrupt the next command response.
           try {
-            await this.readPacket(FLASH_READ_TIMEOUT);
-          } catch {
-            // Ignore timeout — stub may not have sent MD5 yet if something failed
+            const digest = await this.readPacket(FLASH_READ_TIMEOUT);
+            if (digest.length !== 16) {
+              this.logger.error(
+                `Expected 16-byte readFlash MD5 digest, got ${digest.length} bytes`,
+              );
+            }
+          } catch (err) {
+            this.logger.error(`Failed to read readFlash digest: ${err}`);
           }
 
           // Chunk read successfully - append to all data
