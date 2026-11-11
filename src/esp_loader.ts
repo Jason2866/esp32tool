@@ -3538,7 +3538,17 @@ export class ESPLoader extends EventTarget {
     }
     if (!this.port.writable && !this.port.readable) {
       await this.stopReadLoop(false);
-      this.connected = false;
+      try {
+        await this.port.close();
+      } catch (err) {
+        if (err instanceof Error && err.name === "InvalidStateError") {
+          this.logger.debug("Port is already closed");
+        } else {
+          throw err;
+        }
+      } finally {
+        this.connected = false;
+      }
       return;
     }
 
