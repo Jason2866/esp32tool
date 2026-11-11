@@ -189,6 +189,34 @@ import { FLASH_MANUFACTURERS, FLASH_DEVICES } from "./flash_jedec";
 import { deflate } from "pako";
 import { pack, unpack } from "./struct";
 
+// The CP210x Windows driver uses a 16 ms latency timer; allow extra time for
+// serializing a flash-read packet as well as that driver delay.
+const CP210X_WINDOWS_FLASH_READ_TIMEOUT = 1000;
+
+function isWindowsRuntime(): boolean {
+  const runtimeProcess = (
+    globalThis as typeof globalThis & {
+      process?: {
+        platform?: string;
+        versions?: { node?: string; electron?: string };
+      };
+    }
+  ).process;
+
+  if (runtimeProcess?.versions?.node || runtimeProcess?.versions?.electron) {
+    return runtimeProcess.platform === "win32";
+  }
+
+  const runtimeNavigator = globalThis.navigator as
+    | (Navigator & {
+        userAgentData?: { platform?: string };
+      })
+    | undefined;
+  const platform =
+    runtimeNavigator?.userAgentData?.platform ?? runtimeNavigator?.platform;
+  return platform?.toLowerCase().startsWith("win") ?? false;
+}
+
 // Interface for WebUSB Serial Port (extends SerialPort with WebUSB-specific methods)
 interface WebUSBSerialPort extends SerialPort {
   isWebUSB?: boolean;
@@ -4491,8 +4519,10 @@ export class ESPLoader extends EventTarget {
     await this.flushSerialBuffers();
 
     const flashReadTimeout =
-      !this.isWebUSB() && this.port.getInfo().usbVendorId === 0x10c4
-        ? 100000
+      !this.isWebUSB() &&
+      isWindowsRuntime() &&
+      this.port.getInfo().usbVendorId === 0x10c4
+        ? CP210X_WINDOWS_FLASH_READ_TIMEOUT
         : FLASH_READ_TIMEOUT;
 
     const readStartTime = Date.now();
