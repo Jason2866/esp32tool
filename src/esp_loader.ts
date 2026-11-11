@@ -222,6 +222,8 @@ export class ESPLoader extends EventTarget {
   public currentBaudRate: number = ESP_ROM_BAUD;
   private _maxUSBSerialBaudrate?: number;
   private _reader?: ReadableStreamDefaultReader<Uint8Array>;
+  private _readLoopFinished?: Promise<void>;
+  private _stopReading = false;
   private SLIP_END = 0xc0;
   private SLIP_ESC = 0xdb;
   private SLIP_ESC_END = 0xdc;
@@ -970,76 +972,181 @@ export class ESPLoader extends EventTarget {
    * @name readLoop
    * Reads data from the input stream and places it in the inputBuffer
    */
-  async readLoop() {
+  readLoop(): Promise<void> {
+    if (this._readLoopFinished) {
+      return this._readLoopFinished;
+    }
+
+    this._stopReading = false;
+    const finished = this.runReadLoop();
+    this._readLoopFinished = finished;
+    void finished.then(
+      () => {
+        if (this._readLoopFinished === finished)
+          this._readLoopFinished = undefined;
+      },
+      (err) => {
+        if (this._readLoopFinished === finished)
+          this._readLoopFinished = undefined;
+        this.logger.error(`Read loop error: ${err}`);
+      },
+    );
+    return finished;
+  }
+
+  private async runReadLoop(): Promise<void> {
     if (this.debug) {
       this.logger.debug("Starting read loop");
     }
 
-    this._reader = this.port.readable!.getReader();
-
     try {
-      let keepReading = true;
-      while (keepReading) {
-        const { value, done } = await this._reader.read();
-        if (done) {
-          this._reader.releaseLock();
-          keepReading = false;
+      let failedStream: ReadableStream<Uint8Array> | undefined;
+      while (!this._stopReading && this.port.readable) {
+        const stream = this.port.readable;
+        if (stream === failedStream) {
+          this.logger.error("Serial readable stream did not recover");
           break;
         }
-        if (!value || value.length === 0) {
-          continue;
-        }
-
-        // Always read from browser's serial buffer immediately
-        // to prevent browser buffer overflow. Don't apply back-pressure here.
-        const chunk = Array.from(value as Uint8Array);
-        Array.prototype.push.apply(this._inputBuffer, chunk);
-
-        // Track total bytes read from serial port
-        this._totalBytesRead += value.length;
-      }
-    } catch {
-      //      this.logger.error("Read loop got disconnected");
-    } finally {
-      // Always reset reconfiguring flag when read loop ends
-      // This prevents "Cannot write during port reconfiguration" errors
-      // when the read loop dies unexpectedly
-      this._isReconfiguring = false;
-
-      // Release reader if still locked
-      if (this._reader) {
+        let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
         try {
-          this._reader.releaseLock();
-          this.logger.debug("Reader released in readLoop cleanup");
+          reader = stream.getReader();
+          this._reader = reader;
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value && value.length > 0) {
+            Array.prototype.push.apply(this._inputBuffer, Array.from(value));
+            this._totalBytesRead += value.length;
+          }
         } catch (err) {
-          this.logger.debug(`Reader release error in readLoop: ${err}`);
+          if (this._stopReading) break;
+          if (
+            err instanceof Error &&
+            [
+              "BufferOverrunError",
+              "FramingError",
+              "BreakError",
+              "ParityError",
+            ].includes(err.name)
+          ) {
+            this.logger.debug(`Recoverable serial read error: ${err}`);
+            failedStream = stream;
+            continue;
+          }
+          this.logger.error(`Serial read error: ${err}`);
+          break;
+        } finally {
+          if (reader) {
+            try {
+              reader.releaseLock();
+            } catch (err) {
+              this.logger.debug(`Reader release error: ${err}`);
+            }
+            if (this._reader === reader) this._reader = undefined;
+          }
         }
-        this._reader = undefined;
+      }
+    } finally {
+      this.connected = false;
+      if (!this._suppressDisconnect) {
+        if (this._isESP32S2NativeUSB && !this._initializationSucceeded) {
+          this.logger.log(
+            "ESP32-S2 Native USB detected - requesting port reselection",
+          );
+          this.dispatchEvent(
+            new CustomEvent("esp32s2-usb-reconnect", {
+              detail: {
+                message: "ESP32-S2 Native USB requires port reselection",
+              },
+            }),
+          );
+        }
+        this.dispatchEvent(new Event("disconnect"));
+      }
+      this._suppressDisconnect = false;
+      this.logger.debug("Finished read loop");
+    }
+  }
+
+  private async stopReadLoop(suppressDisconnect: boolean): Promise<boolean> {
+    const finished = this._readLoopFinished;
+    if (!finished) return true;
+
+    this._stopReading = true;
+    this._suppressDisconnect = suppressDisconnect;
+    if (this._reader) {
+      try {
+        void this._reader.cancel().catch((err) => {
+          this.logger.debug(`Reader cancel error: ${err}`);
+        });
+      } catch (err) {
+        this.logger.debug(`Reader cancel error: ${err}`);
       }
     }
 
-    // Disconnected!
-    this.connected = false;
+    const stopped = await Promise.race([
+      finished.then(
+        () => true,
+        () => true,
+      ),
+      sleep(1000).then(() => false),
+    ]);
+    if (!stopped) this.logger.debug("Read loop is still stopping");
+    return stopped;
+  }
 
-    // Check if this is ESP32-S2 Native USB that needs port reselection
-    // Only trigger reconnect if initialization did NOT succeed (wrong port)
-    if (this._isESP32S2NativeUSB && !this._initializationSucceeded) {
-      this.logger.log(
-        "ESP32-S2 Native USB detected - requesting port reselection",
-      );
-      this.dispatchEvent(
-        new CustomEvent("esp32s2-usb-reconnect", {
-          detail: { message: "ESP32-S2 Native USB requires port reselection" },
+  private async teardownStream(
+    label: string,
+    operation: () => Promise<void> | undefined,
+  ): Promise<void> {
+    const result = await Promise.race([
+      Promise.resolve()
+        .then(operation)
+        .then(() => "completed")
+        .catch((err) => {
+          this.logger.debug(`${label} failed: ${err}`);
+          return "failed";
         }),
+      sleep(2000).then(() => "pending"),
+    ]);
+    this.logger.debug(`${label}: ${result}`);
+  }
+
+  private async closeSerialPort(suppressDisconnect = true): Promise<void> {
+    await this.stopReadLoop(suppressDisconnect);
+
+    if (!this.isWebUSB()) {
+      const deadline = Date.now() + 400;
+      while (
+        (this.port.readable?.locked || this.port.writable?.locked) &&
+        Date.now() < deadline
+      ) {
+        await sleep(20);
+      }
+      await this.teardownStream("Readable stream cancel", () =>
+        this.port.readable?.cancel(),
+      );
+      await this.teardownStream("Writable stream abort", () =>
+        this.port.writable?.abort(),
       );
     }
 
-    // Only dispatch disconnect event if not suppressed
-    if (!this._suppressDisconnect) {
-      this.dispatchEvent(new Event("disconnect"));
+    const startTime = Date.now();
+    this.logger.debug("Closing serial port");
+    const progress = setInterval(() => {
+      this.logger.debug(
+        `Serial port close still pending after ${Math.round((Date.now() - startTime) / 1000)} seconds`,
+      );
+    }, 15000);
+    try {
+      await this.port.close();
+    } finally {
+      clearInterval(progress);
     }
-    this._suppressDisconnect = false;
-    this.logger.debug("Finished read loop");
+
+    if (!(await this.stopReadLoop(suppressDisconnect))) {
+      throw new Error("Serial read loop did not stop after the port closed");
+    }
+    this.logger.debug(`Serial port closed in ${Date.now() - startTime} ms`);
   }
 
   state_DTR = false;
@@ -2632,7 +2739,6 @@ export class ESPLoader extends EventTarget {
       }
 
       // Web Serial or CH343: Close and reopen port
-      // Release persistent writer before closing
       if (this._writer) {
         try {
           this._writer.releaseLock();
@@ -2642,24 +2748,17 @@ export class ESPLoader extends EventTarget {
         this._writer = undefined;
       }
 
-      // SerialPort does not allow to be reconfigured while open so we close and re-open
-      // reader.cancel() causes the Promise returned by the read() operation running on
-      // the readLoop to return immediately with { value: undefined, done: true } and thus
-      // breaking the loop and exiting readLoop();
-      await this._reader?.cancel();
-      await this.port.close();
+      await this.closeSerialPort();
 
-      // Reopen Port
       await this.port.open({ baudRate: baud });
+      this.connected = true;
 
-      // Clear buffer again
       await this.flushSerialBuffers();
 
-      // Restart Readloop
       this.readLoop();
-    } catch (_e) {
-      //      this.logger.error(`Reconfigure port error: ${e}`);
-      //      throw new Error(`Unable to change the baud rate to ${baud}: ${e}`);
+    } catch (err) {
+      this.logger.error(`Reconfigure port error: ${err}`);
+      throw new Error(`Unable to change the baud rate to ${baud}: ${err}`);
     } finally {
       // Always reset flag, even on error or early return
       this._isReconfiguring = false;
@@ -3379,66 +3478,28 @@ export class ESPLoader extends EventTarget {
       throw new Error("Cannot write during port reconfiguration");
     }
 
-    // Queue writes to prevent lock contention (critical for CP2102 on Windows)
-    this._writeChain = this._writeChain
-      .then(
-        async () => {
-          // Check if port is still writable before attempting write
-          if (!this.port.writable) {
-            throw new Error("Port became unavailable during write");
-          }
-
-          // Get or create persistent writer
-          if (!this._writer) {
-            try {
-              this._writer = this.port.writable.getWriter();
-            } catch (err) {
-              this.logger.error(`Failed to get writer: ${err}`);
-              throw err;
-            }
-          }
-
-          // Perform the write
-          await this._writer.write(new Uint8Array(data));
-        },
-        async () => {
-          // Previous write failed, but still attempt this write
-          this.logger.debug(
-            "Previous write failed, attempting recovery for current write",
-          );
-          if (!this.port.writable) {
-            throw new Error("Port became unavailable during write");
-          }
-
-          // Writer was likely cleaned up by previous error, create new one
-          if (!this._writer) {
-            try {
-              this._writer = this.port.writable.getWriter();
-            } catch (err) {
-              this.logger.debug(`Failed to get writer in recovery: ${err}`);
-              throw new Error("Cannot acquire writer lock");
-            }
-          }
-
-          await this._writer.write(new Uint8Array(data));
-        },
-      )
-      .catch((err) => {
-        this.logger.error(`Write error: ${err}`);
-        // Ensure writer is cleaned up on any error
-        if (this._writer) {
-          try {
-            this._writer.releaseLock();
-          } catch {
-            // Ignore release errors
-          }
-          this._writer = undefined;
+    const write = async () => {
+      if (!this.port.writable) {
+        throw new Error("Port became unavailable during write");
+      }
+      const writer = this.port.writable.getWriter();
+      this._writer = writer;
+      try {
+        await writer.write(new Uint8Array(data));
+      } finally {
+        try {
+          writer.releaseLock();
+        } finally {
+          if (this._writer === writer) this._writer = undefined;
         }
-        // Re-throw to propagate error
-        throw err;
-      });
+      }
+    };
 
-    // Always await the write chain to ensure errors are caught
+    this._writeChain = this._writeChain.then(write, write).catch((err) => {
+      this.logger.error(`Write error: ${err}`);
+      throw err;
+    });
+
     await this._writeChain;
   }
 
@@ -3447,77 +3508,30 @@ export class ESPLoader extends EventTarget {
       await this._parent.disconnect();
       return;
     }
-    if (!this.port.writable) {
-      //      this.logger.debug("Port already closed, skipping disconnect");
+    if (!this.port.writable && !this.port.readable) {
+      await this.stopReadLoop(false);
+      this.connected = false;
       return;
     }
 
-    // Wait for pending writes to complete
+    this._isReconfiguring = true;
     try {
-      await this._writeChain;
-    } catch (_err) {
-      //      this.logger.debug(`Pending write error during disconnect: ${err}`);
-    }
-
-    // Release persistent writer before closing
-    if (this._writer) {
       try {
-        await this._writer.close();
+        await this._writeChain;
+      } catch (err) {
+        this.logger.debug(`Pending write error during disconnect: ${err}`);
+      }
+      if (this._writer) {
         this._writer.releaseLock();
-      } catch (_err) {
-        //        this.logger.debug(`Writer close/release error: ${err}`);
+        this._writer = undefined;
       }
-      this._writer = undefined;
-    } else {
-      // No persistent writer exists, close stream directly
-      // This path is taken when no writes have been queued
-      try {
-        const writer = this.port.writable.getWriter();
-        await writer.close();
-        writer.releaseLock();
-      } catch (_err) {
-        //        this.logger.debug(`Direct writer close error: ${err}`);
-      }
-    }
-
-    await new Promise((resolve) => {
-      if (!this._reader) {
-        resolve(undefined);
-        return;
-      }
-
-      // Set a timeout to prevent hanging (important for node-usb)
-      const timeout = setTimeout(() => {
-        this.logger.debug("Disconnect timeout - forcing resolution");
-        resolve(undefined);
-      }, 1000);
-
-      this.addEventListener(
-        "disconnect",
-        () => {
-          clearTimeout(timeout);
-          resolve(undefined);
-        },
-        { once: true },
-      );
-
-      // Only cancel if reader is still active
-      try {
-        this._reader.cancel();
-      } catch (_err) {
-        // Reader already released, resolve immediately
-        clearTimeout(timeout);
-        resolve(undefined);
-      }
-    });
-    this.connected = false;
-
-    // Close the port (important for node-usb adapter)
-    try {
-      await this.port.close();
-      this.logger.debug("Port closed successfully");
+      await this.closeSerialPort(false);
     } catch (err) {
-      this.logger.debug(`Port close error: ${err}`);
+      this.logger.error(`Port close error: ${err}`);
+      throw err;
+    } finally {
+      this.connected = false;
+      this._isReconfiguring = false;
     }
   }
 
@@ -3550,27 +3564,8 @@ export class ESPLoader extends EventTarget {
       this._writer = undefined;
     }
 
-    // Cancel reader - let readLoop's finally block handle releaseLock()
-    if (this._reader) {
-      try {
-        // Suppress disconnect event during console mode switching
-        this._suppressDisconnect = true;
-
-        // Cancel will cause readLoop to exit and call releaseLock() in its finally block
-        await this._reader.cancel();
-        this.logger.debug("Reader cancelled - waiting for readLoop to finish");
-
-        // CRITICAL: Wait a bit for readLoop's finally block to complete
-        // The finally block needs time to call releaseLock() and set _reader = undefined
-        // This is much faster than waiting for browser to unlock (just waiting for JS execution)
-        await sleep(50);
-
-        this.logger.debug("ReadLoop cleanup should be complete");
-      } catch (err) {
-        this.logger.debug(`Reader cancel error: ${err}`);
-      }
-      // Don't call releaseLock() or set _reader to undefined here
-      // Let readLoop's finally block handle it to avoid race conditions
+    if (!(await this.stopReadLoop(true))) {
+      throw new Error("Serial read loop did not stop for console mode");
     }
   }
 
@@ -4015,6 +4010,8 @@ export class ESPLoader extends EventTarget {
       this.__inputBuffer = [];
       this.__inputBufferReadIndex = 0;
 
+      this._isReconfiguring = true;
+
       // Wait for pending writes to complete
       try {
         await this._writeChain;
@@ -4022,10 +4019,6 @@ export class ESPLoader extends EventTarget {
         this.logger.debug(`Pending write error during reconnect: ${err}`);
       }
 
-      // Block new writes during port close/open
-      this._isReconfiguring = true;
-
-      // Release persistent writer
       if (this._writer) {
         try {
           this._writer.releaseLock();
@@ -4035,23 +4028,7 @@ export class ESPLoader extends EventTarget {
         this._writer = undefined;
       }
 
-      // Cancel reader
-      if (this._reader) {
-        try {
-          await this._reader.cancel();
-        } catch (err) {
-          this.logger.debug(`Reader cancel error: ${err}`);
-        }
-        this._reader = undefined;
-      }
-
-      // Close port
-      try {
-        await this.port.close();
-        this.logger.debug("Port closed");
-      } catch (err) {
-        this.logger.debug(`Port close error: ${err}`);
-      }
+      await this.closeSerialPort();
 
       // Open the port
       this.logger.debug("Opening port...");
@@ -4166,6 +4143,8 @@ export class ESPLoader extends EventTarget {
       this.__inputBuffer = [];
       this.__inputBufferReadIndex = 0;
 
+      this._isReconfiguring = true;
+
       // Wait for pending writes to complete
       try {
         await this._writeChain;
@@ -4173,10 +4152,6 @@ export class ESPLoader extends EventTarget {
         this.logger.debug(`Pending write error during reconnect: ${err}`);
       }
 
-      // Block new writes during port close/open
-      this._isReconfiguring = true;
-
-      // Release persistent writer
       if (this._writer) {
         try {
           this._writer.releaseLock();
@@ -4186,23 +4161,7 @@ export class ESPLoader extends EventTarget {
         this._writer = undefined;
       }
 
-      // Cancel reader
-      if (this._reader) {
-        try {
-          await this._reader.cancel();
-        } catch (err) {
-          this.logger.debug(`Reader cancel error: ${err}`);
-        }
-        this._reader = undefined;
-      }
-
-      // Close port
-      try {
-        await this.port.close();
-        this.logger.debug("Port closed");
-      } catch (err) {
-        this.logger.debug(`Port close error: ${err}`);
-      }
+      await this.closeSerialPort();
 
       // Open the port
       this.logger.debug("Opening port...");
@@ -4531,6 +4490,11 @@ export class ESPLoader extends EventTarget {
     // Flush serial buffers before flash read operation
     await this.flushSerialBuffers();
 
+    const flashReadTimeout =
+      !this.isWebUSB() && this.port.getInfo().usbVendorId === 0x10c4
+        ? 100000
+        : FLASH_READ_TIMEOUT;
+
     const readStartTime = Date.now();
 
     this.logger.log(
@@ -4679,7 +4643,7 @@ export class ESPLoader extends EventTarget {
             // Read a SLIP packet
             let packet: number[];
             try {
-              packet = await this.readPacket(FLASH_READ_TIMEOUT);
+              packet = await this.readPacket(flashReadTimeout);
             } catch (err) {
               if (err instanceof SlipReadError) {
                 this.logger.debug(
@@ -4734,7 +4698,7 @@ export class ESPLoader extends EventTarget {
           // The stub sends a 16-byte MD5 hash after every chunk.
           // Read and discard it so it doesn't corrupt the next command response.
           try {
-            const digest = await this.readPacket(FLASH_READ_TIMEOUT);
+            const digest = await this.readPacket(flashReadTimeout);
             if (digest.length !== 16) {
               this.logger.error(
                 `Expected 16-byte readFlash MD5 digest, got ${digest.length} bytes`,
