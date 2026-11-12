@@ -1,3 +1,4 @@
+const path = require('node:path');
 const { FusesPlugin } = require('./tools/forge-fuses-plugin.cjs');
 
 // @electron/fuses@2 is ESM-only; keep Forge config in CJS by inlining the enum values.
@@ -74,6 +75,7 @@ module.exports = {
           bin: 'esp32tool',
           homepage: 'https://github.com/Jason2866/esp32tool',
           categories: ['Development', 'Utility'],
+          specTemplate: path.resolve(__dirname, 'tools/redhat-spec.ejs'),
         },
       },
     },
