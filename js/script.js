@@ -1153,7 +1153,23 @@ function assignPort(newPort) {
  * @param {SerialPort} newPort - The port to open
  */
 async function openConsolePortAndInit(newPort) {
-  await newPort.open({ baudRate: 115200 });
+  // Only call open() if the port is not already open
+  if (!newPort.readable && !newPort.writable) {
+    try {
+      await newPort.open({ baudRate: 115200 });
+    } catch (openErr) {
+      // Tolerate "already open" race (InvalidStateError) but rethrow others
+      if (
+        !openErr.message?.includes("already open") &&
+        openErr.name !== "InvalidStateError"
+      ) {
+        throw openErr;
+      }
+      debugMsg(`Port already open, skipping open(): ${openErr.message}`);
+    }
+  } else {
+    debugMsg("Port is already open, reusing for console");
+  }
   assignPort(newPort);
 
   debugMsg("Port opened for console at 115200 baud");

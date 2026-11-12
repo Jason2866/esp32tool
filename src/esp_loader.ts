@@ -2052,11 +2052,15 @@ export class ESPLoader extends EventTarget {
           await this.hardResetToFirmware();
           this.logger.debug("Classic reset to firmware complete");
 
-          // On Web Serial (Desktop), chips whose native USB disconnects on reset
-          // (such as ESP32-C6 / ESP32-C61) require port reselection. Other chips
-          // (e.g. ESP32-C3) or WebUSB preserve the open port.
+          // On Web Serial (Desktop), chips whose native USB disconnects on
+          // classic reset (ESP32-C6 / ESP32-C61 in USB-JTAG or USB-OTG mode)
+          // require port reselection.  When the chip is reached through an
+          // external UART bridge the port stays open across reset.
+          const isNativeUsb =
+            usbMode.mode === "usb-otg" || usbMode.mode === "usb-jtag-serial";
           const portChanges =
             !this.isWebUSB() &&
+            isNativeUsb &&
             (this.chipFamily === CHIP_FAMILY_ESP32C6 ||
               this.chipFamily === CHIP_FAMILY_ESP32C61);
 
@@ -4083,6 +4087,16 @@ export class ESPLoader extends EventTarget {
         this.logger.debug(
           `${this.chipName}: Port will change after WDT reset - user must reselect port`,
         );
+
+        // Ensure the old port is closed before asking user to reselect
+        if (this.port && (this.port.readable || this.port.writable)) {
+          try {
+            await this.port.close();
+            this.logger.debug("Old port closed before reselection");
+          } catch (closeErr) {
+            this.logger.debug(`Could not close old port: ${closeErr}`);
+          }
+        }
 
         // Dispatch event to signal port change
         this.dispatchEvent(
