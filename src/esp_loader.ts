@@ -2138,6 +2138,15 @@ export class ESPLoader extends EventTarget {
         await this.rtcWdtResetChipSpecific();
         this.logger.debug("WDT reset performed - device will boot to firmware");
 
+        // Release reader/writer after WDT reset commands are done
+        try {
+          await this.releaseReaderWriter();
+        } catch (err) {
+          this.logger.debug(
+            `Could not release reader/writer after WDT reset: ${err}`,
+          );
+        }
+
         // Check if port will change after WDT reset
         // USB-OTG (ESP32-S2/P4): Port always changes
         // USB-JTAG/Serial (ESP32-S3/C3/C5/C6/C61/H2/P4): Port may change depending on platform
@@ -4099,10 +4108,10 @@ export class ESPLoader extends EventTarget {
           `${this.chipName}: Port will change after WDT reset - user must reselect port`,
         );
 
-        // Ensure the old port is closed before asking user to reselect
+        // Ensure the old port is cleanly closed before asking user to reselect
         if (this.port && (this.port.readable || this.port.writable)) {
           try {
-            await this.port.close();
+            await this.closeSerialPort();
             this.logger.debug("Old port closed before reselection");
           } catch (closeErr) {
             this.logger.debug(`Could not close old port: ${closeErr}`);

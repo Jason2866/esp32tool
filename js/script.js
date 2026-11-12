@@ -1167,6 +1167,16 @@ async function openConsolePortAndInit(newPort) {
       }
       debugMsg(`Port already open, skipping open(): ${openErr.message}`);
     }
+  } else if (newPort.readable?.locked || newPort.writable?.locked) {
+    debugMsg(
+      "Port is already open but streams are locked - closing and reopening",
+    );
+    try {
+      await newPort.close();
+      await newPort.open({ baudRate: 115200 });
+    } catch (cycleErr) {
+      debugMsg(`Could not reopen locked port: ${cycleErr.message}`);
+    }
   } else {
     debugMsg("Port is already open, reusing for console");
   }
