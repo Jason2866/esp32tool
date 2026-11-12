@@ -3632,7 +3632,29 @@ export class ESPLoader extends EventTarget {
 
     // Wait for pending writes to complete
     try {
-      await this._writeChain;
+      const writeCompleted = await Promise.race([
+        this._writeChain.then(
+          () => true,
+          () => true,
+        ),
+        sleep(1000).then(() => false),
+      ]);
+      if (!writeCompleted) {
+        this.logger.debug(
+          "Incomplete write during console release: write deadline expired",
+        );
+        if (this._writer) {
+          try {
+            void this._writer
+              .abort(new Error("Write timed out during console release"))
+              .catch((err) => {
+                this.logger.debug(`Writer abort error: ${err}`);
+              });
+          } catch (err) {
+            this.logger.debug(`Writer abort error: ${err}`);
+          }
+        }
+      }
     } catch (_err) {
       //      this.logger.debug(`Pending write error during release: ${err}`);
     }
@@ -3918,7 +3940,9 @@ export class ESPLoader extends EventTarget {
         await this.releaseReaderWriter();
         await sleep(100);
       } catch (err) {
-        this.logger.debug(`Failed to release locks: ${err}`);
+        this._consoleMode = false;
+        this.logger.error(`Failed to release locks: ${err}`);
+        throw err;
       }
 
       try {
