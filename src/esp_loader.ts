@@ -3575,12 +3575,38 @@ export class ESPLoader extends EventTarget {
     this._isReconfiguring = true;
     try {
       try {
-        await this._writeChain;
+        const writeCompleted = await Promise.race([
+          this._writeChain.then(
+            () => true,
+            () => true,
+          ),
+          sleep(1000).then(() => false),
+        ]);
+        if (!writeCompleted) {
+          this.logger.debug(
+            "Incomplete write during disconnect: write deadline expired",
+          );
+          if (this._writer) {
+            try {
+              void this._writer
+                .abort(new Error("Write timed out during disconnect"))
+                .catch((err) => {
+                  this.logger.debug(`Writer abort error: ${err}`);
+                });
+            } catch (err) {
+              this.logger.debug(`Writer abort error: ${err}`);
+            }
+          }
+        }
       } catch (err) {
         this.logger.debug(`Pending write error during disconnect: ${err}`);
       }
       if (this._writer) {
-        this._writer.releaseLock();
+        try {
+          this._writer.releaseLock();
+        } catch (err) {
+          this.logger.debug(`Writer release error during disconnect: ${err}`);
+        }
         this._writer = undefined;
       }
       await this.closeSerialPort(false, true);
