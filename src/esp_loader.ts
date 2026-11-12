@@ -1097,13 +1097,10 @@ export class ESPLoader extends EventTarget {
 
   private async stopReadLoop(suppressDisconnect: boolean): Promise<boolean> {
     const finished = this._readLoopFinished;
-    if (!finished) return true;
-
-    this._stopReading = true;
-    this._suppressDisconnect = suppressDisconnect;
+    let cancelPromise: Promise<unknown> = Promise.resolve();
     if (this._reader) {
       try {
-        void this._reader.cancel().catch((err) => {
+        cancelPromise = this._reader.cancel().catch((err) => {
           this.logger.debug(`Reader cancel error: ${err}`);
         });
       } catch (err) {
@@ -1111,8 +1108,22 @@ export class ESPLoader extends EventTarget {
       }
     }
 
+    if (!finished) {
+      const cancelDone = await Promise.race([
+        cancelPromise.then(
+          () => true,
+          () => true,
+        ),
+        sleep(1000).then(() => false),
+      ]);
+      return cancelDone;
+    }
+
+    this._stopReading = true;
+    this._suppressDisconnect = suppressDisconnect;
+
     const stopped = await Promise.race([
-      finished.then(
+      Promise.all([finished.catch(() => {}), cancelPromise]).then(
         () => true,
         () => true,
       ),
@@ -1139,7 +1150,10 @@ export class ESPLoader extends EventTarget {
     this.logger.debug(`${label}: ${result}`);
   }
 
-  private async closeSerialPort(suppressDisconnect = true): Promise<void> {
+  private async closeSerialPort(
+    suppressDisconnect = true,
+    drainWritable = false,
+  ): Promise<void> {
     await this.stopReadLoop(suppressDisconnect);
 
     if (!this.isWebUSB()) {
@@ -1153,9 +1167,15 @@ export class ESPLoader extends EventTarget {
       await this.teardownStream("Readable stream cancel", () =>
         this.port.readable?.cancel(),
       );
-      await this.teardownStream("Writable stream abort", () =>
-        this.port.writable?.abort(),
-      );
+      if (drainWritable) {
+        await this.teardownStream("Writable stream close", () =>
+          this.port.writable?.close(),
+        );
+      } else {
+        await this.teardownStream("Writable stream abort", () =>
+          this.port.writable?.abort(),
+        );
+      }
     }
 
     const startTime = Date.now();
@@ -3563,7 +3583,7 @@ export class ESPLoader extends EventTarget {
         this._writer.releaseLock();
         this._writer = undefined;
       }
-      await this.closeSerialPort(false);
+      await this.closeSerialPort(false, true);
     } catch (err) {
       this.logger.error(`Port close error: ${err}`);
       throw err;
@@ -4393,6 +4413,9 @@ export class ESPLoader extends EventTarget {
       await this._parent.syncAndWdtReset(newPort);
       return;
     }
+
+    await this.stopReadLoop(true);
+    this._readLoopFinished = undefined;
 
     this.port = newPort;
     this.connected = false;
