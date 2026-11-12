@@ -2039,10 +2039,19 @@ export class ESPLoader extends EventTarget {
             `${this.chipName} does not support WDT reset - using classic reset instead`,
           );
 
+          // Release reader/writer before classic reset to avoid stream abort errors
+          try {
+            await this.releaseReaderWriter();
+          } catch (err) {
+            this.logger.debug(
+              `Could not release reader/writer before classic reset: ${err}`,
+            );
+          }
+
           // Use classic reset for chips without WDT support
           await this.hardResetToFirmware();
           this.logger.debug("Classic reset to firmware complete");
-          return false; // Port stays open
+          return !this.isWebUSB(); // On Web Serial (Desktop), native USB drops and port closes; on WebUSB (Android), streams can be recreated
         }
 
         // WDT reset is supported - proceed with WDT reset logic
