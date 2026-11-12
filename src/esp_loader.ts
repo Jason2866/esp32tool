@@ -2051,7 +2051,16 @@ export class ESPLoader extends EventTarget {
           // Use classic reset for chips without WDT support
           await this.hardResetToFirmware();
           this.logger.debug("Classic reset to firmware complete");
-          return !this.isWebUSB(); // On Web Serial (Desktop), native USB drops and port closes; on WebUSB (Android), streams can be recreated
+
+          // On Web Serial (Desktop), chips whose native USB disconnects on reset
+          // (such as ESP32-C6 / ESP32-C61) require port reselection. Other chips
+          // (e.g. ESP32-C3) or WebUSB preserve the open port.
+          const portChanges =
+            !this.isWebUSB() &&
+            (this.chipFamily === CHIP_FAMILY_ESP32C6 ||
+              this.chipFamily === CHIP_FAMILY_ESP32C61);
+
+          return portChanges;
         }
 
         // WDT reset is supported - proceed with WDT reset logic
