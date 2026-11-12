@@ -288,6 +288,7 @@ const ESP32H2_BOOTLOADER_FLASH_OFFSET = 0x0000;
 const ESP32H2_DR_REG_LP_WDT_BASE = 0x600b1c00;
 const ESP32H2_RTC_CNTL_WDTWPROTECT_REG = ESP32H2_DR_REG_LP_WDT_BASE + 0x001c; // LP_WDT_RWDT_WPROTECT_REG
 const ESP32H2_RTC_CNTL_WDTCONFIG0_REG = ESP32H2_DR_REG_LP_WDT_BASE + 0x0000; // LP_WDT_RWDT_CONFIG0_REG
+const ESP32H2_RTC_CNTL_WDTCONFIG1_REG = ESP32H2_DR_REG_LP_WDT_BASE + 0x0004; // LP_WDT_RWDT_CONFIG1_REG
 const ESP32H2_RTC_CNTL_WDT_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY, same as WDT key in this case
 const ESP32H2_RTC_CNTL_SWD_WKEY = 0x50d83aa1; // LP_WDT_SWD_WKEY, same as WDT key in this case
 const ESP32H2_RTC_CNTL_SWD_CONF_REG = ESP32H2_DR_REG_LP_WDT_BASE + 0x0020; // LP_WDT_SWD_CONFIG_REG
@@ -6024,7 +6025,7 @@ class ESPLoader extends EventTarget {
     async hardResetToFirmware() {
         await this.runSignalSequence([
             { dtr: false, rts: true, delayMs: 100 },
-            { rts: false, delayMs: 50 },
+            { dtr: false, rts: false, delayMs: 50 },
             { delayMs: 200 },
         ]);
     }
@@ -6534,6 +6535,13 @@ class ESPLoader extends EventTarget {
             WDTCONFIG1_REG = ESP32S31_RTC_CNTL_WDTCONFIG1_REG;
             WDT_WKEY = ESP32S31_RTC_CNTL_WDT_WKEY;
         }
+        else if (this.chipFamily === CHIP_FAMILY_ESP32H2) {
+            // H2 uses LP_WDT (Low Power Watchdog Timer)
+            WDTWPROTECT_REG = ESP32H2_RTC_CNTL_WDTWPROTECT_REG;
+            WDTCONFIG0_REG = ESP32H2_RTC_CNTL_WDTCONFIG0_REG;
+            WDTCONFIG1_REG = ESP32H2_RTC_CNTL_WDTCONFIG1_REG;
+            WDT_WKEY = ESP32H2_RTC_CNTL_WDT_WKEY;
+        }
         else {
             throw new Error(`rtcWdtResetChipSpecific() is not supported for ${this.chipFamily}`);
         }
@@ -6678,12 +6686,13 @@ class ESPLoader extends EventTarget {
                 }
                 // Check if chip supports WDT reset
                 // WDT reset is not needed for ESP32-C3
-                // WDT reset is supported by: ESP32-S2, ESP32-S3, ESP32-P4, ESP32-S31
-                // WDT reset is NOT supported by: ESP32-C5, ESP32-C6, ESP32-C61, ESP32-H2
+                // WDT reset is supported by: ESP32-S2, ESP32-S3, ESP32-P4, ESP32-S31, ESP32-H2
+                // WDT reset is NOT supported by: ESP32-C5, ESP32-C6, ESP32-C61
                 const supportsWdtReset = this.chipFamily === CHIP_FAMILY_ESP32S2 ||
                     this.chipFamily === CHIP_FAMILY_ESP32S3 ||
                     this.chipFamily === CHIP_FAMILY_ESP32P4 ||
-                    this.chipFamily === CHIP_FAMILY_ESP32S31;
+                    this.chipFamily === CHIP_FAMILY_ESP32S31 ||
+                    this.chipFamily === CHIP_FAMILY_ESP32H2;
                 if (!supportsWdtReset) {
                     this.logger.debug(`${this.chipName} does not support WDT reset - using classic reset instead`);
                     // Release reader/writer before classic reset to avoid stream abort errors
@@ -6704,7 +6713,10 @@ class ESPLoader extends EventTarget {
                     const portChanges = !this.isWebUSB() &&
                         isNativeUsb &&
                         (this.chipFamily === CHIP_FAMILY_ESP32C6 ||
-                            this.chipFamily === CHIP_FAMILY_ESP32C61);
+                            this.chipFamily === CHIP_FAMILY_ESP32C61 ||
+                            this.chipFamily === CHIP_FAMILY_ESP32C5 ||
+                            this.chipFamily === CHIP_FAMILY_ESP32H2 ||
+                            this.chipFamily === CHIP_FAMILY_ESP32H21);
                     return portChanges;
                 }
                 // WDT reset is supported - proceed with WDT reset logic
