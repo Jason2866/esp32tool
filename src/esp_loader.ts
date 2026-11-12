@@ -4464,7 +4464,12 @@ export class ESPLoader extends EventTarget {
       return;
     }
 
-    await this.stopReadLoop(true);
+    const loopStopped = await this.stopReadLoop(true);
+    if (!loopStopped) {
+      throw new Error(
+        "Old read loop did not stop within timeout; aborting port handoff to prevent state corruption",
+      );
+    }
     this._readLoopFinished = undefined;
 
     this.port = newPort;
