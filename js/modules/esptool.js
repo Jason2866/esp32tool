@@ -6024,9 +6024,8 @@ class ESPLoader extends EventTarget {
      */
     async hardResetToFirmware() {
         await this.runSignalSequence([
-            { dtr: false, rts: true, delayMs: 100 },
-            { dtr: false, rts: false, delayMs: 50 },
-            { delayMs: 200 },
+            { dtr: false, rts: true, delayMs: 200 },
+            { dtr: false, rts: false, delayMs: 200 },
         ]);
     }
     /**
@@ -6686,13 +6685,12 @@ class ESPLoader extends EventTarget {
                 }
                 // Check if chip supports WDT reset
                 // WDT reset is not needed for ESP32-C3
-                // WDT reset is supported by: ESP32-S2, ESP32-S3, ESP32-P4, ESP32-S31, ESP32-H2
-                // WDT reset is NOT supported by: ESP32-C5, ESP32-C6, ESP32-C61
+                // WDT reset is supported by: ESP32-S2, ESP32-S3, ESP32-P4, ESP32-S31
+                // WDT reset is NOT supported by: ESP32-C5, ESP32-C6, ESP32-C61, ESP32-H2
                 const supportsWdtReset = this.chipFamily === CHIP_FAMILY_ESP32S2 ||
                     this.chipFamily === CHIP_FAMILY_ESP32S3 ||
                     this.chipFamily === CHIP_FAMILY_ESP32P4 ||
-                    this.chipFamily === CHIP_FAMILY_ESP32S31 ||
-                    this.chipFamily === CHIP_FAMILY_ESP32H2;
+                    this.chipFamily === CHIP_FAMILY_ESP32S31;
                 if (!supportsWdtReset) {
                     this.logger.debug(`${this.chipName} does not support WDT reset - using classic reset instead`);
                     // Release reader/writer before classic reset to avoid stream abort errors
