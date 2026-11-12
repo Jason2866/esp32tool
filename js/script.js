@@ -1408,6 +1408,10 @@ async function clickConsole() {
               errorMsg(`Failed to open port for console: ${err.message}`);
               consoleSwitch.checked = false;
               saveSetting("console", false);
+              toggleUIConnected(false);
+              espStub = undefined;
+              espLoaderBeforeConsole = null;
+              clearAllCachedData();
             }
 
             return;
