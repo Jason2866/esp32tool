@@ -3631,32 +3631,36 @@ export class ESPLoader extends EventTarget {
     }
 
     // Wait for pending writes to complete
-    try {
-      const writeCompleted = await Promise.race([
-        this._writeChain.then(
-          () => true,
-          () => true,
-        ),
-        sleep(1000).then(() => false),
-      ]);
-      if (!writeCompleted) {
-        this.logger.debug(
-          "Incomplete write during console release: write deadline expired",
-        );
-        if (this._writer) {
-          try {
-            void this._writer
-              .abort(new Error("Write timed out during console release"))
-              .catch((err) => {
+    const writeCompleted = await Promise.race([
+      this._writeChain.then(
+        () => true,
+        () => true,
+      ),
+      sleep(1000).then(() => false),
+    ]);
+    if (!writeCompleted) {
+      this.logger.debug(
+        "Incomplete write during console release: write deadline expired",
+      );
+      if (this._writer) {
+        const abortCompleted = await Promise.race([
+          this._writer
+            .abort(new Error("Write timed out during console release"))
+            .then(
+              () => true,
+              (err) => {
                 this.logger.debug(`Writer abort error: ${err}`);
-              });
-          } catch (err) {
-            this.logger.debug(`Writer abort error: ${err}`);
-          }
+                return true;
+              },
+            ),
+          sleep(1000).then(() => false),
+        ]);
+        if (!abortCompleted) {
+          throw new Error(
+            "Writer cancellation did not complete during console release",
+          );
         }
       }
-    } catch (_err) {
-      //      this.logger.debug(`Pending write error during release: ${err}`);
     }
 
     // Release writer
